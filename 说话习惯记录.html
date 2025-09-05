@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>说话习惯记录表</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* 基础样式重置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Nunito', sans-serif;
+            line-height: 1.6;
+            color: #334155; /* 深蓝灰色文本 */
+            background-color: #F8FAFC; /* 更明亮的背景 */
+            padding: 20px;
+        }
+        
+        /* 容器样式 */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05); /* 更柔和的阴影 */
+            overflow: hidden;
+            padding: 30px;
+            border: 1px solid #E2E8F0;
+        }
+        
+        /* 标题样式 */
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #0F766E; /* 深蓝绿色 */
+            font-size: 2.5rem;
+            font-weight: 700;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #CCFBF1; /* 浅蓝绿色 */
+        }
+
+        /* ----- 信息区与说明区样式 ----- */
+        .info-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin: 25px 0;
+        }
+        
+        .info-item {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .info-item label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #475569;
+        }
+        
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper .icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            /* 遵照您的指示进行修改 */
+            transform: translateY(-50%);
+            color: #94A3B8;
+            transition: color 0.3s ease;
+        }
+        
+        .info-item input {
+            width: 100%;
+            padding: 12px 15px 12px 50px; 
+            border: 2px solid #E2E8F0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .info-item input:focus {
+            outline: none;
+            border-color: #14B8A6; /* 主题色 */
+            box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.1);
+        }
+        .info-item input:focus + .icon {
+            color: #14B8A6;
+        }
+
+        .legend {
+            margin-bottom: 25px;
+            padding: 15px;
+            background-color: #F0FDFA; /* 新的浅色背景 */
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            border: 1px solid #CCFBF1;
+        }
+        .legend-item {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #115E59;
+            padding: 8px 12px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        .legend-item .symbol {
+            font-size: 1.2rem;
+            margin-right: 8px;
+        }
+
+        /* ----- 表格样式 ----- */
+        .table-wrapper {
+            overflow-x: auto;
+            border: 1px solid #E2E8F0;
+            border-radius: 15px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.03);
+        }
+        
+        /* 响应式设计 - 小屏幕设备 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .record-table {
+                min-width: 800px; /* 确保表格有足够的最小宽度 */
+            }
+            
+            .record-table th,
+            .record-table td {
+                padding: 8px 6px;
+                font-size: 0.9rem;
+            }
+            
+            .option {
+                min-width: 35px;
+                font-size: 1rem;
+                padding: 4px 8px;
+            }
+        }
+        .record-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            text-align: center;
+        }
+        .record-table th {
+            background: linear-gradient(135deg, #14B8A6, #0D9488); /* 新的渐变色 */
+            color: white;
+            padding: 15px;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .record-table th, .record-table td {
+            padding: 10px;
+            border-bottom: 1px solid #E2E8F0;
+            vertical-align: middle;
+        }
+        .record-table tbody th { 
+            background: #F8FAFC;
+            color: #334155;
+            text-align: left;
+            padding-left: 15px;
+            font-weight: 700;
+            border-right: 1px solid #E2E8F0;
+        }
+        .record-table tbody tr:hover td {
+            background-color: #F0FDFA;
+        }
+
+        /* 选项组样式 */
+        .option-group {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+        .option {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 1.2rem;
+            transition: all 0.2s ease-in-out;
+            min-width: 45px;
+        }
+        .option:hover {
+            transform: translateY(-2px);
+            background-color: #CCFBF1;
+        }
+        .option.selected {
+            background-color: #14B8A6; /* 新的主题色 */
+            color: white;
+            transform: scale(1.05) translateY(-1px);
+            box-shadow: 0 4px 12px rgba(20, 184, 166, 0.3); /* 新的阴影色 */
+        }
+        
+        /* ----- 提交按钮 ----- */
+        .submit-section {
+            text-align: center;
+            margin: 40px 0 15px;
+        }
+        .submit-btn {
+            background: linear-gradient(135deg, #14B8A6, #0D9488);
+            color: white;
+            border: none;
+            padding: 12px 35px;
+            border-radius: 30px;
+            font-family: 'Nunito', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(20, 184, 166, 0.2);
+            user-select: none;
+        }
+        .submit-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(20, 184, 166, 0.3);
+        }
+
+        /* 动画效果 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>说话习惯记录表</h1>
+        
+        <div class="info-section">
+            <div class="info-item">
+                <label for="name">姓名:</label>
+                <div class="input-wrapper">
+                    <input type="text" id="name" name="name" placeholder="请输入姓名">
+                    <i class="fas fa-user icon"></i>
+                </div>
+            </div>
+            <div class="info-item">
+                <label for="age">年龄:</label>
+                <div class="input-wrapper">
+                    <input type="text" id="age" name="age" placeholder="请输入年龄">
+                    <i class="fas fa-birthday-cake icon"></i>
+                </div>
+            </div>
+            <div class="info-item">
+                <label for="date">日期:</label>
+                <div class="input-wrapper">
+                    <input type="date" id="date" name="date">
+                    <i class="fas fa-calendar-alt icon"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item"><strong>图例:</strong></div>
+            <div class="legend-item"><span class="symbol">✅</span>正常音量</div>
+            <div class="legend-item"><span class="symbol">✓</span>小声说话</div>
+            <div class="legend-item"><span class="symbol">W</span>悄声/耳语</div>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="record-table">
+                <thead>
+                    <tr>
+                        <th rowspan="2" style="min-width: 150px;">交流对象</th>
+                        <th colspan="2">一对一, 周围没有别人</th>
+                        <th colspan="2">一对一, 周围有别人</th>
+                        <th colspan="2">小组谈话</th>
+                    </tr>
+                    <tr>
+                        <th>被动回应</th>
+                        <th>主动发起</th>
+                        <th>被动回应</th>
+                        <th>主动发起</th>
+                        <th>被动回应</th>
+                        <th>主动发起</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th>家人和朋友</th>
+                        <td>
+                            <div class="option-group" id="family_alone_passive">
+                                <span class="option" data-value="normal">✅</span><span class="option" data-value="quiet">✓</span><span class="option" data-value="whisper">W</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="option-group" id="family_alone_active">
+                                <span class="option" data-value="normal">✅</span><span class="option" data-value="quiet">✓</span><span class="option" data-value="whisper">W</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="option-group" id="family_with_others_passive">
+                                <span class="option" data-value="normal">✅</span><span class="option" data-value="quiet">✓</span><span class="option" data-value="whisper">W</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="option-group" id="family_with_others_active">
+                                <span class="option" data-value="normal">✅</span><span class="option" data-value="quiet">✓</span><span class="option" data-value="whisper">W</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="option-group" id="family_group_passive">
+                                <span class="option" data-value="normal">✅</span><span class="option" data-value="quiet">✓</span><span class="option" data-value="whisper">W</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="option-group" id="family_group_active">
+                                <span class="option" data-value="normal">✅</span><span class="option" data-value="quiet">✓</span><span class="option" data-value="whisper">W</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>经常联系的人<br><small>(老师、同伴、朋友父母等)</small></th>
+                        <td>
+                            <div class="option-group" id="frequent_contacts_alone_passive">
+                                <span class="option" data-value="normal">✅</span><span class="option" data-value="quiet">✓</span><span class="option" data-value="whisper">W</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="option-group" id="frequent_contacts_alone_active">
+                                <span class="option" data-value="normal">✅</span><span class="option" data-value="quiet">✓</span><span class="option" data-value="whisper">W</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="option-group" id="frequent_contacts_with_others_passive">
+                                <span class="option" data-value="normal">✅</span><span class="option" data-value="quiet">✓</span><span class="option" data-value="whisper">W</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="option-group" id="frequent_contacts_with_others_active">
+                                <span class="option" data-value="normal">✅</span><span class="option" data-value="quiet">✓</span><span class="option" data-value="whisper">W</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="option-group" id="frequent_contacts_group_passive">
+                                <span class="option" data-value="normal">✅</span><span class="option" data-value="quiet">✓</span><span class="option" data-value="whisper">W</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="option-group" id="frequent_contacts_group_active">
+                                <span class="option" data-value="normal">✅</span><span class="option" data-value="quiet">✓</span><span class="option" data-value="whisper">W</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>陌生人<br><small>(店员、服务员、访客等)</small></th>
+                        <td>
+                            <div class="option-group" id="strangers_alone_passive">
+                                <span class="option" data-value="normal">✅</span><span class="option" data-value="quiet">✓</span><span class="option" data-value="whisper">W</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="option-group" id="strangers_alone_active">
+                                 <span class="option" data-value="normal">✅</span><span class="option" data-value="quiet">✓</span><span class="option" data-value="whisper">W</span>
+                             </div>
+                        </td>
+                        <td>
+                            <div class="option-group" id="strangers_with_others_passive">
+                                <span class="option" data-value="normal">✅</span><span class="option" data-value="quiet">✓</span><span class="option" data-value="whisper">W</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="option-group" id="strangers_with_others_active">
+                                <span class="option" data-value="normal">✅</span><span class="option" data-value="quiet">✓</span><span class="option" data-value="whisper">W</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="option-group" id="strangers_group_passive">
+                                <span class="option" data-value="normal">✅</span><span class="option" data-value="quiet">✓</span><span class="option" data-value="whisper">W</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="option-group" id="strangers_group_active">
+                                <span class="option" data-value="normal">✅</span><span class="option" data-value="quiet">✓</span><span class="option" data-value="whisper">W</span>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="submit-section">
+            <button class="submit-btn" id="submitBtn">
+                <i class="fas fa-save"></i> 保存记录
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // 读取localStorage中保存的基本信息
+            const savedInfo = localStorage.getItem('basicInfo');
+            if (savedInfo) {
+                const info = JSON.parse(savedInfo);
+                
+                // 填充姓名字段
+                if (info.name) {
+                    const nameField = document.getElementById('name');
+                    if (nameField) nameField.value = info.name;
+                }
+                
+                // 根据出生日期计算并填充年龄字段
+                if (info.birthdate) {
+                    const ageField = document.getElementById('age');
+                    if (ageField) {
+                        // 计算年龄
+                        const birthdate = new Date(info.birthdate);
+                        const today = new Date();
+                        let age = today.getFullYear() - birthdate.getFullYear();
+                        const monthDiff = today.getMonth() - birthdate.getMonth();
+                        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthdate.getDate())) {
+                            age--;
+                        }
+                        ageField.value = age + ' 岁';
+                    }
+                }
+            }
+            
+            // 自动设置当天日期
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            document.getElementById('date').value = `${year}-${month}-${day}`;
+            
+            const table = document.querySelector('.record-table');
+
+            // 为所有选项组添加点击事件委托
+            table.addEventListener('click', function(e) {
+                // 检查点击的是否是 .option 元素
+                if (e.target.classList.contains('option')) {
+                    const clickedOption = e.target;
+                    const optionGroup = clickedOption.parentElement;
+                    
+                    if (clickedOption.classList.contains('selected')) {
+                        // 如果点击的选项已经被选中，则取消选中
+                        clickedOption.classList.remove('selected');
+                    } else {
+                        // 否则，先移除同组所有选项的 'selected' 状态
+                        const allOptionsInGroup = optionGroup.querySelectorAll('.option');
+                        allOptionsInGroup.forEach(opt => opt.classList.remove('selected'));
+                        
+                        // 再为被点击的选项添加 'selected' 状态
+                        clickedOption.classList.add('selected');
+                    }
+                }
+            });
+
+            // 提交按钮事件
+            document.getElementById('submitBtn').addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // 收集基本信息
+                const name = document.getElementById('name').value;
+                const age = document.getElementById('age').value;
+                const date = document.getElementById('date').value;
+                
+                // 从localStorage获取更多基本信息
+                const basicInfo = JSON.parse(localStorage.getItem('basicInfo')) || {};
+                const birthdate = basicInfo.birthdate || '';
+                const gender = basicInfo.gender || '';
+                
+                // 收集表格数据
+                const answers = {};
+                const categories = ['family', 'frequent_contacts', 'strangers'];
+                const situations = ['alone', 'with_others', 'group'];
+                const responseTypes = ['passive', 'active'];
+                
+                categories.forEach(category => {
+                    answers[category] = {};
+                    situations.forEach(situation => {
+                        answers[category][situation] = {};
+                        responseTypes.forEach(responseType => {
+                            const selectedOption = document.querySelector(`#${category}_${situation}_${responseType} .option.selected`);
+                            if (selectedOption) {
+                                answers[category][situation][responseType] = selectedOption.dataset.value;
+                            }
+                        });
+                    });
+                });
+                
+                // 验证基本信息
+                const validationErrors = [];
+                if (!name.trim()) {
+                    validationErrors.push('请填写姓名');
+                }
+                if (!age) {
+                    validationErrors.push('请填写年龄');
+                }
+                if (!date) {
+                    validationErrors.push('请选择日期');
+                }
+                if (!birthdate) {
+                    validationErrors.push('请选择出生日期');
+                }
+                if (!gender) {
+                    validationErrors.push('请选择性别');
+                }
+
+                if (validationErrors.length > 0) {
+                    alert('❌ 请完善以下信息：\n' + validationErrors.join('\n'));
+                    return;
+                }
+
+                // 构建符合API标准的问题数据
+                const questions = [];
+                let questionIndex = 1;
+                
+                const apiCategories = ['family', 'school', 'community'];
+                const apiSituations = ['familiar', 'unfamiliar', 'group'];
+                const apiResponseTypes = ['passive', 'active'];
+                
+                apiCategories.forEach(category => {
+                    apiSituations.forEach(situation => {
+                        apiResponseTypes.forEach(responseType => {
+                            const selectedOption = document.querySelector(`#${category}_${situation}_${responseType} .option.selected`);
+                            if (selectedOption) {
+                                const questionText = `${category}_${situation}_${responseType}`;
+                                const answerValue = selectedOption.dataset.value;
+                                const answerText = selectedOption.textContent.trim();
+                                
+                                questions.push({
+                                    id: questionIndex++,
+                                    type: 'multiple_choice',
+                                    question: questionText,
+                                    options: [
+                                        { value: '0', text: '从不' },
+                                        { value: '1', text: '很少' },
+                                        { value: '2', text: '有时' },
+                                        { value: '3', text: '经常' },
+                                        { value: '4', text: '总是' }
+                                    ],
+                                    selected: [answerValue]
+                                });
+                            }
+                        });
+                    });
+                });
+
+                // 检查是否有足够的答案
+                if (questions.length < 5) {
+                    alert('❌ 请至少完成5个评估项目后再提交');
+                    return;
+                }
+                
+                // 构建符合API标准的完整数据对象
+                const dataToSubmit = {
+                    type: 'speech_habit',
+                    basic_info: {
+                        name: name.trim(),
+                        grade: `${age}岁 - ${gender}`,
+                        submission_date: date
+                    },
+                    questions: questions,
+                    statistics: {
+                        total_score: questions.length,
+                        completion_rate: 100,
+                        submission_time: new Date().toISOString()
+                    }
+                };
+                
+                // 发送数据到后端
+                fetch('http://127.0.0.1:5000/api/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(dataToSubmit),
+                    mode: 'cors',
+                    credentials: 'include'
+                })
+                .then(async response => {
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.success) {
+                            alert('✅ 数据保存成功！\n问卷ID: ' + (result.id || result.record_id));
+                            showCompletion(answers, name, age, date, birthdate, gender);
+                        } else {
+                            let errorMessage = result.error?.message || '保存失败';
+                            if (result.error?.details && Array.isArray(result.error.details)) {
+                                errorMessage = '数据验证失败：\n' + result.error.details.join('\n');
+                            }
+                            alert('❌ 保存失败：\n' + errorMessage);
+                        }
+                    } else {
+                        let errorMessage = `服务器错误 (${response.status})`;
+                        try {
+                            const errorData = await response.json();
+                            if (errorData.error) {
+                                if (errorData.error.details && Array.isArray(errorData.error.details)) {
+                                    errorMessage = '数据验证失败：\n' + errorData.error.details.join('\n');
+                                } else {
+                                    errorMessage = errorData.error.message || errorData.message || errorMessage;
+                                }
+                            }
+                        } catch (e) {
+                            errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                        }
+                        alert(`❌ 数据保存失败:\n${errorMessage}`);
+                    }
+                })
+                .catch(error => {
+                    console.error('提交数据时出错:', error);
+                    let errorMessage = '网络错误，请检查以下情况：\n\n';
+                    
+                    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                        errorMessage += '❌ 网络连接问题：\n';
+                        errorMessage += '  • 确保后端服务正在运行（运行 python app.py）\n';
+                        errorMessage += '  • 检查服务器地址是否正确 (127.0.0.1:5000)\n';
+                        errorMessage += '  • 检查防火墙设置\n\n';
+                    } else if (error.message.includes('CORS')) {
+                        errorMessage += '❌ CORS配置问题：\n';
+                        errorMessage += '  • 后端服务器CORS配置可能有问题\n';
+                        errorMessage += '  • 请联系技术支持\n\n';
+                    } else {
+                        errorMessage += `❌ 其他错误：${error.message}\n\n`;
+                    }
+                    
+                    errorMessage += '💡 建议：\n';
+                    errorMessage += '  • 刷新页面重试\n';
+                    errorMessage += '  • 检查网络连接\n';
+                    errorMessage += '  • 联系技术支持';
+                    
+                    alert(errorMessage);
+                });
+            });
+        });
+        
+        // 显示完成页面，展示用户选择的答案
+        function showCompletion(answers, name, age, date, birthdate, gender) {
+            // 隐藏表格，显示完成页面
+            document.querySelector('.table-wrapper').style.display = 'none';
+            document.querySelector('.submit-section').style.display = 'none';
+            
+            // 创建完成页面HTML
+            const completionHTML = `
+                <div class="completion-container" style="margin: 20px 0; padding: 20px; background: #f8fafc; border-radius: 10px;">
+                    <h2 style="color: #0f766e; margin-bottom: 20px;">记录已成功保存！</h2>
+                    
+                    <div style="margin-bottom: 20px; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <h3 style="color: #475569; margin-bottom: 10px;">基本信息</h3>
+                        <p><strong>姓名:</strong> ${name}</p>
+                        <p><strong>年龄:</strong> ${age}</p>
+                        <p><strong>日期:</strong> ${date}</p>
+                        <p><strong>出生日期:</strong> ${birthdate}</p>
+                        <p><strong>性别:</strong> ${gender}</p>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <h3 style="color: #475569; margin-bottom: 15px;">说话习惯记录</h3>
+                        ${generateAnswersHTML(answers)}
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 30px;">
+                        <button onclick="location.reload()" style="padding: 12px 24px; background: #14b8a6; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
+                            返回首页
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // 插入完成页面
+            const container = document.querySelector('.container');
+            container.insertAdjacentHTML('beforeend', completionHTML);
+        }
+        
+        // 生成答案HTML
+        function generateAnswersHTML(answers) {
+            let html = '';
+            
+            // 定义场景和响应类型的映射
+            const categoryNames = {
+                'family': '家人',
+                'frequent_contacts': '熟人',
+                'strangers': '陌生人'
+            };
+            
+            const situationNames = {
+                'alone': '独处',
+                'with_others': '与其他人一起',
+                'group': '群体活动'
+            };
+            
+            const responseTypeNames = {
+                'passive': '被动回应',
+                'active': '主动发言'
+            };
+            
+            const valueNames = {
+                'normal': '正常说话',
+                'quiet': '小声说话',
+                'whisper': '耳语/几乎无声'
+            };
+            
+            // 遍历所有分类
+            for (const [category, categoryData] of Object.entries(answers)) {
+                html += `<h4 style="color: #64748b; margin: 15px 0 10px 0;">${categoryNames[category]}</h4>`;
+                
+                // 遍历所有情境
+                for (const [situation, situationData] of Object.entries(categoryData)) {
+                    html += `<div style="margin-left: 20px; margin-bottom: 10px;">
+                        <strong>${situationNames[situation]}:</strong><br>`;
+                    
+                    // 遍历所有响应类型
+                    for (const [responseType, value] of Object.entries(situationData)) {
+                        if (value) {
+                            html += `<span style="display: inline-block; margin: 5px 10px 5px 0; padding: 4px 8px; background: #e0f2fe; border-radius: 4px; font-size: 14px;">
+                                ${responseTypeNames[responseType]}: ${valueNames[value] || value}
+                            </span>`;
+                        }
+                    }
+                    
+                    html += '</div>';
+                }
+            }
+            
+            return html;
+        }
+    </script>
+</body>
+</html>

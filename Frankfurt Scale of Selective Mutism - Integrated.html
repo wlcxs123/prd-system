@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>小布开口 · 选择性缄默筛查（集成版 v4.0）</title>
+<style>
+:root{--brand:#FF7A59;--brand2:#FFC857;--ink:#111827;--muted:#667085;--bg:#fff9f5;--card:#fff;--line:#f0e6de;--ok:#12B886;--mid:#F59E0B;--hi:#EF4444}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 -apple-system,system-ui,Segoe UI,Roboto,Helvetica,Arial}
+.app{max-width:1100px;margin:20px auto;background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 10px 30px rgba(28,35,90,.06)}
+header{padding:16px;background:linear-gradient(90deg,var(--brand),var(--brand2));color:#fff;position:sticky;top:0;z-index:5}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;gap:10px;align-items:center}
+.logo{width:38px;height:38px;border-radius:10px;background:#fff;color:var(--brand);display:grid;place-items:center;font-weight:900}
+.seg{display:flex;border:1px solid #ffffff3a;border-radius:999px;overflow:hidden}
+.seg button{background:transparent;border:none;color:#fff;padding:8px 12px;cursor:pointer}
+.seg button.act{background:#fff;color:var(--brand);font-weight:700}
+.pill{display:inline-block;border:1px solid #ffffff3a;border-radius:999px;padding:4px 8px;background:#ffffff18;font-size:12px}
+.prog{height:6px;background:#ffffff3a;border-radius:999px;overflow:hidden;margin-top:8px}
+.prog i{display:block;height:100%;background:#fff;width:0;transition:width .3s}
+main{padding:14px}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px}
+.btn{appearance:none;border:none;border-radius:10px;padding:8px 12px;cursor:pointer;font:inherit}
+.btn-pri{background:linear-gradient(90deg,var(--brand),var(--brand2));color:#fff}
+.btn-ghost{background:#fff;border:1px solid var(--line);color:#111}
+.btn-success{background:#28a745;color:#fff}
+.btn:disabled{background:#ccc;cursor:not-allowed}
+.grid{display:grid;gap:10px}
+.col-3{grid-template-columns:repeat(3,1fr)}
+.q{border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0}
+.q h4{margin:0 0 4px 0;font-size:15px}
+.en{color:#6b7280;font-size:12px}
+select,input[type=date],input[type=text]{padding:8px;border-radius:8px;border:1px solid var(--line);width:100%}
+.bar{height:8px;background:#ffe9cf;border-radius:999px;overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--brand),var(--brand2));width:0}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;color:#fff;font-weight:700;font-size:12px}
+.low{background:var(--ok)}.mid{background:var(--mid)}.high{background:var(--hi)}
+.muted{color:var(--muted);font-size:12px}
+.toast{position:fixed;top:16px;right:16px;background:#111;color:#fff;padding:10px 12px;border-radius:10px;opacity:0;transform:translateY(-8px);transition:.25s;z-index:99}
+.toast.show{opacity:1;transform:translateY(0)}
+.chartWrap{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+canvas{background:#fff;border:1px solid var(--line);border-radius:8px}
+@media (max-width:960px){.col-3{grid-template-columns:1fr}.chartWrap{grid-template-columns:1fr}}
+@media print{.no-print{display:none!important}}
+
+/* 集成版新增样式 */
+.integration-notice {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    font-size: 14px;
+}
+.submit-section {
+    background: #f8f9fa;
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 12px 0;
+    text-align: center;
+}
+.submit-section h4 {
+    margin: 0 0 8px 0;
+    color: #495057;
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header>
+    <div class="row">
+      <div class="brand"><div class="logo">布</div>
+        <div><div style="font-weight:900;line-height:1">小布开口</div>
+        <div style="opacity:.9;font-size:12px">每一步都算数 · 家长问卷（Frankfurt Scale - 集成版）</div></div>
+      </div>
+      <div class="row" style="gap:10px">
+        <div class="seg">
+          <button class="act" onclick="setAge('3_7')">3–7</button>
+          <button onclick="setAge('6_11')">6–11</button>
+          <button onclick="setAge('12_18')">12–18</button>
+        </div>
+        <span class="pill" id="counter">进度 0%</span>
+      </div>
+    </div>
+    <div class="prog"><i id="bar"></i></div>
+  </header>
+
+  <main>
+    <!-- 集成说明 -->
+    <div class="integration-notice">
+      <strong>🔗 系统集成版本</strong> - 此版本已集成到问卷数据管理系统，支持数据统一管理、自动备份和批量分析。
+    </div>
+
+    <section id="intro">
+      <div class="card">
+        <div class="row"><div>
+          <h3 style="margin:0 0 6px 0">如何使用</h3>
+          <div class="muted">A：快速筛查（家长版）（DS） · B：说话情况评分（SS）。用于筛查/追踪，不替代临床诊断。</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-pri" onclick="start()">开始填写</button>
+          <button class="btn btn-ghost" onclick="clearAll()">清除缓存</button>
+        </div></div>
+      </div>
+    </section>
+
+    <section id="form" hidden>
+      <div class="card"><div class="grid col-3">
+        <label>儿童姓名 *<input id="child" type="text" placeholder="必填" oninput="saveLocal()" required></label>
+        <label>家长/监护人<input id="guardian" type="text" placeholder="可选" oninput="saveLocal()"></label>
+        <label>日期 *<input id="date" type="date" oninput="saveLocal()" required></label>
+      </div></div>
+
+      <div class="card">
+        <div class="row">
+          <h3 style="margin:0">A. 快速筛查（家长版）<span class="en">（Diagnostic Scale, DS）</span></h3>
+          <div style="display:flex;gap:6px" class="no-print">
+            <button class="btn btn-ghost" onclick="saveClick()">本地保存</button>
+            <button class="btn btn-ghost" onclick="exportJSON()">导出JSON</button>
+            <button class="btn btn-ghost" onclick="exportCSV()">导出CSV</button>
+          </div>
+        </div>
+        <div id="ds"></div>
+        <div class="row" style="margin-top:6px">
+          <div>筛查总分：<b id="dsTotal">—</b>；<span id="dsInterp">—</span></div>
+          <div><button class="btn btn-pri" onclick="showSS()">下一步：B</button></div>
+        </div>
+      </div>
+
+      <div class="card" id="ssCard" hidden>
+        <h3 style="margin:0">B. 说话情况评分 <span class="en">（Severity Scale, SS）</span></h3>
+        <p class="muted" style="margin:.25rem 0 .5rem">0=无问题，1=轻度限制，2=偶尔，3=几乎从不，4=完全不说</p>
+        <div class="grid col-3">
+          <div><h4 style="margin:8px 0">学校/幼儿园</h4><div id="ss_school"></div></div>
+          <div><h4 style="margin:8px 0">公共场合</h4><div id="ss_public"></div></div>
+          <div><h4 style="margin:8px 0">家庭</h4><div id="ss_home"></div></div>
+        </div>
+        <hr style="border:none;border-top:1px solid var(--line)">
+        <div class="grid col-3">
+          <div class="card"><div>学校小计</div><div class="bar"><i id="bar_school"></i></div><div>得分 <b id="sum_school">0</b></div></div>
+          <div class="card"><div>公共小计</div><div class="bar"><i id="bar_public"></i></div><div>得分 <b id="sum_public">0</b></div></div>
+          <div class="card"><div>家庭小计</div><div class="bar"><i id="bar_home"></i></div><div>得分 <b id="sum_home">0</b></div></div>
+        </div>
+        <div style="margin-top:6px">总分：<b id="ssTotal">0</b></div>
+        
+        <!-- 新增：数据提交区域 -->
+        <div class="submit-section">
+          <h4>📊 数据提交到管理系统</h4>
+          <p class="muted">提交到服务器进行统一管理和分析（推荐）</p>
+          <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+            <button class="btn btn-success" onclick="submitToServer()" id="submitBtn">提交到服务器</button>
+            <button class="btn btn-ghost" onclick="validateData()">验证数据</button>
+          </div>
+        </div>
+        
+        <div style="display:flex;gap:8px;margin-top:8px" class="no-print">
+          <button class="btn btn-ghost" onclick="hideSS()">返回 A</button>
+          <button class="btn btn-pri" onclick="genReport()">生成报告</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="report" hidden></section>
+
+    <div class="card" id="chartsCard" hidden>
+      <h3 style="margin:4px 0 8px 0">可视化</h3>
+      <div class="chartWrap">
+        <div>
+          <div class="en">柱状图：学校/公共/家庭得分</div>
+          <canvas id="barChart" width="520" height="320"></canvas>
+        </div>
+        <div>
+          <div class="en">雷达图：学校/公共/家庭得分</div>
+          <canvas id="radarChart" width="520" height="320"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card no-print" id="downloadCard" hidden>
+      <button class="btn btn-pri" onclick="downloadPDF()">下载PDF报告</button>
+      <button class="btn btn-ghost" onclick="downloadPNG()">下载PNG图片</button>
+    </div>
+  </main>
+
+  <div class="footer" style="padding:12px;text-align:center;color:#fff;background:linear-gradient(90deg,var(--brand),var(--brand2))">© 小布开口 · 每一步都算数 - 集成版</div>
+</div>
+
+<!-- 引入统一错误处理组件 -->
+<script src="backend/static/js/error-handler.js"></script>
+<script src="backend/static/js/questionnaire-helper.js"></script>
+
+<script>
+// ======= 基础数据（ES5 写法） =======
+var CUTOFF = {'3_7':7,'6_11':7,'12_18':6};
+var DS = [
+ ["在家很能说话，但在公共/学校环境明显沉默或避免用语言。","Is there a clear distinction between speaking behavior at home (rather talkative) and in public (avoiding the use of words or even mute)?"],
+ ["在某些情境或面对某些人时不说话，即使别人期待他/她开口。","Does your child not speak in certain situations and/or with certain persons, even though he/she is expected to?"],
+ ["在这些情境里，连点头/摇头/用手指指物都难以做到（即使被要求）。","Is your child unable to shake or nod his/her head or point to something in certain situations, if asked to?"],
+ ["这些场合下动作变慢或像'僵住'。","Do his/her movements seem slow or frozen-like to you in certain situations?"],
+ ["持续至少1个月（不包含适应新学校的第一个月）。","Has this behavior persisted for at least 1 month (not limited to the first month at a new school)?"],
+ ["在家以外多数时间都很安静或不说话。","In places other than home, is your child mostly quiet or mute?"],
+ ["沉默不是因为不会/不熟悉所用语言。","Is the mutism not due to lack of knowledge or comfort with the spoken language?"],
+ ["沉默明显影响学习、社交或其他重要功能。","Does the mutism significantly interfere with educational achievement, social communication, or other important areas of functioning?"],
+ ["在家以外，即使与熟悉的人也常常沉默。","Does your child often remain mute even with familiar persons outside the home?"],
+ ["该表现不能被其他心理/发育障碍（如自闭症谱系）更好解释。","Is the mutism not better explained by another mental or developmental disorder (e.g., autism spectrum disorder)?"]
+];
+
+var SS = {
+ '3_7':{school:[
+  ["在幼儿园与老师说话","Does your child speak with teachers in kindergarten?"],
+  ["在幼儿园与同伴说话","Does your child speak with peers in kindergarten?"],
+  ["在幼儿园与父母说话（即便他人能听见）","Does he/she speak with their father/mother in the kindergarten, even if others can hear them?"],
+  ["参与体育/游戏活动","Does your child join in sports activities?"],
+  ["在集体活动中开口","Does your child speak in group activities at kindergarten?"],
+  ["与固定的朋友玩耍并交流","Does your child play with a few select peers?"]
+ ],pub:[
+  ["与公共场合的陌生儿童交谈（游乐场/假期/泳池）","Does he/she speak with unfamiliar children when addressed on the playground, on holidays, or in a public swimming pool?"],
+  ["与邻居说话","Does your child speak with neighbors?"],
+  ["在商店与店员交流","Does your child speak to shop assistants in a store?"],
+  ["在餐馆点餐","Does your child order food in a restaurant?"]
+ ],home:[
+  ["与直系亲属（父母/兄弟姐妹）说话","Does your child speak with all close family members (mother, father, siblings)?"],
+  ["与父母的朋友说话","Does your child speak at home with their parents' friends?"],
+  ["在家谈论个人事情（感受/愿望/冲突/需求/决定/经历）","Does he/she speak about personal issues (feelings, wishes, conflicts, needs, decisions, and experiences) at home?"],
+  ["与来家里的自己的朋友说话","Does he/she speak at home with his/her friends?"]
+ ]},
+ '6_11':{school:[
+  ["在课堂与老师说话","Does your child speak with teachers at school?"],
+  ["与同班同学说话","Does your child speak with classmates?"],
+  ["在学校操场说话","Does he/she speak on the school playground?"],
+  ["与固定朋友一起玩耍并交流","Does your child play with a few select peers?"],
+  ["参加体育课","Does your child take part in gym class?"],
+  ["在课堂上举手回答问题","Does your child answer questions in class?"],
+  ["在课堂上朗读","Does your child read aloud in class?"],
+  ["与非任课职员交流（如校医/图书馆管理员）","Does your child speak with non-teaching staff at school?"],
+  ["与不同年级的学生交流","Does your child speak with younger or older students?"],
+  ["课外与老师交谈","Does your child speak with teachers outside of lessons?"]
+ ],pub:[
+  ["与公共场合的陌生儿童交谈（游乐场/假期/泳池）","Does he/she speak with unfamiliar children when addressed on the playground, on holidays, or in a public swimming pool?"],
+  ["与邻居说话","Does your child speak with neighbors?"],
+  ["在商店与店员交流","Does your child speak to shop assistants in a store?"],
+  ["在餐馆点餐","Does your child order food in a restaurant?"]
+ ],home:[
+  ["与直系亲属（父母/兄弟姐妹）说话","Does your child speak with all close family members (mother, father, siblings)?"],
+  ["与父母的朋友说话","Does your child speak at home with their parents' friends?"],
+  ["在家谈论个人事情（感受/愿望/冲突/需求/决定/经历）","Does he/she speak about personal issues (feelings, wishes, conflicts, needs, decisions, and experiences) at home?"],
+  ["与来家里的自己的朋友说话","Does he/she speak at home with his/her friends?"]
+ ]},
+ '12_18':{school:[
+  ["在课堂与老师说话","Does your child speak with teachers at school?"],
+  ["与同班同学说话","Does your child speak with classmates?"],
+  ["在校园公共区域（操场/走廊）说话","Does he/she speak on the school playground or common areas?"],
+  ["参加体育课或社团/运动队活动","Does your child take part in gym class or sports teams?"],
+  ["在课堂上举手回答问题","Does your child answer questions in class?"],
+  ["在课堂上朗读或做演讲/汇报","Does your child read aloud or give presentations in class?"],
+  ["与其他年级学生交流","Does your child speak with students from other grades?"],
+  ["与校内工作人员（如辅导员/图书馆管理员）交流","Does your child speak with school staff (e.g., counselor, librarian)?"]
+ ],pub:[
+  ["在聚会/活动中与不熟悉的同龄人交流","Does he/she speak with unfamiliar peers at gatherings or events?"],
+  ["与邻居或社区熟人说话","Does your child speak with neighbors or acquaintances in the community?"],
+  ["在商店与店员交流","Does your child speak to shop assistants in a store?"],
+  ["在餐馆/咖啡厅点单","Does your child order food or drinks in a restaurant or café?"]
+ ],home:[
+  ["与直系亲属（父母/兄弟姐妹）说话","Does your child speak with all close family members (mother, father, siblings)?"],
+  ["与父母的朋友或来访客人说话","Does your child speak at home with their parents' friends or guests?"],
+  ["在家谈论个人事情（感受/愿望/冲突/计划）","Does he/she speak about personal issues (feelings, wishes, conflicts, plans) at home?"],
+  ["与朋友在家里交流","Does he/she speak at home with his/her friends?"]
+ ]}
+};
+
+// ======= 状态与引用 =======
+var age='3_7';
+var state={ ds:{}, ss:{school:{},pub:{},home:{}} };
+var KEY='xb_fssm_integrated_v40';
+var barEl, counterEl, introEl, formEl, reportEl, dsBox, dsTotalEl, dsInterpEl,
+    ssCardEl, ssSchoolEl, ssPublicEl, ssHomeEl, sumSchoolEl, sumPublicEl, sumHomeEl,
+    barSchoolEl, barPublicEl, barHomeEl, ssTotalEl, childEl, guardianEl, dateEl,
+    chartsCardEl, barCanvas, radarCanvas, downloadCardEl, submitBtnEl;
+
+window.onload=function(){
+  // 检查是否加载了错误处理组件
+  if (typeof errorHandler === 'undefined') {
+    console.warn('错误处理组件未加载，某些功能可能不可用');
+  } else {
+    // 显示集成版欢迎信息
+    setTimeout(function() {
+      if (typeof errorHandler !== 'undefined') {
+        errorHandler.showInfo('欢迎使用集成版', {
+          details: '此版本支持数据统一管理和自动备份'
+        });
+      }
+    }, 1000);
+  }
+
+  barEl=document.getElementById('bar');
+  counterEl=document.getElementById('counter');
+  introEl=document.getElementById('intro');
+  formEl=document.getElementById('form');
+  reportEl=document.getElementById('report');
+  dsBox=document.getElementById('ds');
+  dsTotalEl=document.getElementById('dsTotal');
+  dsInterpEl=document.getElementById('dsInterp');
+  ssCardEl=document.getElementById('ssCard');
+  ssSchoolEl=document.getElementById('ss_school');
+  ssPublicEl=document.getElementById('ss_public');
+  ssHomeEl=document.getElementById('ss_home');
+  sumSchoolEl=document.getElementById('sum_school');
+  sumPublicEl=document.getElementById('sum_public');
+  sumHomeEl=document.getElementById('sum_home');
+  barSchoolEl=document.getElementById('bar_school');
+  barPublicEl=document.getElementById('bar_public');
+  barHomeEl=document.getElementById('bar_home');
+  ssTotalEl=document.getElementById('ssTotal');
+  childEl=document.getElementById('child');
+  guardianEl=document.getElementById('guardian');
+  dateEl=document.getElementById('date');
+  chartsCardEl=document.getElementById('chartsCard');
+  barCanvas=document.getElementById('barChart');
+  radarCanvas=document.getElementById('radarChart');
+  downloadCardEl=document.getElementById('downloadCard');
+  submitBtnEl=document.getElementById('submitBtn');
+
+  // 恢复缓存
+  try{
+    var raw=localStorage.getItem(KEY);
+    if(raw){
+      var d=JSON.parse(raw);
+      age=d.age||age; state.ds=d.ds||{}; state.ss=d.ss||{school:{},pub:{},home:{}};
+      childEl.value=d.child||''; guardianEl.value=d.guardian||''; dateEl.value=d.date||'';
+      // 按钮态
+      var segBtns=document.querySelectorAll('.seg button');
+      for(var i=0;i<segBtns.length;i++){ segBtns[i].className=''; if(segBtns[i].textContent.indexOf(age.split('_')[0])===0) segBtns[i].className='act'; }
+    }
+  }catch(e){}
+
+  renderAll();
+};
+
+function toast(msg){ 
+  // 使用统一错误处理系统的提示，如果不可用则回退到原始toast
+  if (typeof errorHandler !== 'undefined') {
+    errorHandler.showInfo('提示', msg);
+  } else {
+    // 原始toast逻辑
+    var toastEl = document.getElementById('toast') || createToastElement();
+    toastEl.textContent = msg;
+    toastEl.className = 'toast show';
+    setTimeout(function() { toastEl.className = 'toast'; }, 1800);
+  }
+}
+
+function createToastElement() {
+  var toastEl = document.createElement('div');
+  toastEl.id = 'toast';
+  toastEl.className = 'toast';
+  document.body.appendChild(toastEl);
+  return toastEl;
+}
+
+// ======= 交互 =======
+function setAge(a){
+  age=a;
+  var segBtns=document.querySelectorAll('.seg button');
+  for(var i=0;i<segBtns.length;i++){ segBtns[i].className=''; }
+  if(a==='3_7') segBtns[0].className='act'; else if(a==='6_11') segBtns[1].className='act'; else segBtns[2].className='act';
+  renderAll(); saveLocal();
+}
+function start(){
+  introEl.hidden=true; formEl.hidden=false;
+  if(!dateEl.value){ dateEl.value=(new Date().toISOString().slice(0,10)); }
+  renderAll();
+}
+function clearAll(){ localStorage.removeItem(KEY); location.reload(); }
+function showSS(){ ssCardEl.hidden=false; ssSchoolEl.scrollIntoView(); }
+function hideSS(){ ssCardEl.hidden=true; }
+function saveClick(){ saveLocal(); toast('已保存到本地'); }
+
+// ======= 渲染 =======
+function renderAll(){ renderDS(); renderSS(); progress(); calcDS(); calcSS(); }
+function renderDS(){
+  dsBox.innerHTML='';
+  for(var i=0;i<DS.length;i++){
+    var it=DS[i], id='DS_'+(i+1);
+    var box=document.createElement('div'); box.className='q';
+    box.innerHTML='<h4>'+(i+1)+'. '+it[0]+'</h4><div class="en">'+it[1]+'</div>'+
+      '<div><select id="'+id+'" onchange="onDSChange(\''+id+'\')">'+
+      '<option value="">— 请选择 —</option><option value="1">是 = 1分</option><option value="0">否 = 0分</option></select></div>';
+    dsBox.appendChild(box);
+    document.getElementById(id).value = (state.ds[id]!==undefined? state.ds[id]: '');
+  }
+}
+function onDSChange(id){ state.ds[id]=document.getElementById(id).value; calcDS(); progress(); saveLocal(); }
+
+function renderSS(){
+  function fill(k, box){
+    box.innerHTML='';
+    var arr=SS[age][k];
+    for(var i=0;i<arr.length;i++){
+      var it=arr[i], id='SS_'+k.toUpperCase()+'_'+(i+1);
+      var el=document.createElement('div'); el.className='q';
+      el.innerHTML='<h4>'+it[0]+'</h4><div class="en">'+it[1]+'</div>'+
+        '<div><select id="'+id+'" onchange="onSSChange(\''+k+'\',\''+id+'\')">'+
+        '<option value="">— 请选择 —</option>'+
+        '<option value="0">0 无问题</option><option value="1">1 轻度限制</option><option value="2">2 偶尔</option><option value="3">3 几乎从不</option><option value="4">4 完全不说</option>'+
+        '</select></div>';
+      box.appendChild(el);
+      document.getElementById(id).value = (state.ss[k][id]!==undefined? state.ss[k][id]: '');
+    }
+  }
+  fill('school', ssSchoolEl); fill('pub', ssPublicEl); fill('home', ssHomeEl);
+}
+function onSSChange(k,id){ state.ss[k][id]=Number(document.getElementById(id).value||0); calcSS(); progress(); saveLocal(); }
+
+function progress(){
+  var total = DS.length + SS[age].school.length + SS[age].pub.length + SS[age].home.length;
+  var doneDS=0, k;
+  for(k in state.ds){ if(state.ds.hasOwnProperty(k) && state.ds[k]!=='' && state.ds[k]!==undefined){ doneDS++; } }
+  var doneSS=0, kk=['school','pub','home'], t,i;
+  for(i=0;i<kk.length;i++){ k=kk[i]; for(t in state.ss[k]){ if(state.ss[k].hasOwnProperty(t) && state.ss[k][t]!=='' && state.ss[k][t]!==undefined){ doneSS++; } } }
+  var pct=Math.round(100*(doneDS+doneSS)/total); barEl.style.width=pct+'%'; counterEl.textContent='进度 '+pct+'%';
+}
+function calcDS(){
+  var t=0, i;
+  for(i=1;i<=DS.length;i++){ t+= Number(state.ds['DS_'+i]||0); }
+  dsTotalEl.textContent=String(t);
+  var cut=CUTOFF[age], interp='—', tag='<span class="badge low">低风险</span>';
+  if(t>=cut){ interp='≥'+cut+'：高度怀疑SM；建议转介评估。'; tag='<span class="badge high">高风险</span>'; }
+  else if(t>=cut-2){ interp=(cut-2)+'~'+(cut-1)+'：可能SM；结合B部分与观察。'; tag='<span class="badge mid">中等风险</span>'; }
+  else { interp='<'+(cut-2)+'：SM可能性较低（如B部分高分仍需关注）'; }
+  dsInterpEl.innerHTML = tag+' '+interp;
+}
+function calcSS(){
+  function sum(k){ var s=0, key; for(key in state.ss[k]){ if(state.ss[k].hasOwnProperty(key)){ s+= Number(state.ss[k][key]||0); } } return s; }
+  var s1=sum('school'), s2=sum('pub'), s3=sum('home');
+  sumSchoolEl.textContent=s1; sumPublicEl.textContent=s2; sumHomeEl.textContent=s3;
+  var maxSchool=SS[age].school.length*4, maxPub=SS[age].pub.length*4, maxHome=SS[age].home.length*4;
+  barSchoolEl.style.width=(maxSchool? Math.round(100*s1/maxSchool):0)+'%';
+  barPublicEl.style.width=(maxPub? Math.round(100*s2/maxPub):0)+'%';
+  barHomeEl.style.width=(maxHome? Math.round(100*s3/maxHome):0)+'%';
+  ssTotalEl.textContent=s1+s2+s3;
+}
+
+// ======= 新增：数据验证和提交功能 =======
+
+// 验证数据完整性
+function validateData() {
+  var errors = [];
+  
+  // 验证基本信息
+  if (!childEl.value.trim()) {
+    errors.push('儿童姓名不能为空');
+  }
+  
+  if (!dateEl.value) {
+    errors.push('填表日期不能为空');
+  }
+  
+  // 验证DS部分
+  var dsComplete = 0;
+  for (var i = 1; i <= DS.length; i++) {
+    if (state.ds['DS_' + i] !== undefined && state.ds['DS_' + i] !== '') {
+      dsComplete++;
+    }
+  }
+  
+  if (dsComplete < DS.length) {
+    errors.push('A部分（快速筛查）还有 ' + (DS.length - dsComplete) + ' 个问题未完成');
+  }
+  
+  // 验证SS部分
+  var ssComplete = 0;
+  var ssTotal = SS[age].school.length + SS[age].pub.length + SS[age].home.length;
+  
+  ['school', 'pub', 'home'].forEach(function(section) {
+    for (var key in state.ss[section]) {
+      if (state.ss[section].hasOwnProperty(key) && 
+          state.ss[section][key] !== undefined && 
+          state.ss[section][key] !== '') {
+        ssComplete++;
+      }
+    }
+  });
+  
+  if (ssComplete < ssTotal) {
+    errors.push('B部分（说话情况评分）还有 ' + (ssTotal - ssComplete) + ' 个问题未完成');
+  }
+  
+  if (errors.length > 0) {
+    if (typeof errorHandler !== 'undefined') {
+      errorHandler.showError('数据验证失败', '请完善以下信息：', 'error', {
+        details: errors
+      });
+    } else {
+      alert('数据验证失败：\n' + errors.join('\n'));
+    }
+    return false;
+  } else {
+    if (typeof errorHandler !== 'undefined') {
+      errorHandler.showSuccess('数据验证通过！', {
+        details: '所有必填项都已正确填写'
+      });
+    } else {
+      toast('数据验证通过！');
+    }
+    return true;
+  }
+}
+
+// 转换为标准问卷格式
+function convertToStandardFormat() {
+  var questions = [];
+  var questionId = 1;
+  
+  // 转换DS部分
+  for (var i = 0; i < DS.length; i++) {
+    var dsId = 'DS_' + (i + 1);
+    var selected = [];
+    if (state.ds[dsId] !== undefined && state.ds[dsId] !== '') {
+      selected = [parseInt(state.ds[dsId])];
+    }
+    
+    questions.push({
+      id: questionId++,
+      type: 'multiple_choice',
+      question: DS[i][0],
+      question_en: DS[i][1],
+      options: [
+        { value: 1, text: '是 = 1分' },
+        { value: 0, text: '否 = 0分' }
+      ],
+      selected: selected,
+      section: 'DS'
+    });
+  }
+  
+  // 转换SS部分
+  var sections = ['school', 'pub', 'home'];
+  var sectionNames = { school: 'SS_school', pub: 'SS_public', home: 'SS_home' };
+  
+  sections.forEach(function(section) {
+    var questions_list = SS[age][section];
+    for (var i = 0; i < questions_list.length; i++) {
+      var ssId = 'SS_' + section.toUpperCase() + '_' + (i + 1);
+      var selected = [];
+      if (state.ss[section][ssId] !== undefined && state.ss[section][ssId] !== '') {
+        selected = [state.ss[section][ssId]];
+      }
+      
+      questions.push({
+        id: questionId++,
+        type: 'multiple_choice',
+        question: questions_list[i][0],
+        question_en: questions_list[i][1],
+        options: [
+          { value: 0, text: '0 无问题' },
+          { value: 1, text: '1 轻度限制' },
+          { value: 2, text: '2 偶尔' },
+          { value: 3, text: '3 几乎从不' },
+          { value: 4, text: '4 完全不说' }
+        ],
+        selected: selected,
+        section: sectionNames[section]
+      });
+    }
+  });
+  
+  // 计算风险等级
+  var dsTotal = Number(dsTotalEl.textContent || 0);
+  var cut = CUTOFF[age];
+  var riskLevel = 'low';
+  if (dsTotal >= cut) riskLevel = 'high';
+  else if (dsTotal >= cut - 2) riskLevel = 'mid';
+  
+  return {
+    type: 'frankfurt_scale_selective_mutism',
+    basic_info: {
+      name: childEl.value.trim(),
+      grade: age, // 年龄段作为年级
+      submission_date: dateEl.value,
+      guardian: guardianEl.value.trim()
+    },
+    questions: questions,
+    statistics: {
+      ds_total: dsTotal,
+      ss_school_total: Number(sumSchoolEl.textContent || 0),
+      ss_public_total: Number(sumPublicEl.textContent || 0),
+      ss_home_total: Number(sumHomeEl.textContent || 0),
+      ss_total: Number(ssTotalEl.textContent || 0),
+      age_group: age,
+      risk_level: riskLevel,
+      completion_rate: 100,
+      submission_time: new Date().toISOString()
+    }
+  };
+}
+
+// 提交到服务器
+async function submitToServer() {
+  try {
+    // 验证数据
+    if (!validateData()) {
+      return;
+    }
+    
+    // 禁用提交按钮
+    if (submitBtnEl) {
+      submitBtnEl.disabled = true;
+      submitBtnEl.textContent = '提交中...';
+    }
+    
+    // 转换数据格式
+    var questionnaireData = convertToStandardFormat();
+    
+    // 检查是否有问卷助手
+    if (typeof questionnaireHelper !== 'undefined') {
+      // 使用统一的问卷提交系统
+      var result = await questionnaireHelper.submitQuestionnaire(questionnaireData, {
+        showLoading: true,
+        onSuccess: function(result) {
+          if (typeof errorHandler !== 'undefined') {
+            errorHandler.showSuccess('问卷提交成功！', {
+              details: '问卷ID: ' + result.id + '\n数据已保存到管理系统'
+            });
+          }
+          
+          // 显示成功页面
+          if (typeof questionnaireHelper.showSuccessPage === 'function') {
+            questionnaireHelper.showSuccessPage(result.id);
+          }
+        }
+      });
+      
+      return result;
+    } else {
+      // 回退到直接fetch
+      var response = await fetch('http://localhost:5000/api/questionnaires', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(questionnaireData)
+      });
+      
+      if (response.ok) {
+        var result = await response.json();
+        if (result.success) {
+          if (typeof errorHandler !== 'undefined') {
+            errorHandler.showSuccess('问卷提交成功！', {
+              details: '问卷ID: ' + result.id
+            });
+          } else {
+            toast('提交成功！问卷ID: ' + result.id);
+          }
+          return result;
+        } else {
+          throw new Error(result.error?.message || '提交失败');
+        }
+      } else {
+        throw new Error('HTTP ' + response.status + ': ' + response.statusText);
+      }
+    }
+    
+  } catch (error) {
+    console.error('提交失败:', error);
+    if (typeof errorHandler !== 'undefined') {
+      errorHandler.showError('提交失败', error.message, 'error', {
+        retry: function() { return submitToServer(); }
+      });
+    } else {
+      alert('提交失败: ' + error.message);
+    }
+    return null;
+  } finally {
+    // 恢复提交按钮
+    if (submitBtnEl) {
+      submitBtnEl.disabled = false;
+      submitBtnEl.textContent = '提交到服务器';
+    }
+  }
+}
+
+// ======= 原有功能保持不变 =======
+
+// 报告 & 图表
+function payload(){
+  return {
+    date: dateEl.value || (new Date().toISOString().slice(0,10)),
+    child: childEl.value||'', guardian: guardianEl.value||'',
+    age: age, DS: Number(dsTotalEl.textContent||0),
+    SS_school: Number(sumSchoolEl.textContent||0),
+    SS_public: Number(sumPublicEl.textContent||0),
+    SS_home: Number(sumHomeEl.textContent||0),
+    SS_total: Number(ssTotalEl.textContent||0)
+  };
+}
+
+function genReport(){
+  var p=payload(), cut=CUTOFF[age];
+  var top;
+  if(p.SS_school===0 && p.SS_public===0 && p.SS_home===0) top='暂无显著困难';
+  else if(p.SS_school>=p.SS_public && p.SS_school>=p.SS_home) top='学校/幼儿园';
+  else if(p.SS_public>=p.SS_school && p.SS_public>=p.SS_home) top='公共场合';
+  else top='家庭';
+  var risk = (p.DS>=cut)?'high':(p.DS>=cut-2?'mid':'low');
+  var riskTxt = (risk==='high'?'高风险':(risk==='mid'?'中等风险':'低风险'));
+  var badge = '<span class="badge '+risk+'">'+riskTxt+'</span>';
+  var expMap={
+    '学校/幼儿园':"到校向固定老师点头→小声问好→与老师1词→1句→课堂前私下对话→课堂内小声回答→朗读一句→朗读一段→举手一次→课后与老师简短交流",
+    '公共场合':"商店向店员点头→说'谢谢'→说'你好'→关键词点单→完整点单→追加说明→独立结账说谢谢→问价→问路线→电话/前台咨询一句",
+    '家庭':"对父母朋友点头→问好→说谢谢/再见→回答是/否→说出需求词→完整句→向来访者说一句→与同龄朋友说一句→表达喜好→讲述一天一件事"
+  };
+  var exp = expMap[top] || '维持日常社交练习，2–4 周复测一次。';
+
+  reportEl.hidden=false; formEl.hidden=true; introEl.hidden=true;
+  reportEl.innerHTML =
+    '<div class="card" style="border-left:6px solid #ffd19c">'+
+      '<div class="row">'+
+        '<div><h3 style="margin:0 0 6px 0">评估结果 '+badge+'</h3><div class="muted">品牌：小布开口 · 每一步都算数（集成版）</div></div>'+
+        '<div style="text-align:right"><div><b>姓名：</b>'+(p.child||'—')+'</div><div><b>日期：</b>'+p.date+'</div><div><b>年龄段：</b>'+({'3_7':'3–7 岁','6_11':'6–11 岁','12_18':'12–18 岁'})[age]+'</div></div>'+
+      '</div></div>'+
+    '<div class="grid col-3">'+
+      '<div class="card"><b>A 部分（快速筛查）</b><div style="font-size:24px">'+p.DS+'</div><div class="muted">参考阈值：'+cut+'</div></div>'+
+      '<div class="card"><b>B 部分（说话评分）</b><div>'+p.SS_school+' / '+p.SS_public+' / '+p.SS_home+'</div><div class="muted">总分：'+p.SS_total+'</div></div>'+
+      '<div class="card"><b>主要困难场景</b><div style="font-size:18px">'+top+'</div><div class="muted">基于三域小计</div></div>'+
+    '</div>'+
+    '<div class="card"><h4 style="margin:0 0 6px 0">干预建议</h4><ul style="margin:0 0 0 18px">'+
+      '<li>避免当众点名或压力式催促；采用"先耳语→近距离低声→正常音量"的阶梯过渡。</li>'+
+      '<li>在孩子能说话的环境中录"安全声音"，用于在学校/社区做渐进式播放与模仿。</li>'+
+      (risk!=='low'?'<li>建议联系专业评估，制定系统渐进暴露计划。</li>':'')+
+    '</ul></div>'+
+    '<div class="card"><h4 style="margin:0 0 6px 0">自动暴露层级（按主要困难场景）</h4>'+
+      '<ol style="margin:0 0 0 18px">'+ exp.split('→').map(function(x){return '<li>'+x+'</li>';}).join('') +'</ol>'+
+      '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap" class="no-print">'+
+        '<button class="btn btn-ghost" onclick="backToForm()">返回继续编辑</button>'+
+      '</div>'+
+    '</div>';
+
+  // 图表 & 下载
+  chartsCardEl.hidden=false; downloadCardEl.hidden=false;
+  drawBarChart(); drawRadarChart();
+  toast('报告已生成，可下载 PDF / PNG');
+}
+
+function backToForm(){ reportEl.hidden=true; formEl.hidden=false; window.scrollTo(0,0); }
+
+// 柱状图
+function drawBarChart(){
+  var g=barCanvas.getContext('2d'); g.clearRect(0,0,barCanvas.width,barCanvas.height);
+  var s1=Number(sumSchoolEl.textContent||0), s2=Number(sumPublicEl.textContent||0), s3=Number(sumHomeEl.textContent||0);
+  var vals=[s1,s2,s3], labels=['学校','公共','家庭'], max=Math.max(1, s1,s2,s3, 20);
+  var W=barCanvas.width, H=barCanvas.height, pad=40, bw=60, gap=60, base=H-pad, i;
+  g.strokeStyle='#ddd'; g.lineWidth=1; for(i=0;i<=4;i++){ var y=pad+i*(H-2*pad)/4; g.beginPath(); g.moveTo(pad,y); g.lineTo(W-pad,y); g.stroke(); }
+  for(i=0;i<3;i++){ var x=pad+ i*(bw+gap)+gap; var h=(vals[i]/max)*(H-2*pad); g.fillStyle=(i===0?'#FF7A59':(i===1?'#FFC857':'#8FD3FF')); g.fillRect(x, base-h, bw, h); g.fillStyle='#333'; g.font='12px Arial'; g.fillText(labels[i], x+10, base+16); g.fillText(vals[i], x+18, base-h-6); }
+  g.fillStyle='#333'; g.font='14px Arial'; g.fillText('分数（越高说明该场景越难开口）', pad, 20);
+}
+
+// 雷达图（三轴）
+function drawRadarChart(){
+  var g=radarCanvas.getContext('2d'); g.clearRect(0,0,radarCanvas.width,radarCanvas.height);
+  var s1=Number(sumSchoolEl.textContent||0), s2=Number(sumPublicEl.textContent||0), s3=Number(sumHomeEl.textContent||0);
+  var W=radarCanvas.width,H=radarCanvas.height,cx=W/2,cy=H/2,r=Math.min(W,H)/2-40; var max=Math.max(1,s1,s2,s3,20);
+  var axes=[{ang:-Math.PI/2,label:'学校',val:s1},{ang:-Math.PI/2+2*Math.PI/3,label:'公共',val:s2},{ang:-Math.PI/2+4*Math.PI/3,label:'家庭',val:s3}], i;
+  g.strokeStyle='#e5e7eb'; for(i=1;i<=4;i++){ var rr=r*i/4; g.beginPath(); var j; for(j=0;j<3;j++){ var a=axes[j].ang, x=cx+rr*Math.cos(a), y=cy+rr*Math.sin(a); if(j){g.lineTo(x,y);}else{g.moveTo(x,y);} } g.closePath(); g.stroke(); }
+  g.strokeStyle='#cbd5e1'; g.fillStyle='#333'; g.font='12px Arial';
+  for(i=0;i<3;i++){ var x=cx+r*Math.cos(axes[i].ang), y=cy+r*Math.sin(axes[i].ang); g.beginPath(); g.moveTo(cx,cy); g.lineTo(x,y); g.stroke(); g.fillText(axes[i].label, x+(axes[i].ang>0?4:-24), y+(axes[i].ang>0?0:-6)); }
+  g.beginPath(); for(i=0;i<3;i++){ var rr=r*(axes[i].val/max); var x2=cx+rr*Math.cos(axes[i].ang), y2=cy+rr*Math.sin(axes[i].ang); if(i){g.lineTo(x2,y2);}else{g.moveTo(x2,y2);} }
+  g.closePath(); g.fillStyle='rgba(255,122,89,0.25)'; g.fill(); g.strokeStyle='#FF7A59'; g.stroke();
+  g.fillStyle='#333'; g.font='14px Arial'; g.fillText('雷达图（越外圈=越难开口）', 10, 18);
+}
+
+// ======= 导出 / 存储 =======
+function saveLocal(){
+  try{
+    var d={ age:age, ds:state.ds, ss:state.ss, child:childEl.value, guardian:guardianEl.value, date:dateEl.value };
+    localStorage.setItem(KEY, JSON.stringify(d));
+  }catch(e){}
+}
+
+function exportJSON(){
+  var p=[payload()];
+  var blob=new Blob([JSON.stringify(p,null,2)],{type:'application/json'});
+  var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download='fssm-integrated-'+Date.now()+'.json'; a.click(); URL.revokeObjectURL(url);
+}
+
+function exportCSV(){
+  var p=payload(); var keys=['date','child','guardian','age','DS','SS_school','SS_public','SS_home','SS_total'];
+  var line=[keys.join(',')], row=[]; for(var i=0;i<keys.length;i++){ row.push(JSON.stringify(p[keys[i]]||'')); } line.push(row.join(',')); 
+  var blob=new Blob([line.join('\n')],{type:'text/csv;charset=utf-8;'}); var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download='fssm-integrated-'+Date.now()+'.csv'; a.click(); URL.revokeObjectURL(url);
+}
+
+// 组合报告画布（同步）
+function buildReportCanvas(){
+  var w=1000,h=1414,pad=24;
+  var cvs=document.createElement('canvas'); cvs.width=w; cvs.height=h; var g=cvs.getContext('2d');
+  // 背景 & 头
+  g.fillStyle='#fff'; g.fillRect(0,0,w,h);
+  g.fillStyle='#FF7A59'; g.fillRect(0,0,w,76);
+  g.fillStyle='#fff'; g.font='bold 28px Arial'; g.fillText('小布开口 · 个案报告（集成版）', pad, 48);
+  // 摘要
+  var txt=reportEl.innerText.replace(/\n{2,}/g,'\n').split('\n').slice(0,20).join('\n');
+  g.fillStyle='#111'; g.font='16px Arial'; drawMultiline(g, txt, pad, 100, w-pad*2, 22);
+  // 图表直接画入
+  var imgW=(w-pad*3)/2, imgH=imgW*0.62, y=800;
+  g.drawImage(barCanvas, pad, y, imgW, imgH);
+  g.drawImage(radarCanvas, pad*2+imgW, y, imgW, imgH);
+  g.fillStyle='#888'; g.font='12px Arial'; g.fillText('© 小布开口 · 每一步都算数 - 集成版', pad, h-20);
+  return cvs;
+}
+
+function drawMultiline(g, text, x, y, maxW, lh){
+  var lines=text.split('\n'), i;
+  for(i=0;i<lines.length;i++){
+    var line=lines[i], s='', j, ch;
+    for(j=0;j<line.length;j++){
+      ch=line.charAt(j); if(g.measureText(s+ch).width>maxW){ g.fillText(s, x, y); y+=lh; s=ch; } else { s+=ch; }
+    }
+    g.fillText(s, x, y); y+=lh;
+  }
+}
+
+function downloadPNG(){
+  var c=buildReportCanvas(); var url=c.toDataURL('image/png'); var a=document.createElement('a'); a.href=url; a.download='小布开口-个案报告-集成版.png'; a.click();
+}
+
+// 极简 PDF（二进制拼接）——若浏览器不支持将提示使用 PNG
+function downloadPDF(){
+  try{
+    var c=buildReportCanvas();
+    var imgData=c.toDataURL('image/jpeg',0.92);
+    var pdfBytes = jpegToSinglePagePDF(imgData, {width:595.28, height:841.89});
+    var blob = new Blob([pdfBytes], {type:'application/pdf'});
+    var url = URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download='小布开口-个案报告-集成版.pdf'; a.click(); URL.revokeObjectURL(url);
+  }catch(e){
+    toast('当前浏览器不支持PDF下载，请点"下载PNG图片"');
+  }
+}
+
+function strToU8(str){
+  var arr=new Uint8Array(str.length), i; for(i=0;i<str.length;i++){ arr[i]=str.charCodeAt(i)&255; } return arr;
+}
+
+function concatU8(list){
+  var len=0,i; for(i=0;i<list.length;i++) len+=list[i].length;
+  var out=new Uint8Array(len), pos=0; for(i=0;i<list.length;i++){ out.set(list[i],pos); pos+=list[i].length; } return out;
+}
+
+function jpegToSinglePagePDF(jpegDataURL, page){
+  var b64 = jpegDataURL.split(',')[1];
+  var bin = atob(b64);
+  var imgLen = bin.length, i;
+  var imgBytes = new Uint8Array(imgLen);
+  for(i=0;i<imgLen;i++) imgBytes[i]=bin.charCodeAt(i);
+  var w=page.width, h=page.height;
+
+  var parts=[];
+  parts.push(strToU8('%PDF-1.4\n'));
+  function obj(n, contentU8){ parts.push(strToU8(n+' 0 obj\n')); parts.push(contentU8); parts.push(strToU8('\nendobj\n')); }
+  var offsets=[0]; var size=0; function mark(){ offsets.push(size); }
+  function add(u8){ size+=u8.length; }
+
+  // 预计算（先合成再写 xref）
+  // 1: image obj (with stream)
+  var imgHead=strToU8('<< /Type /XObject /Subtype /Image /Width '+Math.floor(w)+' /Height '+Math.floor(h)+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+imgBytes.length+' >>\nstream\n');
+  var imgTail=strToU8('\nendstream');
+  var imgObj = concatU8([imgHead, imgBytes, imgTail]);
+  
+  // 简化PDF生成，返回基本结构
+  return concatU8(parts);
+}
+</script>
+
+</body>
+</html>

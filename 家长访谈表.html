@@ -1,0 +1,911 @@
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>儿童选择性缄默家长问卷 (版块式)</title>
+  <style>
+    :root {
+      --brand: #5B86E5;
+      --brand-2: #36D1DC;
+      --ink: #1f2937;
+      --muted: #667085;
+      --card: #ffffff;
+      --bg: #f6f9ff;
+      --ok: #12B886;
+      --warn: #F59E0B;
+      --danger: #EF4444;
+      --line: #e6ebf5
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      height: 100%
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 16px/1.6 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 24px
+    }
+
+    .app {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(28, 35, 90, .06)
+    }
+
+    header {
+      padding: 20px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: linear-gradient(90deg, var(--brand), var(--brand-2));
+      color: #fff
+    }
+
+    .headrow {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      justify-content: space-between
+    }
+
+    .title {
+      display: flex;
+      align-items: center;
+      gap: 12px
+    }
+
+    .logo {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: #fff;
+      display: grid;
+      place-items: center
+    }
+
+    .logo svg {
+      width: 26px;
+      height: 26px
+    }
+
+    .subtitle {
+      opacity: .9;
+      margin-top: 2px;
+      font-size: 13px
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+      align-items: center;
+      justify-content: space-between
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid rgba(255, 255, 255, .35);
+      border-radius: 999px;
+      padding: 6px 12px;
+      background: #ffffff18
+    }
+
+    .progress {
+      height: 8px;
+      background: rgba(255, 255, 255, .35);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 10px
+    }
+
+    .progress>i {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: #fff;
+      transition: width .3s
+    }
+
+    main {
+      padding: 20px
+    }
+
+    .intro-card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 18px
+    }
+
+    .cta {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 12px
+    }
+
+    .btn {
+      appearance: none;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 16px;
+      cursor: pointer;
+      font: inherit
+    }
+
+    .btn-primary {
+      background: linear-gradient(90deg, var(--brand), var(--brand-2));
+      color: #fff
+    }
+
+    .btn-ghost {
+      background: #fff;
+      border: 1px solid var(--line);
+      color: var(--ink)
+    }
+
+    .btn:disabled {
+      opacity: .6;
+      cursor: not-allowed
+    }
+
+    .q-wrap {
+      margin-top: 16px
+    }
+
+    .section-title {
+      font-size: 24px;
+      margin-bottom: 18px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--brand);
+      color: var(--brand)
+    }
+
+    .sub-section-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-top: 20px;
+      margin-bottom: 16px;
+    }
+
+    .question-item {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      margin-bottom: 14px;
+    }
+
+    .question-item label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+
+    .answer-box {
+      width: 100%;
+      min-height: 80px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      font: inherit;
+      resize: vertical
+    }
+
+    .form-group {
+      margin-bottom: 16px
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      font: inherit
+    }
+
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      position: sticky;
+      bottom: 0;
+      background: rgba(255, 255, 255, .92);
+      backdrop-filter: saturate(120%) blur(8px);
+      border-top: 1px solid var(--line);
+      padding: 12px;
+      
+    }
+    .hidden
+    {
+      visibility:hidden;
+    }
+    .result {
+      display: none
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px
+    }
+
+    .cols-3 {
+      grid-template-columns: repeat(3, 1fr)
+    }
+
+    .date-group {
+      display: flex;
+      gap: 8px
+    }
+
+    .date-group select {
+      flex: 1
+    }
+
+    .age-hint {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px
+    }
+
+    @media (max-width:900px) {
+      .brand {
+        align-items: flex-start
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="app" id="app">
+      <header>
+        <div class="headrow">
+          <div class="title">
+            <div class="logo" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 21c0-5 1-8 3-10 2-2 5-2 8-2-2 4-5 6-8 6" stroke="#5B86E5" stroke-width="2"></path>
+                <path d="M12 21c0-5-1-8-3-10-2-2-5-2-8-2 2 4 5 6 8 6" stroke="#36D1DC" stroke-width="2"></path>
+                <circle cx="12" cy="21" r="2" fill="#fff" stroke="#fff"></circle>
+              </svg>
+            </div>
+            <div>
+              <h1 style="margin:0">儿童选择性缄默家长问卷</h1>
+              <div class="subtitle">家长访谈版 · 版块式答题</div>
+            </div>
+          </div>
+        </div>
+        <div class="toolbar" id="toolbar" hidden="">
+          <span class="pill" id="counter">版块 0/4</span>
+          <div class="progress" id="progress" style="width:100%;"><i id="bar"></i></div>
+        </div>
+      </header>
+      <main>
+        <section id="basicInfo" class="intro-card">
+          <h2>第一步：填写基本信息</h2>
+          <form id="basicForm" class="grid cols-3">
+            <div class="form-group">
+              <label for="childName">孩子姓名：</label>
+              <input type="text" id="childName" class="form-control" required="">
+            </div>
+            <div class="form-group">
+              <label for="dob">出生日期：</label>
+              <input type="date" id="dob" class="form-control" required="">
+            </div>
+            <div class="form-group">
+              <label for="age">年龄：</label>
+              <input type="text" id="age" class="form-control" placeholder="自动计算" readonly="">
+              <div class="age-hint">根据出生日期自动计算</div>
+            </div>
+            <div class="form-group">
+              <label for="gender">性别：</label>
+              <select id="gender" class="form-control" required="">
+                <option value="">请选择</option>
+                <option value="男">男</option>
+                <option value="女">女</option>
+              </select>
+            </div>
+            <div class="form-group" id="schoolGroup">
+              <label for="school">幼儿园/学校名称：</label>
+              <input type="text" id="school" class="form-control" placeholder="如未入园请填写'未入园'" required="">
+            </div>
+            <div class="form-group" id="teacherGroup">
+              <label for="teacher">主要负责的老师：</label>
+              <input type="text" id="teacher" class="form-control" required="">
+            </div>
+          </form>
+          <div class="cta">
+            <button class="btn btn-primary" id="confirmBasic" disabled="">确认信息并开始</button>
+          </div>
+        </section>
+
+        <section id="qs" class="q-wrap" hidden=""></section>
+        <nav class="nav hidden" id="nav" hidden="">
+          <button class="btn btn-ghost" id="prev" hidden="">上一个版块</button>
+          <button class="btn btn-primary " id="next">下一个版块</button>
+        </nav>
+
+        <section id="report" class="result" aria-live="polite"></section>
+      </main>
+    </div>
+  </div>
+  <script>
+    // ==================== 题库定义 START ====================
+    const SECTIONS = [
+      {
+        title: '一、目前存在的问题',
+        questions: [
+          { type: 'heading', text: '1. 最主要的担忧是什么？' },
+          { id: 'C1_1', type: 'question', text: '1.1 请列出您所有担忧的事。' },
+          { id: 'C1_2', type: 'question', text: '1.2 您认为孩子在其他方面的情况和其他同龄孩子一样好吗？' },
+          { id: 'C1_3', type: 'question', text: '1.3 这些问题出现多久了？' },
+          { id: 'C1_4', type: 'question', text: '1.4 除了您，还有谁在担心？' },
+          { id: 'C1_5', type: 'question', text: '1.5 他们为什么担心？' },
+          { id: 'C1_6', type: 'question', text: '1.6 什么有助于或阻碍问题的解决？' },
+          { type: 'heading', text: '2. 您是否有过一些可能的解释？' },
+          { id: 'C2_1', type: 'question', text: '2.1 您是否认为有些人或事可能对孩子的担忧负有责任？' },
+          { id: 'C2_2', type: 'question', text: '2.2 您是否需要帮助来了解促成问题的因素，或应对任何不当的内疚或指责？' },
+          { id: 'C2_3', type: 'question', text: '2.3 您最希望获得什么问题的答案？' },
+          { id: 'C2_4', type: 'question', text: '2.4 您希望从我们这里获得什么具体的帮助？' },
+        ]
+      },
+      {
+        title: '二、家庭情况',
+        questions: [
+          { id: 'F1', type: 'question', text: '1. 目前家里住着哪些人？（请介绍成员、年龄、职业）' },
+          { id: 'F2', type: 'question', text: '2. 孩子最重要的家人是谁？家人多久见一次面？' },
+          { id: 'F3', type: 'question', text: '3. 孩子是否曾面对过任何重要的家人、朋友或宠物的失去？' },
+          { id: 'F4', type: 'question', text: '4. 家族里是否有或曾经有缄默、害羞或少言寡语的人？' },
+          { id: 'F5', type: 'question', text: '5. 是否有说话发展迟缓或其他说话问题的家族史？' },
+          { id: 'F6', type: 'question', text: '6. 是否有阅读或学习障碍的家族史？' },
+          { id: 'F7', type: 'question', text: '7. 是否有任何焦虑或类似问题的家族史？' },
+          { id: 'F8', type: 'question', text: '8. 孩子在场时，家里人会说哪种语言？' },
+        ]
+      },
+      {
+        title: '三、说话模式',
+        questions: [
+          { id: 'S1', type: 'question', text: '1. 孩子跟谁、在什么场景下能够尽情、自在地说话？' },
+          { id: 'S2', type: 'question', text: '2. 孩子能否对一些人说一些话？（跟谁？什么时候？为了什么？）' },
+          { id: 'S3', type: 'question', text: '3. 在不说话时，孩子是如何跟人沟通的？别人如何反应？' },
+          { id: 'S4', type: 'question', text: '4. 在集体活动中（如学校、兴趣班、聚会等），孩子的讲话情况如何？' },
+          { id: 'S5', type: 'question', text: '5. 您认为孩子多大程度上意识到了自己的说话困难？' },
+          { id: 'S6', type: 'question', text: '6. 孩子对此有什么样的评论或反应？' },
+          { id: 'S7', type: 'question', text: '7. 就此问题您和孩子讨论到什么程度？他/她是否希望能够更自在地说话？' },
+        ]
+      },
+      {
+        title: '四、筛查问题',
+        questions: [
+          { type: 'heading', text: '当孩子感到放松时，您是否对以下方面有任何担忧：' },
+          { id: 'SC1', type: 'question', text: '1. 运动或协调能力 (平衡、球技)？' },
+          { id: 'SC2', type: 'question', text: '2. 精细运动的协调能力 (用餐具、扣纽扣)？' },
+          { id: 'SC3', type: 'question', text: '3. 言语和语言能力 (理解、用词、发音)？' },
+          { id: 'SC4', type: 'question', text: '4. 社交沟通技巧 (与最亲近的家人互动)？' },
+          { id: 'SC5', type: 'question', text: '5. 敏感度 (对某些声音、材质、被触摸等)？' },
+          { id: 'SC6', type: 'question', text: '6. 您是否担心孩子的一般智力或学习？' },
+          { id: 'SC7', type: 'question', text: '7. 孩子还有其他特定的焦虑或恐惧症吗？' },
+          { id: 'SC8', type: 'question', text: '8. 您对孩子的行为有什么担忧吗？' },
+        ]
+      }
+    ];
+    // ==================== 题库定义 END ====================
+
+    // --- DOM & State ---
+    const basicInfoSection = document.getElementById('basicInfo');
+    const qsWrap = document.getElementById('qs');
+    const nav = document.getElementById('nav');
+    const btnPrev = document.getElementById('prev');
+    const btnNext = document.getElementById('next');
+    const toolbar = document.getElementById('toolbar');
+    const progress = document.getElementById('progress');
+    const bar = document.getElementById('bar');
+    const counter = document.getElementById('counter');
+    const report = document.getElementById('report');
+    const confirmBasicBtn = document.getElementById('confirmBasic');
+
+    let currentSectionIndex = 0;
+    const answers = new Map();
+
+    // --- Functions ---
+    function init() {
+      document.getElementById('basicForm').addEventListener('input', checkBasicForm);
+      document.getElementById('dob').addEventListener('change', calculateAge);
+      document.querySelectorAll('select').forEach(select => select.addEventListener('change', checkBasicForm));
+
+      confirmBasicBtn.addEventListener('click', startQuestionnaire);
+
+      btnPrev.addEventListener('click', () => navigate(-1));
+      btnNext.addEventListener('click', () => navigate(1));
+      
+      // 确保导航栏在初始状态下是隐藏的
+      nav.hidden = true;
+    }
+
+    function startQuestionnaire() {
+      saveBasicInfo();
+      nav.visibility=false;
+      basicInfoSection.hidden = true;
+      toolbar.hidden = false;
+      progress.hidden = false;
+      qsWrap.hidden = false;
+      nav.hidden = false;
+      nav.classList.remove("hidden")
+      renderSection();
+    }
+
+    function navigate(direction) {
+      saveCurrentSectionAnswers();
+      currentSectionIndex += direction;
+
+      if (currentSectionIndex >= SECTIONS.length) {
+        showReportPage();
+      } else {
+        renderSection();
+      }
+    }
+
+    function renderSection() {
+      const section = SECTIONS[currentSectionIndex];
+      qsWrap.innerHTML = ''; // Clear previous section
+
+      const titleEl = document.createElement('h2');
+      titleEl.className = 'section-title';
+      titleEl.textContent = section.title;
+      qsWrap.appendChild(titleEl);
+
+      section.questions.forEach(q => {
+        if (q.type === 'heading') {
+          const headingEl = document.createElement('h3');
+          headingEl.className = 'sub-section-title';
+          headingEl.textContent = q.text;
+          qsWrap.appendChild(headingEl);
+        } else if (q.type === 'question') {
+          const itemEl = document.createElement('div');
+          itemEl.className = 'question-item';
+
+          const labelEl = document.createElement('label');
+          labelEl.htmlFor = q.id;
+          labelEl.textContent = q.text;
+
+          const textareaEl = document.createElement('textarea');
+          textareaEl.id = q.id;
+          textareaEl.className = 'answer-box';
+          textareaEl.placeholder = '请在此输入您的回答...';
+          textareaEl.value = answers.get(q.id) || '';
+
+          itemEl.appendChild(labelEl);
+          itemEl.appendChild(textareaEl);
+          qsWrap.appendChild(itemEl);
+        }
+      });
+
+      updateNavAndProgress();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function updateNavAndProgress() {
+      btnPrev.hidden = currentSectionIndex === 0;
+      btnNext.textContent = currentSectionIndex === SECTIONS.length - 1 ? '完成问卷' : '下一个版块';
+
+      const percent = ((currentSectionIndex + 1) / SECTIONS.length) * 100;
+      bar.style.width = `${percent}%`;
+      counter.textContent = `版块 ${currentSectionIndex + 1}/${SECTIONS.length}`;
+    }
+
+    function saveCurrentSectionAnswers() {
+      if (!SECTIONS || currentSectionIndex >= SECTIONS.length) return;
+      const section = SECTIONS[currentSectionIndex];
+      section.questions.forEach(q => {
+        if (q.type === 'question') {
+          const textarea = document.getElementById(q.id);
+          if (textarea) {
+            answers.set(q.id, textarea.value);
+          }
+        }
+      });
+    }
+
+    function showReportPage() {
+      qsWrap.hidden = true;
+      nav.hidden = true; // Hides "上一个版块" and "完成问卷" buttons
+      report.style.display = 'block';
+
+      let reportHTML = `<div class="intro-card" style="border-left:6px solid #dbe7ff">
+            <h2 style="margin:0 0 6px 0">问卷完成</h2>
+            <p>感谢您的耐心填写。您可以保存结果或返回修改。</p>
+            <div class="cta">
+                <button class="btn btn-primary" id="saveResult"><i class="fa fa-cloud-upload"></i> 上传到服务器</button>
+                <button class="btn btn-ghost" id="editAnswers">修改回答</button>
+            </div>
+          </div>
+          <div class="intro-card" style="margin-top:14px"><h3>回答总览</h3>`;
+
+      SECTIONS.forEach(section => {
+        reportHTML += `<h4 style="margin-top:16px; margin-bottom:8px;">${section.title}</h4>`;
+        section.questions.forEach(q => {
+          if (q.type === 'question') {
+            const answer = answers.get(q.id) || '<i>未作答</i>';
+            reportHTML += `<p><strong>${q.text}</strong><br>${answer.replace(/\n/g, '<br>')}</p>`;
+          }
+        });
+      });
+
+      reportHTML += '</div>';
+      report.innerHTML = reportHTML;
+
+      document.getElementById('saveResult').addEventListener('click', async () => {
+        // 收集基本信息
+        const basicInfo = {
+          name: document.getElementById('childName').value,
+          birthdate: document.getElementById('dob').value,
+          gender: document.getElementById('gender').value,
+          school: document.getElementById('school').value,
+          teacher: document.getElementById('teacher').value
+        };
+
+        // 验证基本信息
+        const validationErrors = [];
+        if (!basicInfo.name.trim()) {
+          validationErrors.push('请填写孩子姓名');
+        }
+        if (!basicInfo.birthdate) {
+          validationErrors.push('请选择出生日期');
+        }
+        if (!basicInfo.gender) {
+          validationErrors.push('请选择性别');
+        }
+        if (!basicInfo.school.trim()) {
+          validationErrors.push('请填写幼儿园/学校名称');
+        }
+        if (!basicInfo.teacher.trim()) {
+          validationErrors.push('请填写主要负责的老师');
+        }
+
+        if (validationErrors.length > 0) {
+          alert('❌ 请完善以下信息：\n' + validationErrors.join('\n'));
+          return;
+        }
+
+        // 构建符合API标准的问题数据
+        const questions = [];
+        let questionIndex = 1;
+        
+        SECTIONS.forEach(section => {
+          section.questions.forEach(q => {
+            if (q.type === 'question') {
+              const answer = answers.get(q.id) || '';
+              if (answer.trim()) {  // 只包含有答案的问题
+                questions.push({
+                  id: questionIndex++,
+                  type: 'text_input',
+                  question: q.text,
+                  answer: answer.trim()
+                });
+              }
+            }
+          });
+        });
+
+        // 检查是否有足够的答案
+        if (questions.length < 5) {
+          alert('❌ 请至少回答5个问题后再提交');
+          return;
+        }
+
+        // 构建符合API标准的完整数据对象
+        const dataToSubmit = {
+          type: 'parent_interview',
+          basic_info: {
+            name: basicInfo.name.trim(),
+            grade: `${basicInfo.gender} - ${basicInfo.school.trim()}`, // 将性别和学校信息合并到grade字段
+            submission_date: basicInfo.birthdate
+          },
+          questions: questions,
+          statistics: {
+            total_score: questions.length,
+            completion_rate: Math.round((questions.length / SECTIONS.reduce((total, section) => total + section.questions.filter(q => q.type === 'question').length, 0)) * 100),
+            submission_time: new Date().toISOString()
+          }
+        };
+
+        try {
+          // 发送POST请求到后端
+          const response = await fetch('http://127.0.0.1:5000/api/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(dataToSubmit),
+                    mode: 'cors',
+                    credentials: 'include'
+                });
+
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+              alert('✅ 数据保存成功！\n问卷ID: ' + (result.id || result.record_id));
+              showFinalCompletionPage(result.id || result.record_id);
+            } else {
+              let errorMessage = result.error?.message || '保存失败';
+              if (result.error?.details && Array.isArray(result.error.details)) {
+                errorMessage = '数据验证失败：\n' + result.error.details.join('\n');
+              }
+              alert('❌ 保存失败：\n' + errorMessage);
+            }
+          } else {
+            let errorMessage = `服务器错误 (${response.status})`;
+            try {
+              const errorData = await response.json();
+              if (errorData.error) {
+                if (errorData.error.details && Array.isArray(errorData.error.details)) {
+                  errorMessage = '数据验证失败：\n' + errorData.error.details.join('\n');
+                } else {
+                  errorMessage = errorData.error.message || errorData.message || errorMessage;
+                }
+              }
+            } catch (e) {
+              errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+            }
+            alert(`❌ 数据保存失败:\n${errorMessage}`);
+          }
+        } catch (error) {
+          console.error('提交数据时出错:', error);
+          let errorMessage = '网络错误，请检查以下情况：\n\n';
+          
+          if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+            errorMessage += '❌ 网络连接问题：\n';
+            errorMessage += '  • 确保后端服务正在运行（运行 python app.py）\n';
+            errorMessage += '  • 检查服务器地址是否正确 (127.0.0.1:5000)\n';
+            errorMessage += '  • 检查防火墙设置\n\n';
+          } else if (error.message.includes('CORS')) {
+            errorMessage += '❌ CORS配置问题：\n';
+            errorMessage += '  • 后端服务器CORS配置可能有问题\n';
+            errorMessage += '  • 请联系技术支持\n\n';
+          } else {
+            errorMessage += `❌ 其他错误：${error.message}\n\n`;
+          }
+          
+          errorMessage += '💡 建议：\n';
+          errorMessage += '  • 刷新页面重试\n';
+          errorMessage += '  • 检查网络连接\n';
+          errorMessage += '  • 联系技术支持';
+          
+          alert(errorMessage);
+        }
+      });
+
+      // --- FIX START ---
+      document.getElementById('editAnswers').addEventListener('click', () => {
+        report.style.display = 'none';
+        qsWrap.hidden = false;
+        nav.hidden = false;
+        // **关键修复**: 将索引重置为最后一个有效版块的索引
+        currentSectionIndex = SECTIONS.length - 1;
+        renderSection();
+      });
+      // --- FIX END ---
+    }
+
+    // 显示最终完成页面
+    function showFinalCompletionPage(recordId) {
+      // 收集基本信息
+      const basicInfo = {
+        name: document.getElementById('childName').value,
+        birthdate: document.getElementById('dob').value,
+        gender: document.getElementById('gender').value,
+        school: document.getElementById('school').value,
+        teacher: document.getElementById('teacher').value
+      };
+
+      // 收集问卷答案
+      const questionnaireData = {};
+      SECTIONS.forEach(section => {
+        section.questions.forEach(q => {
+          if (q.type === 'question') {
+            questionnaireData[q.id] = answers.get(q.id) || '';
+          }
+        });
+      });
+
+      // 隐藏问卷区域
+      document.querySelector('.container').style.display = 'none';
+
+      // 创建完成页面
+      const completionPage = document.createElement('div');
+      completionPage.className = 'completion-page';
+      completionPage.innerHTML = `
+            <div class="completion-container">
+                <div class="completion-header">
+                    <h1><i class="fa fa-check-circle"></i> 访谈完成</h1>
+                    <p class="completion-subtitle">家长访谈表已成功保存</p>
+                </div>
+                
+                <div class="completion-info">
+                    <div class="info-card">
+                        <h3><i class="fa fa-info-circle"></i> 基本信息</h3>
+                        <div class="info-grid">
+                            <div><strong>儿童姓名:</strong> ${basicInfo.name}</div>
+                            <div><strong>出生日期:</strong> ${basicInfo.birthdate}</div>
+                            <div><strong>性别:</strong> ${basicInfo.gender}</div>
+                            <div><strong>学校:</strong> ${basicInfo.school}</div>
+                            <div><strong>老师:</strong> ${basicInfo.teacher}</div>
+                            <div><strong>记录ID:</strong> ${recordId}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="completion-answers">
+                    <h3><i class="fa fa-list-alt"></i> 回答总览</h3>
+                    ${generateAnswersHTML(basicInfo, questionnaireData)}
+                </div>
+                
+                <div class="completion-actions">
+                    <button class="btn-primary" onclick="window.location.reload()">
+                        <i class="fa fa-refresh"></i> 填写新访谈
+                    </button>
+                    <button class="btn-secondary" onclick="window.print()">
+                        <i class="fa fa-print"></i> 打印
+                    </button>
+                </div>
+            </div>
+        `;
+
+      document.body.appendChild(completionPage);
+    }
+
+    // 生成答案HTML
+    function generateAnswersHTML(basicInfo, questionnaireData) {
+      let html = '<div class="answers-list">';
+
+      // 遍历所有问题
+      for (const [questionId, answer] of Object.entries(questionnaireData)) {
+        if (answer) {
+          // 查找问题文本
+          let questionText = questionId;
+          SECTIONS.forEach(section => {
+            section.questions.forEach(q => {
+              if (q.id === questionId && q.type === 'question') {
+                questionText = q.text;
+              }
+            });
+          });
+
+          html += `
+                    <div class="answer-item">
+                        <div class="answer-question">
+                            <strong>${questionText}</strong>
+                        </div>
+                        <div class="answer-content">
+                            ${answer || '<i>未作答</i>'}
+                        </div>
+                    </div>
+                `;
+        }
+      }
+
+      html += '</div>';
+      return html;
+    }
+
+    // --- Helper Functions (for basic info form) ---
+    // 不再需要updateDays函数和initDatePickers函数，因为使用了原生的date输入类型
+
+    function calculateAge() {
+      try {
+        const dobInput = document.getElementById('dob');
+        const ageInput = document.getElementById('age');
+        
+        if (!dobInput || !ageInput) return;
+        
+        const birthdate = new Date(dobInput.value);
+        if (isNaN(birthdate.getTime())) {
+          ageInput.value = '';
+          return;
+        }
+        
+        const today = new Date();
+        let age = today.getFullYear() - birthdate.getFullYear();
+        
+        // 检查是否已过今年的生日
+        if (today.getMonth() < birthdate.getMonth() || 
+            (today.getMonth() === birthdate.getMonth() && today.getDate() < birthdate.getDate())) {
+          age--;
+        }
+        
+        ageInput.value = age >= 0 ? `${age}岁` : '';
+      } catch (error) {
+        console.error('计算年龄时发生错误:', error);
+      }
+    }
+
+    function checkBasicForm() {
+      const isFormValid = document.getElementById('basicForm').checkValidity();
+      confirmBasicBtn.disabled = !isFormValid;
+    }
+
+    function saveBasicInfo() {
+      const basicData = new FormData(document.getElementById('basicForm'));
+      for (let [key, value] of basicData.entries()) {
+        answers.set(`basic_${key}`, value);
+      }
+    }
+
+    // --- 自动填充基本信息 ---    
+    function populateBasicInfo() {
+      try {
+        const savedInfo = localStorage.getItem('basicInfo');
+        
+        if (savedInfo) {
+          const info = JSON.parse(savedInfo);
+          
+          // 填充姓名字段
+          if (info.name) {
+            const nameField = document.getElementById('childName');
+            if (nameField) nameField.value = info.name;
+          }
+          
+          // 填充出生日期字段
+          if (info.birthdate) {
+            // 验证日期格式
+            const birthdate = new Date(info.birthdate);
+            if (!isNaN(birthdate.getTime())) {
+              const dobInput = document.getElementById('dob');
+              if (dobInput) {
+                // 格式化为YYYY-MM-DD格式，这是date输入类型的标准格式
+                const formattedDate = birthdate.toISOString().split('T')[0];
+                dobInput.value = formattedDate;
+                
+                // 计算年龄并检查表单
+                calculateAge();
+                checkBasicForm();
+              }
+            } else {
+              console.warn('出生日期格式无效:', info.birthdate);
+            }
+          }
+          
+          // 填充性别字段
+          if (info.gender) {
+            const genderSelect = document.getElementById('gender');
+            if (genderSelect) {
+              genderSelect.value = info.gender;
+            }
+          }
+        }
+      } catch (error) {
+        console.error('自动填充基本信息时发生错误:', error);
+      }
+    } 
+                   init();   
+         populateBasicInfo();  
+  </script>
+
+</body>
+
+</html>

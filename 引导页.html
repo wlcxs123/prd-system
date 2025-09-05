@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>选择性缄默(SM)综合评估工具 - 引导页</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* 基础样式 */
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #f8fafc; /* 更明亮的背景 */
+            color: #475569;
+            margin: 0;
+            padding: 40px 20px;
+            line-height: 1.7;
+        }
+
+        /* 主容器 */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* 页面头部 */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            color: #334155;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            color: #64748b;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        /* 卡片网格布局 */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+        }
+
+        /* 卡片样式 */
+        .card {
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.05);
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid #e2e8f0;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+        }
+
+        .card h2 {
+            font-size: 1.5rem;
+            color: #1e293b;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+
+        .card .description {
+            flex-grow: 1; /* 让描述部分占据多余空间，使按钮对齐 */
+            margin-bottom: 20px;
+            color: #475569;
+        }
+
+        .card .meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+            color: #64748b;
+            padding-top: 15px;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .time-estimate {
+            font-weight: 600;
+        }
+
+        .time-estimate i {
+            margin-right: 8px;
+            color: #94a3b8;
+        }
+
+        /* 按钮样式 */
+        .btn {
+            display: inline-block;
+            text-align: center;
+            text-decoration: none;
+            background: linear-gradient(135deg, #8B5CF6, #6D28D9);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(139, 92, 246, 0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(139, 92, 246, 0.3);
+        }
+        
+        /* 页脚 */
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header class="header">
+            <h1>选择性缄默 (SM) 综合评估工具</h1>
+            <p>请根据您的需要选择以下评估工具。每个工具都附有功能介绍和预计完成时间，点击下方按钮即可开始填写。</p>
+        </header>
+        
+        <!-- 基本信息搜集模块 -->
+        <div class="basic-info-form" style="
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.05);
+            padding: 30px;
+            margin-bottom: 40px;
+            border: 1px solid #e2e8f0;
+        ">
+            <h2 style="margin-top: 0; margin-bottom: 25px; color: #1e293b;">基本信息</h2>
+            <form id="basicInfoForm" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                <div style="display: flex; flex-direction: column;">
+                    <label for="name" style="margin-bottom: 8px; font-weight: 600; color: #475569;">姓名</label>
+                    <input type="text" id="name" required style="
+                        padding: 12px 16px;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 8px;
+                        font-size: 1rem;
+                        font-family: 'Nunito', sans-serif;
+                    ">
+                </div>
+                
+                <div style="display: flex; flex-direction: column;">
+                    <label for="birthdate" style="margin-bottom: 8px; font-weight: 600; color: #475569;">出生年月</label>
+                    <input type="date" id="birthdate" required style="
+                        padding: 12px 16px;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 8px;
+                        font-size: 1rem;
+                        font-family: 'Nunito', sans-serif;
+                    ">
+                </div>
+                
+                <div style="display: flex; flex-direction: column;">
+                    <label for="age" style="margin-bottom: 8px; font-weight: 600; color: #475569;">年龄</label>
+                    <input type="text" id="age" readonly style="
+                        padding: 12px 16px;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 8px;
+                        font-size: 1rem;
+                        font-family: 'Nunito', sans-serif;
+                        background-color: #f8fafc;
+                    ">
+                </div>
+                
+                <div style="display: flex; flex-direction: column;">
+                    <label style="margin-bottom: 8px; font-weight: 600; color: #475569;">性别</label>
+                    <div style="display: flex; gap: 20px;">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="radio" name="gender" value="男" checked style="margin-right: 8px;">
+                            男
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="radio" name="gender" value="女" style="margin-right: 8px;">
+                            女
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="radio" name="gender" value="其他" style="margin-right: 8px;">
+                            其他
+                        </label>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <main class="grid-container">
+            <div class="card">
+                <h2>家长访谈表</h2>
+                <p class="description">该表主要调查孩子缄默问题的背景、家庭情况、说话模式以及是否存在其他困难。其目的是在评估初期全面地收集来自家长的信息，为后续评估和干预奠定基础。</p>
+                <div class="meta">
+                    <span class="time-estimate"><i class="fas fa-clock"></i>预计时间: 45 - 60 分钟</span>
+                </div>
+                <a href="家长访谈表.html" class="btn">开始填写家长访谈表</a>
+            </div>
+
+            <div class="card">
+                <h2>小学生交流评定表</h2>
+                <p class="description">此评定量表旨在评估儿童在不同情境下的说话和交流情况。其目的是为了更清晰地了解孩子的沟通程度和说话习惯，为后续干预提供参考。</p>
+                <div class="meta">
+                    <span class="time-estimate"><i class="fas fa-clock"></i>预计时间: 10 - 15 分钟</span>
+                </div>
+                <a href="小学生交流评定表.html" class="btn">开始填写交流评定表</a>
+            </div>
+
+            <div class="card">
+                <h2>青少年访谈表格</h2>
+                <p class="description">这份表格主要通过与青少年直接访谈，来了解他们在不同人、不同场合下的具体说话习惯和感受。目的是从青少年本人的视角深入了解影响其沟通的各种因素。</p>
+                <div class="meta">
+                    <span class="time-estimate"><i class="fas fa-clock"></i>预计时间: 30 - 45 分钟</span>
+                </div>
+                <a href="青少年访谈表格.html" class="btn">开始填写青少年访谈</a>
+            </div>
+            
+            <div class="card">
+                <h2>说话习惯记录</h2>
+                <p class="description">该记录表用于系统性地追踪和总结孩子在不同人（如家人、朋友、陌生人）面前和不同场景下的说话习惯。其目的是直观地呈现孩子的沟通模式，形成“说话地图”以帮助确定干预的切入点。</p>
+                <div class="meta">
+                    <span class="time-estimate"><i class="fas fa-clock"></i>预计时间: 3 - 5 分钟</span>
+                </div>
+                <a href="说话习惯记录.html" class="btn">开始填写说话习惯记录</a>
+            </div>
+
+            <div class="card">
+                <h2>小学生报告表</h2>
+                <p class="description">此报告表主要由学校老师填写，调查内容涵盖孩子的背景信息、语言沟通能力、社交行为及在校获得的帮助等。其目的是从学校的视角对孩子进行专业评估，以全面了解其在校表现。</p>
+                <div class="meta">
+                    <span class="time-estimate"><i class="fas fa-clock"></i>预计时间: 45 - 60 分钟</span>
+                </div>
+                <a href="小学生报告表.html" class="btn">开始填写小学生报告</a>
+            </div>
+
+            <div class="card">
+                <h2>可能的SM维持因素清单</h2>
+                <p class="description">这份清单主要用于调查和识别可能导致孩子选择性缄默（SM）持续存在的各种因素。其目的是帮助家长和老师认识并应对这些维持因素，为讨论和制定有效的干预方案提供基础。</p>
+                <div class="meta">
+                    <span class="time-estimate"><i class="fas fa-clock"></i>预计时间: 15 - 20 分钟</span>
+                </div>
+                <a href="可能的SM维持因素清单.html" class="btn">开始填写维持因素清单</a>
+            </div>
+
+        </main>
+        
+        <footer>
+            <p>&copy; 2025 专业心理评估支持系统</p>
+        </footer>
+    </div>
+
+    <script>
+        // 等待DOM加载完成
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取表单元素
+            const birthdateInput = document.getElementById('birthdate');
+            const ageInput = document.getElementById('age');
+            const nameInput = document.getElementById('name');
+            const genderRadios = document.querySelectorAll('input[name="gender"]');
+            const form = document.getElementById('basicInfoForm');
+            
+            // 加载已保存的基本信息（如果有）
+            function loadSavedInfo() {
+                const savedInfo = localStorage.getItem('basicInfo');
+                if (savedInfo) {
+                    const info = JSON.parse(savedInfo);
+                    if (info.name) nameInput.value = info.name;
+                    if (info.birthdate) {
+                        birthdateInput.value = info.birthdate;
+                        calculateAge(info.birthdate); // 加载时计算年龄
+                    }
+                    if (info.gender) {
+                        genderRadios.forEach(radio => {
+                            if (radio.value === info.gender) {
+                                radio.checked = true;
+                            }
+                        });
+                    }
+                }
+            }
+            
+            // 计算年龄的函数
+            function calculateAge(birthdateStr) {
+                const birthdate = new Date(birthdateStr);
+                const today = new Date();
+                
+                let age = today.getFullYear() - birthdate.getFullYear();
+                const monthDiff = today.getMonth() - birthdate.getMonth();
+                
+                // 如果本月还没到生日，则年龄减1
+                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthdate.getDate())) {
+                    age--;
+                }
+                
+                ageInput.value = age + ' 岁';
+            }
+            
+            // 保存基本信息到localStorage的函数
+            function saveBasicInfo() {
+                let selectedGender = '男'; // 默认值
+                genderRadios.forEach(radio => {
+                    if (radio.checked) {
+                        selectedGender = radio.value;
+                    }
+                });
+                
+                const basicInfo = {
+                    name: nameInput.value,
+                    birthdate: birthdateInput.value,
+                    gender: selectedGender
+                };
+                
+                localStorage.setItem('basicInfo', JSON.stringify(basicInfo));
+            }
+            
+            // 监听出生日期变化，自动计算年龄
+            birthdateInput.addEventListener('change', function() {
+                if (this.value) {
+                    calculateAge(this.value);
+                } else {
+                    ageInput.value = '';
+                }
+                saveBasicInfo(); // 同时保存信息
+            });
+            
+            // 监听其他输入变化，自动保存
+            nameInput.addEventListener('input', saveBasicInfo);
+            genderRadios.forEach(radio => {
+                radio.addEventListener('change', saveBasicInfo);
+            });
+            
+            // 为所有页面链接添加点击事件，确保跳转前保存信息
+            const links = document.querySelectorAll('a[href$=".html"]');
+            links.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    saveBasicInfo();
+                    // 继续默认的点击行为（不阻止跳转）
+                });
+            });
+            
+            // 初始加载已保存的信息
+            loadSavedInfo();
+        });
+    </script>
+</body>
+</html>

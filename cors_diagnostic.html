@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CORS诊断工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .diagnostic-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>CORS跨域请求诊断工具</h1>
+    
+    <div class="diagnostic-section">
+        <h3>当前环境信息</h3>
+        <div id="env-info">
+            <p><strong>当前页面:</strong> <span id="current-url"></span></p>
+            <p><strong>API地址:</strong> <span id="api-url">http://127.0.0.1:5000</span></p>
+        </div>
+    </div>
+
+    <div class="diagnostic-section">
+        <h3>1. 基础连接测试</h3>
+        <button class="test-button" onclick="testConnection()">测试连接</button>
+        <div id="connection-result" class="result"></div>
+    </div>
+
+    <div class="diagnostic-section">
+        <h3>2. OPTIONS预检请求测试</h3>
+        <button class="test-button" onclick="testPreflight()">测试预检请求</button>
+        <div id="preflight-result" class="result"></div>
+    </div>
+
+    <div class="diagnostic-section">
+        <h3>3. POST请求测试</h3>
+        <button class="test-button" onclick="testPostRequest()">测试POST请求</button>
+        <div id="post-result" class="result"></div>
+    </div>
+
+    <div class="diagnostic-section">
+        <h3>4. 详细日志</h3>
+        <div id="detailed-log" class="log"></div>
+        <button class="test-button" onclick="clearLog()">清除日志</button>
+    </div>
+
+    <div class="diagnostic-section">
+        <h3>5. 解决方案</h3>
+        <div id="solutions">
+            <p>如果测试失败，请尝试以下解决方案：</p>
+            <ol>
+                <li>确保后端服务正在运行（python app.py）</li>
+                <li>检查防火墙设置</li>
+                <li>尝试使用localhost替代127.0.0.1</li>
+                <li>检查浏览器控制台获取详细错误信息</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        // 设置环境信息
+        document.getElementById('current-url').textContent = window.location.href;
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('detailed-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = type;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logDiv.appendChild(logEntry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('detailed-log').innerHTML = '';
+        }
+
+        async function testConnection() {
+            const resultDiv = document.getElementById('connection-result');
+            resultDiv.textContent = '正在测试连接...';
+            
+            try {
+                const response = await fetch('http://127.0.0.1:5000/api/questionnaires', {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✅ 连接成功 - 找到 ${data.length} 份问卷`;
+                    log(`GET请求成功: ${response.status} ${response.statusText}`);
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ 连接失败 - ${response.status} ${response.statusText}`;
+                    log(`GET请求失败: ${response.status} ${response.statusText}`);
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ 连接错误 - ${error.message}`;
+                log(`GET请求错误: ${error.message}`);
+            }
+        }
+
+        async function testPreflight() {
+            const resultDiv = document.getElementById('preflight-result');
+            resultDiv.textContent = '正在测试预检请求...';
+            
+            try {
+                const response = await fetch('http://127.0.0.1:5000/api/submit', {
+                    method: 'OPTIONS',
+                    mode: 'cors',
+                    headers: {
+                        'Access-Control-Request-Method': 'POST',
+                        'Access-Control-Request-Headers': 'Content-Type'
+                    }
+                });
+                
+                const corsHeaders = {
+                    'Access-Control-Allow-Origin': response.headers.get('Access-Control-Allow-Origin'),
+                    'Access-Control-Allow-Methods': response.headers.get('Access-Control-Allow-Methods'),
+                    'Access-Control-Allow-Headers': response.headers.get('Access-Control-Allow-Headers')
+                };
+                
+                if (response.ok && corsHeaders['Access-Control-Allow-Origin']) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✅ 预检请求成功`;
+                    log(`OPTIONS请求成功: ${JSON.stringify(corsHeaders, null, 2)}`);
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ 预检请求失败 - CORS头缺失`;
+                    log(`OPTIONS请求失败 - CORS头: ${JSON.stringify(corsHeaders, null, 2)}`);
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ 预检请求错误 - ${error.message}`;
+                log(`OPTIONS请求错误: ${error.message}`);
+            }
+        }
+
+        async function testPostRequest() {
+            const resultDiv = document.getElementById('post-result');
+            resultDiv.textContent = '正在测试POST请求...';
+            
+            const testData = {
+                type: 'test_questionnaire',
+                basic_info: {
+                    name: '测试用户',
+                    grade: '三年级',
+                    date: '2024-01-15'
+                },
+                answers: {
+                    q1: {
+                        questionText: '测试问题',
+                        score: 2,
+                        scoreText: '2=有点困难',
+                        canSpeak: true,
+                        canSpeakText: '可以说话'
+                    }
+                }
+            };
+            
+            try {
+                const response = await fetch('http://127.0.0.1:5000/api/submit', {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(testData)
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✅ POST请求成功 - 记录ID: ${data.id}`;
+                    log(`POST请求成功: ${response.status} ${response.statusText}`);
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ POST请求失败 - ${response.status} ${response.statusText}`;
+                    log(`POST请求失败: ${response.status} ${response.statusText}`);
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ POST请求错误 - ${error.message}`;
+                log(`POST请求错误: ${error.message}`);
+            }
+        }
+
+        // 页面加载时自动运行基础测试
+        window.addEventListener('load', () => {
+            log('CORS诊断工具已加载');
+            log(`当前页面: ${window.location.href}`);
+            log(`API地址: http://127.0.0.1:5000`);
+        });
+    </script>
+</body>
+</html>

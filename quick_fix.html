@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>快速修复 - 问卷系统</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .btn { padding: 10px 20px; margin: 10px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .btn:hover { background: #0056b3; }
+        .btn-success { background: #28a745; }
+        .btn-danger { background: #dc3545; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>问卷系统快速修复</h1>
+    
+    <div class="status info">
+        <strong>问题诊断:</strong> 您已登录系统，但管理页面显示"加载中..."。这通常是前端JavaScript问题。
+    </div>
+    
+    <h2>解决方案 (按顺序尝试):</h2>
+    
+    <div>
+        <h3>1. 清除浏览器缓存</h3>
+        <button class="btn" onclick="clearCache()">清除缓存</button>
+        <button class="btn" onclick="hardRefresh()">硬刷新页面</button>
+        <p>最常见的原因是浏览器缓存了旧的JavaScript文件</p>
+    </div>
+    
+    <div>
+        <h3>2. 检查网络连接</h3>
+        <button class="btn btn-success" onclick="testConnection()">测试连接</button>
+        <div id="connectionResult"></div>
+    </div>
+    
+    <div>
+        <h3>3. 重新登录</h3>
+        <button class="btn" onclick="logout()">退出登录</button>
+        <button class="btn btn-success" onclick="goToLogin()">前往登录页面</button>
+    </div>
+    
+    <div>
+        <h3>4. 直接访问管理页面</h3>
+        <button class="btn btn-success" onclick="goToAdmin()">打开管理页面</button>
+        <button class="btn" onclick="openInNewTab()">新标签页打开</button>
+    </div>
+    
+    <div>
+        <h3>5. 使用其他浏览器</h3>
+        <p>如果上述方法都不行，请尝试使用其他浏览器 (Chrome, Firefox, Edge)</p>
+    </div>
+    
+    <div id="results"></div>
+
+    <script>
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = message;
+            document.getElementById('results').appendChild(div);
+        }
+
+        function clearCache() {
+            localStorage.clear();
+            sessionStorage.clear();
+            log('✅ 已清除本地存储缓存', 'success');
+            log('💡 现在请按 Ctrl+F5 硬刷新页面', 'info');
+        }
+
+        function hardRefresh() {
+            log('🔄 正在硬刷新页面...', 'info');
+            window.location.reload(true);
+        }
+
+        async function testConnection() {
+            const resultDiv = document.getElementById('connectionResult');
+            resultDiv.innerHTML = '<div class="status info">正在测试连接...</div>';
+            
+            try {
+                // 测试认证状态
+                const authResponse = await fetch('/api/auth/status');
+                const authData = await authResponse.json();
+                
+                if (authData.authenticated) {
+                    // 测试API
+                    const apiResponse = await fetch('/api/questionnaires?page=1&limit=1');
+                    const apiData = await apiResponse.json();
+                    
+                    if (apiData.success) {
+                        resultDiv.innerHTML = `
+                            <div class="status success">
+                                ✅ 连接正常<br>
+                                - 用户: ${authData.user.username}<br>
+                                - 问卷总数: ${apiData.pagination.total}<br>
+                                - API响应正常
+                            </div>
+                        `;
+                        log('✅ 网络连接正常，问题可能是前端JavaScript错误', 'success');
+                        log('💡 建议: 按F12打开开发者工具，查看Console标签页是否有错误', 'info');
+                    } else {
+                        resultDiv.innerHTML = '<div class="status error">❌ API调用失败</div>';
+                    }
+                } else {
+                    resultDiv.innerHTML = '<div class="status error">❌ 用户未登录</div>';
+                    log('❌ 用户未登录，请重新登录', 'error');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="status error">❌ 连接失败: ${error.message}</div>`;
+                log(`❌ 网络连接失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function logout() {
+            try {
+                await fetch('/api/auth/logout', { method: 'POST' });
+                log('✅ 已退出登录', 'success');
+            } catch (error) {
+                log(`退出登录失败: ${error.message}`, 'error');
+            }
+        }
+
+        function goToLogin() {
+            window.location.href = '/login';
+        }
+
+        function goToAdmin() {
+            window.location.href = '/admin';
+        }
+
+        function openInNewTab() {
+            window.open('/admin', '_blank');
+        }
+
+        // 页面加载时自动测试连接
+        window.addEventListener('load', function() {
+            setTimeout(testConnection, 1000);
+        });
+    </script>
+</body>
+</html>

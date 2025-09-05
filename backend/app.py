@@ -1,0 +1,2492 @@
+from flask import Flask, request, jsonify, render_template, redirect, url_for, send_file, make_response, session, g
+import sqlite3
+import json
+import os
+from datetime import datetime, timedelta
+import csv
+from io import StringIO
+import bcrypt
+from functools import wraps
+from flask_cors import CORS
+from marshmallow import ValidationError
+import time
+
+from config import config
+from validation import (
+    validate_questionnaire_with_schema, 
+    normalize_questionnaire_data, 
+    quick_validate,
+    create_validation_error_response
+)
+from question_types import (
+    question_processor,
+    process_complete_questionnaire,
+    format_question_for_display
+)
+from error_handlers import (
+    register_error_handlers,
+    StandardErrorResponse,
+    validation_error,
+    auth_error,
+    permission_error,
+    not_found_error,
+    server_error,
+    business_error
+)
+
+app = Flask(__name__, template_folder='templates', static_folder='static')
+
+# 加载配置
+config_name = os.environ.get('FLASK_ENV', 'development')
+app.config.from_object(config[config_name])
+
+# 记录应用启动时间用于性能监控
+app.config['START_TIME'] = time.time()
+
+# 启用CORS支持 - 增强配置
+CORS(app, resources={
+    r"/api/*": {
+        "origins": ["http://localhost:*", "http://127.0.0.1:*", "*"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization", "Accept"],
+        "supports_credentials": True,
+        "max_age": 3600
+    }
+})
+
+# ==================== 中间件 ====================
+
+@app.before_request
+def before_request():
+    """请求前处理 - 会话管理中间件"""
+    # 跳过静态文件和登录相关的请求
+    if (request.endpoint and 
+        (request.endpoint.startswith('static') or 
+         request.path in ['/api/auth/login', '/api/auth/status', '/login'] or
+         request.path.startswith('/static/'))):
+        return
+    
+    # 对于需要认证的API请求，检查会话状态
+    if request.path.startswith('/api/') and 'user_id' in session:
+        # 检查会话超时（但不自动清除，让装饰器处理）
+        timeout_seconds = app.config.get('PERMANENT_SESSION_LIFETIME', timedelta(hours=1)).total_seconds()
+        current_time = time.time()
+        last_activity = session.get('last_activity', current_time)
+        
+        # 如果会话即将过期（剩余时间少于5分钟），在响应头中添加警告
+        if current_time - last_activity > timeout_seconds - 300:  # 5分钟警告
+            g.session_warning = True
+
+@app.after_request
+def after_request(response):
+    """请求后处理 - 添加会话警告头"""
+    if hasattr(g, 'session_warning') and g.session_warning:
+        response.headers['X-Session-Warning'] = 'Session will expire soon'
+        
+        # 如果是JSON响应，添加警告信息
+        if response.content_type and 'application/json' in response.content_type:
+            try:
+                data = response.get_json()
+                if isinstance(data, dict) and data.get('success'):
+                    data['session_warning'] = '会话即将过期，请及时刷新'
+                    response.data = json.dumps(data, default=str, ensure_ascii=False)
+            except:
+                pass  # 如果无法解析JSON，忽略警告
+    
+    return response
+
+# 数据库配置
+DATABASE = app.config['DATABASE_PATH']
+
+# 初始化数据库
+def init_db():
+    """初始化数据库，创建所有必要的表"""
+    with sqlite3.connect(DATABASE) as conn:
+        cursor = conn.cursor()
+        
+        # 创建问卷数据表 - 根据设计文档更新
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS questionnaires (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            type TEXT NOT NULL,
+            name TEXT,
+            grade TEXT,
+            submission_date DATE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            data TEXT NOT NULL
+        )
+        ''')
+        
+        # 创建用户认证表
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            role TEXT DEFAULT 'admin',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_login TIMESTAMP
+        )
+        ''')
+        
+        # 创建操作日志表
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS operation_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            operation TEXT NOT NULL,
+            target_id INTEGER,
+            details TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+        ''')
+        
+        # 创建默认管理员用户（如果不存在）
+        cursor.execute("SELECT COUNT(*) FROM users WHERE username = 'admin'")
+        if cursor.fetchone()[0] == 0:
+            # 默认密码: admin123
+            password_hash = bcrypt.hashpw('admin123'.encode('utf-8'), bcrypt.gensalt())
+            cursor.execute(
+                "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
+                ('admin', password_hash.decode('utf-8'), 'admin')
+            )
+        
+        conn.commit()
+        print("数据库初始化完成")
+
+# 获取数据库连接
+def get_db():
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+# ==================== 会话管理和权限控制 ====================
+
+def check_session_timeout():
+    """检查会话是否超时"""
+    if 'user_id' in session:
+        # 检查会话是否设置了最后活动时间
+        if 'last_activity' not in session:
+            session['last_activity'] = time.time()
+            return True
+        
+        # 计算会话超时时间（从配置中获取，默认1小时）
+        timeout_seconds = app.config.get('PERMANENT_SESSION_LIFETIME', timedelta(hours=1)).total_seconds()
+        current_time = time.time()
+        last_activity = session.get('last_activity', current_time)
+        
+        # 如果超时，清除会话
+        if current_time - last_activity > timeout_seconds:
+            user_id = session.get('user_id')
+            username = session.get('username')
+            
+            # 记录自动登出日志
+            if user_id:
+                OperationLogger.log(OperationLogger.AUTO_LOGOUT, user_id, f'用户 {username} 会话超时自动登出')
+            
+            session.clear()
+            return False
+        
+        # 更新最后活动时间
+        session['last_activity'] = current_time
+        return True
+    
+    return False
+
+def update_session_activity():
+    """更新会话活动时间"""
+    if 'user_id' in session:
+        session['last_activity'] = time.time()
+
+# 认证装饰器
+def login_required(f):
+    """要求用户登录的装饰器 - 增强版本，包含会话超时检查"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # 检查会话超时
+        if not check_session_timeout():
+            # 如果是API请求，返回JSON错误
+            if request.path.startswith('/api/'):
+                return jsonify({
+                    'success': False, 
+                    'error': {
+                        'code': 'SESSION_EXPIRED',
+                        'message': '会话已过期，请重新登录'
+                    }
+                }), 401
+            # 如果是页面请求，重定向到登录页面
+            else:
+                return redirect(url_for('login_page'))
+        
+        # 检查用户是否登录
+        if 'user_id' not in session:
+            # 如果是API请求，返回JSON错误
+            if request.path.startswith('/api/'):
+                return jsonify({
+                    'success': False, 
+                    'error': {
+                        'code': 'AUTH_REQUIRED',
+                        'message': '需要登录'
+                    }
+                }), 401
+            # 如果是页面请求，重定向到登录页面
+            else:
+                return redirect(url_for('login_page'))
+        
+        # 更新会话活动时间
+        update_session_activity()
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_required(f):
+    """要求管理员权限的装饰器 - 增强版本，包含会话超时和权限检查"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # 检查会话超时
+        if not check_session_timeout():
+            return jsonify({
+                'success': False, 
+                'error': {
+                    'code': 'SESSION_EXPIRED',
+                    'message': '会话已过期，请重新登录'
+                }
+            }), 401
+        
+        # 检查用户是否登录
+        if 'user_id' not in session:
+            return jsonify({
+                'success': False, 
+                'error': {
+                    'code': 'AUTH_REQUIRED',
+                    'message': '需要登录'
+                }
+            }), 401
+        
+        # 检查管理员权限
+        user_role = session.get('user_role')
+        if user_role != 'admin':
+            # 记录权限不足的尝试
+            OperationLogger.log(OperationLogger.ACCESS_DENIED, session.get('user_id'), 
+                         f'用户尝试访问需要管理员权限的资源: {request.path}')
+            
+            return jsonify({
+                'success': False, 
+                'error': {
+                    'code': 'PERMISSION_DENIED',
+                    'message': '权限不足，需要管理员权限'
+                }
+            }), 403
+        
+        # 更新会话活动时间
+        update_session_activity()
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
+def validate_session_integrity():
+    """验证会话完整性"""
+    if 'user_id' in session:
+        user_id = session.get('user_id')
+        
+        # 验证用户是否仍然存在且有效
+        try:
+            with get_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT id, username, role FROM users WHERE id = ?", (user_id,))
+                user = cursor.fetchone()
+                
+                if not user:
+                    # 用户不存在，清除会话
+                    session.clear()
+                    return False
+                
+                # 更新会话中的用户信息（防止权限变更后仍使用旧权限）
+                session['username'] = user['username']
+                session['user_role'] = user['role']
+                
+                return True
+        except Exception as e:
+            print(f"验证会话完整性失败: {e}")
+            session.clear()
+            return False
+    
+    return False
+
+# ==================== 操作日志系统 ====================
+
+class OperationLogger:
+    """操作日志记录器"""
+    
+    # 操作类型常量
+    LOGIN = 'LOGIN'
+    LOGOUT = 'LOGOUT'
+    AUTO_LOGOUT = 'AUTO_LOGOUT'
+    CREATE_QUESTIONNAIRE = 'CREATE_QUESTIONNAIRE'
+    UPDATE_QUESTIONNAIRE = 'UPDATE_QUESTIONNAIRE'
+    DELETE_QUESTIONNAIRE = 'DELETE_QUESTIONNAIRE'
+    BATCH_DELETE = 'BATCH_DELETE'
+    VIEW_QUESTIONNAIRE = 'VIEW_QUESTIONNAIRE'
+    EXPORT_DATA = 'EXPORT_DATA'
+    ACCESS_DENIED = 'ACCESS_DENIED'
+    EXTEND_SESSION = 'EXTEND_SESSION'
+    SYSTEM_ERROR = 'SYSTEM_ERROR'
+    
+    # 敏感操作列表
+    SENSITIVE_OPERATIONS = {
+        DELETE_QUESTIONNAIRE, BATCH_DELETE, EXPORT_DATA, 
+        EXTEND_SESSION, ACCESS_DENIED
+    }
+    
+    @staticmethod
+    def log(operation, target_id=None, details=None, ip_address=None, user_agent=None):
+        """记录操作日志"""
+        try:
+            user_id = session.get('user_id')
+            username = session.get('username', 'anonymous')
+            
+            # 获取请求信息
+            if not ip_address:
+                ip_address = request.remote_addr or 'unknown'
+            if not user_agent:
+                user_agent = request.headers.get('User-Agent', 'unknown')[:500]  # 限制长度
+            
+            # 构建详细信息
+            log_details = {
+                'operation': operation,
+                'user_details': details or '',
+                'ip_address': ip_address,
+                'user_agent': user_agent,
+                'timestamp': datetime.now().isoformat(),
+                'request_path': request.path if request else 'unknown',
+                'request_method': request.method if request else 'unknown'
+            }
+            
+            # 对于敏感操作，记录更多信息
+            if operation in OperationLogger.SENSITIVE_OPERATIONS:
+                log_details['sensitive'] = True
+                log_details['session_id'] = session.get('_id', 'unknown')
+            
+            with get_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "INSERT INTO operation_logs (user_id, operation, target_id, details) VALUES (?, ?, ?, ?)",
+                    (user_id, operation, target_id, json.dumps(log_details, default=str, ensure_ascii=False))
+                )
+                conn.commit()
+                
+        except Exception as e:
+            # 记录日志失败不应该影响主要功能
+            print(f"记录操作日志失败: {e}")
+            
+            # 尝试记录到文件作为备份
+            try:
+                log_file = os.path.join(os.path.dirname(__file__), 'logs', 'operation_errors.log')
+                os.makedirs(os.path.dirname(log_file), exist_ok=True)
+                
+                with open(log_file, 'a', encoding='utf-8') as f:
+                    f.write(f"{datetime.now().isoformat()} - 日志记录失败: {e}\n")
+                    f.write(f"操作: {operation}, 用户: {username}, 详情: {details}\n\n")
+            except:
+                pass  # 如果文件记录也失败，则忽略
+    
+    @staticmethod
+    def log_system_event(event_type, details=None):
+        """记录系统事件（无用户上下文）"""
+        try:
+            log_details = {
+                'event_type': event_type,
+                'details': details or '',
+                'timestamp': datetime.now().isoformat(),
+                'system_event': True
+            }
+            
+            with get_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "INSERT INTO operation_logs (user_id, operation, target_id, details) VALUES (?, ?, ?, ?)",
+                    (None, f'SYSTEM_{event_type}', None, json.dumps(log_details, default=str, ensure_ascii=False))
+                )
+                conn.commit()
+                
+        except Exception as e:
+            print(f"记录系统事件失败: {e}")
+
+# 兼容性函数
+def log_operation(operation, target_id=None, details=None):
+    """记录用户操作日志 - 兼容性函数"""
+    OperationLogger.log(operation, target_id, details)
+
+# ==================== 认证相关API ====================
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    """用户登录接口"""
+    try:
+        data = request.json
+        
+        if not data:
+            response_data, status_code = validation_error(['请求数据不能为空'])
+            return jsonify(response_data), status_code
+        
+        username = data.get('username', '').strip()
+        password = data.get('password', '')
+        
+        if not username or not password:
+            response_data, status_code = validation_error(['用户名和密码不能为空'])
+            return jsonify(response_data), status_code
+        
+        # 查询用户
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+            user = cursor.fetchone()
+        
+        if not user:
+            response_data, status_code = auth_error('用户名或密码错误')
+            return jsonify(response_data), status_code
+        
+        # 验证密码
+        if not bcrypt.checkpw(password.encode('utf-8'), user['password_hash'].encode('utf-8')):
+            response_data, status_code = auth_error('用户名或密码错误')
+            return jsonify(response_data), status_code
+        
+        # 创建会话
+        session['user_id'] = user['id']
+        session['username'] = user['username']
+        session['user_role'] = user['role']
+        session['last_activity'] = time.time()
+        session['login_time'] = time.time()
+        session.permanent = True
+        
+        # 更新最后登录时间
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE users SET last_login = ? WHERE id = ?",
+                (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), user['id'])
+            )
+            conn.commit()
+        
+        # 记录登录日志
+        OperationLogger.log(OperationLogger.LOGIN, user['id'], f'用户 {username} 登录系统')
+        
+        return jsonify({
+            'success': True,
+            'message': '登录成功',
+            'user': {
+                'id': user['id'],
+                'username': user['username'],
+                'role': user['role']
+            },
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        response_data, status_code = server_error('登录失败', str(e))
+        return jsonify(response_data), status_code
+
+@app.route('/api/auth/logout', methods=['POST'])
+def logout():
+    """用户登出接口"""
+    try:
+        user_id = session.get('user_id')
+        username = session.get('username')
+        
+        # 记录登出日志
+        if user_id:
+            OperationLogger.log(OperationLogger.LOGOUT, user_id, f'用户 {username} 登出系统')
+        
+        # 清除会话
+        session.clear()
+        
+        return jsonify({
+            'success': True,
+            'message': '登出成功',
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'SERVER_ERROR',
+                'message': '登出失败',
+                'details': str(e)
+            }
+        }), 500
+
+@app.route('/api/auth/status', methods=['GET'])
+def auth_status():
+    """检查登录状态接口 - 增强版本，包含会话超时检查"""
+    try:
+        # 检查会话超时
+        if not check_session_timeout():
+            return jsonify({
+                'success': True,
+                'authenticated': False,
+                'user': None,
+                'session_expired': True
+            })
+        
+        # 验证会话完整性
+        if not validate_session_integrity():
+            return jsonify({
+                'success': True,
+                'authenticated': False,
+                'user': None,
+                'session_invalid': True
+            })
+        
+        if 'user_id' in session:
+            # 计算会话剩余时间
+            timeout_seconds = app.config.get('PERMANENT_SESSION_LIFETIME', timedelta(hours=1)).total_seconds()
+            last_activity = session.get('last_activity', time.time())
+            remaining_time = timeout_seconds - (time.time() - last_activity)
+            
+            return jsonify({
+                'success': True,
+                'authenticated': True,
+                'user': {
+                    'id': session['user_id'],
+                    'username': session['username'],
+                    'role': session['user_role']
+                },
+                'session_info': {
+                    'remaining_time': max(0, int(remaining_time)),
+                    'last_activity': datetime.fromtimestamp(last_activity).isoformat(),
+                    'expires_at': datetime.fromtimestamp(last_activity + timeout_seconds).isoformat()
+                }
+            })
+        else:
+            return jsonify({
+                'success': True,
+                'authenticated': False,
+                'user': None
+            })
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'SERVER_ERROR',
+                'message': '检查登录状态失败',
+                'details': str(e)
+            }
+        }), 500
+
+@app.route('/api/auth/refresh', methods=['POST'])
+@login_required
+def refresh_session():
+    """刷新会话接口"""
+    try:
+        # 更新会话活动时间
+        update_session_activity()
+        
+        # 验证会话完整性
+        if not validate_session_integrity():
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'SESSION_INVALID',
+                    'message': '会话无效，请重新登录'
+                }
+            }), 401
+        
+        # 计算会话剩余时间
+        timeout_seconds = app.config.get('PERMANENT_SESSION_LIFETIME', timedelta(hours=1)).total_seconds()
+        last_activity = session.get('last_activity', time.time())
+        remaining_time = timeout_seconds - (time.time() - last_activity)
+        
+        return jsonify({
+            'success': True,
+            'message': '会话已刷新',
+            'session_info': {
+                'remaining_time': max(0, int(remaining_time)),
+                'last_activity': datetime.fromtimestamp(last_activity).isoformat(),
+                'expires_at': datetime.fromtimestamp(last_activity + timeout_seconds).isoformat()
+            },
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'SERVER_ERROR',
+                'message': '刷新会话失败',
+                'details': str(e)
+            }
+        }), 500
+
+@app.route('/api/auth/extend', methods=['POST'])
+@admin_required
+def extend_session():
+    """延长会话接口（仅管理员）"""
+    try:
+        data = request.json or {}
+        extend_minutes = data.get('minutes', 60)  # 默认延长60分钟
+        
+        # 限制延长时间（最多4小时）
+        if extend_minutes > 240:
+            extend_minutes = 240
+        
+        # 更新会话活动时间，相当于延长会话
+        session['last_activity'] = time.time() + (extend_minutes * 60)
+        
+        # 记录会话延长操作
+        OperationLogger.log(OperationLogger.EXTEND_SESSION, session.get('user_id'), 
+                     f'管理员延长会话 {extend_minutes} 分钟')
+        
+        return jsonify({
+            'success': True,
+            'message': f'会话已延长 {extend_minutes} 分钟',
+            'extended_minutes': extend_minutes,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'SERVER_ERROR',
+                'message': '延长会话失败',
+                'details': str(e)
+            }
+        }), 500
+
+# 使用新的验证模块替换原有的验证函数
+def validate_questionnaire_data(data):
+    """验证问卷数据格式 - 使用新的验证模块"""
+    return quick_validate(data)
+
+# 问卷提交API - 任务4.1要求的端点
+@app.route('/api/submit', methods=['POST'])
+def submit_questionnaire_legacy():
+    """问卷提交接口 - 兼容旧版本API路径"""
+    return submit_questionnaire()
+
+# 保存问卷数据 - 标准化API路径
+@app.route('/api/questionnaires', methods=['POST'])
+def submit_questionnaire():
+    try:
+        data = request.json
+        
+        if not data:
+            response_data, status_code = validation_error(['请求数据不能为空'])
+            return jsonify(response_data), status_code
+        
+        # 数据标准化
+        try:
+            normalized_data = normalize_questionnaire_data(data)
+        except Exception as e:
+            response_data, status_code = validation_error([f'数据标准化失败: {str(e)}'])
+            return jsonify(response_data), status_code
+        
+        # 使用新的验证模块进行验证
+        is_valid, validation_errors, validated_data = validate_questionnaire_with_schema(normalized_data)
+        
+        if not is_valid:
+            response_data, status_code = validation_error(validation_errors)
+            return jsonify(response_data), status_code
+        
+        # 从验证后的数据中提取基本信息
+        questionnaire_type = validated_data.get('type', 'unknown')
+        basic_info = validated_data.get('basic_info', {})
+        
+        name = basic_info.get('name', '')
+        grade = basic_info.get('grade', '')
+        submission_date = basic_info.get('submission_date', datetime.now().strftime('%Y-%m-%d'))
+        
+        # 始终使用服务器当前时间作为创建时间
+        created_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        # 使用问题类型处理器进行最终处理
+        final_data = process_complete_questionnaire(validated_data)
+        
+        # 将处理后的数据保存到数据库
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO questionnaires (type, name, grade, submission_date, created_at, updated_at, data) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (questionnaire_type, name, grade, submission_date, created_at, created_at, json.dumps(final_data, default=str, ensure_ascii=False))
+            )
+            conn.commit()
+            questionnaire_id = cursor.lastrowid
+        
+        # 记录操作日志
+        OperationLogger.log(OperationLogger.CREATE_QUESTIONNAIRE, questionnaire_id, f'创建问卷: {name} - {questionnaire_type}')
+        
+        return jsonify({
+            'success': True, 
+            'id': questionnaire_id,
+            'message': '问卷提交成功',
+            'timestamp': datetime.now().isoformat()
+        }), 201
+        
+    except ValidationError as e:
+        response_data, status_code = validation_error(e.messages)
+        return jsonify(response_data), status_code
+    except Exception as e:
+        response_data, status_code = server_error('问卷提交失败', str(e))
+        return jsonify(response_data), status_code
+
+# 获取所有问卷数据 - 增强版本，支持分页和高级搜索
+@app.route('/api/questionnaires', methods=['GET'])
+@login_required
+def get_questionnaires():
+    try:
+        # 获取查询参数
+        page = int(request.args.get('page', 1))
+        limit = min(int(request.args.get('limit', 20)), 100)  # 限制最大每页数量
+        search = request.args.get('search', '').strip()
+        
+        # 高级筛选参数
+        questionnaire_type = request.args.get('type', '').strip()
+        grade_filter = request.args.get('grade', '').strip()
+        date_from = request.args.get('date_from', '').strip()
+        date_to = request.args.get('date_to', '').strip()
+        sort_by = request.args.get('sort_by', 'created_at')  # 排序字段
+        sort_order = request.args.get('sort_order', 'desc')  # 排序方向
+        
+        # 验证排序参数
+        valid_sort_fields = ['id', 'name', 'type', 'grade', 'submission_date', 'created_at', 'updated_at']
+        if sort_by not in valid_sort_fields:
+            sort_by = 'created_at'
+        
+        if sort_order.lower() not in ['asc', 'desc']:
+            sort_order = 'desc'
+        
+        with get_db() as conn:
+            cursor = conn.cursor()
+            
+            # 构建查询条件
+            where_conditions = []
+            params = []
+            
+            # 基本搜索 - 搜索姓名、类型、年级
+            if search:
+                where_conditions.append("(name LIKE ? OR type LIKE ? OR grade LIKE ?)")
+                search_param = f"%{search}%"
+                params.extend([search_param, search_param, search_param])
+            
+            # 问卷类型筛选
+            if questionnaire_type:
+                where_conditions.append("type = ?")
+                params.append(questionnaire_type)
+            
+            # 年级筛选
+            if grade_filter:
+                where_conditions.append("grade = ?")
+                params.append(grade_filter)
+            
+            # 日期范围筛选
+            if date_from:
+                where_conditions.append("DATE(created_at) >= ?")
+                params.append(date_from)
+            
+            if date_to:
+                where_conditions.append("DATE(created_at) <= ?")
+                params.append(date_to)
+            
+            # 构建完整的WHERE子句
+            where_clause = ""
+            if where_conditions:
+                where_clause = "WHERE " + " AND ".join(where_conditions)
+            
+            # 获取总数
+            count_query = f"SELECT COUNT(*) FROM questionnaires {where_clause}"
+            cursor.execute(count_query, params)
+            total_count = cursor.fetchone()[0]
+            
+            # 获取分页数据
+            offset = (page - 1) * limit
+            query = f"SELECT * FROM questionnaires {where_clause} ORDER BY {sort_by} {sort_order.upper()} LIMIT ? OFFSET ?"
+            cursor.execute(query, params + [limit, offset])
+            questionnaires = cursor.fetchall()
+        
+        result = []
+        for q in questionnaires:
+            result.append({
+                'id': q['id'],
+                'type': q['type'],
+                'name': q['name'],
+                'grade': q['grade'],
+                'submission_date': q['submission_date'],
+                'created_at': q['created_at'],
+                'updated_at': q['updated_at'],
+                'data': json.loads(q['data'])
+            })
+        
+        # 记录查询操作日志（仅在有搜索条件时）
+        if search or questionnaire_type or grade_filter or date_from or date_to:
+            search_details = {
+                'search': search,
+                'type': questionnaire_type,
+                'grade': grade_filter,
+                'date_from': date_from,
+                'date_to': date_to,
+                'results_count': len(result)
+            }
+            OperationLogger.log('SEARCH_QUESTIONNAIRES', None, f'搜索问卷: {json.dumps(search_details, default=str, ensure_ascii=False)}')
+        
+        return jsonify({
+            'success': True,
+            'data': result,
+            'pagination': {
+                'page': page,
+                'limit': limit,
+                'total': total_count,
+                'pages': (total_count + limit - 1) // limit,
+                'has_next': page < (total_count + limit - 1) // limit,
+                'has_prev': page > 1
+            },
+            'filters': {
+                'search': search,
+                'type': questionnaire_type,
+                'grade': grade_filter,
+                'date_from': date_from,
+                'date_to': date_to,
+                'sort_by': sort_by,
+                'sort_order': sort_order
+            }
+        })
+    except Exception as e:
+        response_data, status_code = server_error('获取问卷列表失败', str(e))
+        return jsonify(response_data), status_code
+
+# 获取筛选选项 - 用于高级搜索
+@app.route('/api/questionnaires/filters', methods=['GET'])
+@login_required
+def get_filter_options():
+    """获取可用的筛选选项"""
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            
+            # 获取所有可用的问卷类型
+            cursor.execute("SELECT DISTINCT type FROM questionnaires WHERE type IS NOT NULL ORDER BY type")
+            types = [row[0] for row in cursor.fetchall()]
+            
+            # 获取所有可用的年级
+            cursor.execute("SELECT DISTINCT grade FROM questionnaires WHERE grade IS NOT NULL AND grade != '' ORDER BY grade")
+            grades = [row[0] for row in cursor.fetchall()]
+            
+            # 获取日期范围
+            cursor.execute("SELECT MIN(DATE(created_at)), MAX(DATE(created_at)) FROM questionnaires")
+            date_range = cursor.fetchone()
+            
+            return jsonify({
+                'success': True,
+                'data': {
+                    'types': types,
+                    'grades': grades,
+                    'date_range': {
+                        'min': date_range[0],
+                        'max': date_range[1]
+                    },
+                    'sort_options': [
+                        {'value': 'created_at', 'label': '创建时间'},
+                        {'value': 'updated_at', 'label': '更新时间'},
+                        {'value': 'name', 'label': '姓名'},
+                        {'value': 'type', 'label': '问卷类型'},
+                        {'value': 'grade', 'label': '年级'},
+                        {'value': 'submission_date', 'label': '提交日期'}
+                    ]
+                }
+            })
+    except Exception as e:
+        response_data, status_code = server_error('获取筛选选项失败', str(e))
+        return jsonify(response_data), status_code
+
+# 获取单个问卷数据
+@app.route('/api/questionnaires/<int:questionnaire_id>', methods=['GET'])
+@login_required
+def get_questionnaire(questionnaire_id):
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM questionnaires WHERE id = ?", (questionnaire_id,))
+            q = cursor.fetchone()
+        
+        if not q:
+            response_data, status_code = not_found_error('问卷')
+            return jsonify(response_data), status_code
+        
+        result = {
+            'success': True,
+            'data': {
+                'id': q['id'],
+                'type': q['type'],
+                'name': q['name'],
+                'grade': q['grade'],
+                'submission_date': q['submission_date'],
+                'created_at': q['created_at'],
+                'updated_at': q['updated_at'],
+                'data': json.loads(q['data'])
+            }
+        }
+        
+        return jsonify(result)
+    except Exception as e:
+        response_data, status_code = server_error('获取问卷详情失败', str(e))
+        return jsonify(response_data), status_code
+
+# 更新问卷数据
+@app.route('/api/questionnaires/<int:questionnaire_id>', methods=['PUT'])
+@admin_required
+def update_questionnaire(questionnaire_id):
+    try:
+        data = request.json
+        
+        if not data:
+            return jsonify(create_validation_error_response(['请求数据不能为空'])), 400
+        
+        # 数据标准化
+        try:
+            normalized_data = normalize_questionnaire_data(data)
+        except Exception as e:
+            return jsonify(create_validation_error_response([f'数据标准化失败: {str(e)}'])), 400
+        
+        # 使用新的验证模块进行验证
+        is_valid, validation_errors, validated_data = validate_questionnaire_with_schema(normalized_data)
+        
+        if not is_valid:
+            return jsonify(create_validation_error_response(validation_errors)), 400
+        
+        # 从验证后的数据中提取基本信息
+        questionnaire_type = validated_data.get('type', 'unknown')
+        basic_info = validated_data.get('basic_info', {})
+        name = basic_info.get('name', '')
+        grade = basic_info.get('grade', '')
+        submission_date = basic_info.get('submission_date', '')
+        
+        updated_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        # 使用问题类型处理器进行最终处理
+        final_data = process_complete_questionnaire(validated_data)
+        
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE questionnaires SET type = ?, name = ?, grade = ?, submission_date = ?, updated_at = ?, data = ? WHERE id = ?",
+                (questionnaire_type, name, grade, submission_date, updated_at, json.dumps(final_data, default=str, ensure_ascii=False), questionnaire_id)
+            )
+            conn.commit()
+            
+            if cursor.rowcount == 0:
+                return jsonify({
+                    'success': False,
+                    'error': {
+                        'code': 'NOT_FOUND',
+                        'message': '问卷不存在'
+                    }
+                }), 404
+        
+        # 记录操作日志
+        OperationLogger.log(OperationLogger.UPDATE_QUESTIONNAIRE, questionnaire_id, f'更新问卷: {name} - {questionnaire_type}')
+        
+        return jsonify({
+            'success': True,
+            'message': '问卷更新成功',
+            'timestamp': datetime.now().isoformat()
+        })
+    except ValidationError as e:
+        return jsonify(create_validation_error_response(e.messages)), 400
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'SERVER_ERROR',
+                'message': '更新问卷失败',
+                'details': str(e)
+            }
+        }), 500
+
+# 批量删除问卷
+@app.route('/api/questionnaires/batch', methods=['DELETE'])
+@admin_required
+def batch_delete_questionnaires():
+    try:
+        data = request.json
+        questionnaire_ids = data.get('ids', [])
+        
+        if not questionnaire_ids:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'VALIDATION_ERROR',
+                    'message': '未提供问卷ID'
+                }
+            }), 400
+        
+        # 验证ID格式
+        if not all(isinstance(id, int) and id > 0 for id in questionnaire_ids):
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'VALIDATION_ERROR',
+                    'message': '问卷ID格式无效'
+                }
+            }), 400
+        
+        with get_db() as conn:
+            cursor = conn.cursor()
+            
+            # 首先检查要删除的问卷是否存在
+            placeholders = ','.join(['?'] * len(questionnaire_ids))
+            cursor.execute(f"SELECT id, name, type FROM questionnaires WHERE id IN ({placeholders})", questionnaire_ids)
+            existing_questionnaires = cursor.fetchall()
+            
+            if not existing_questionnaires:
+                return jsonify({
+                    'success': False,
+                    'error': {
+                        'code': 'NOT_FOUND',
+                        'message': '未找到指定的问卷'
+                    }
+                }), 404
+            
+            # 执行批量删除
+            cursor.execute(f"DELETE FROM questionnaires WHERE id IN ({placeholders})", questionnaire_ids)
+            conn.commit()
+            
+            deleted_count = cursor.rowcount
+            
+            # 重新排序ID
+            cursor.execute("SELECT id FROM questionnaires ORDER BY created_at")
+            questionnaires = cursor.fetchall()
+            
+            for new_id, questionnaire in enumerate(questionnaires, 1):
+                old_id = questionnaire['id']
+                if old_id != new_id:
+                    cursor.execute("UPDATE questionnaires SET id = ? WHERE id = ?", (new_id, old_id))
+            
+            conn.commit()
+            
+            # 重置自增计数器
+            cursor.execute("UPDATE sqlite_sequence SET seq = (SELECT COUNT(*) FROM questionnaires) WHERE name = 'questionnaires'")
+            conn.commit()
+        
+        # 记录操作日志
+        questionnaire_names = [q['name'] for q in existing_questionnaires]
+        OperationLogger.log(OperationLogger.BATCH_DELETE, None, f'批量删除问卷 {deleted_count} 条: {", ".join(questionnaire_names)}')
+        
+        return jsonify({
+            'success': True,
+            'message': f'成功删除 {deleted_count} 条问卷',
+            'deleted_count': deleted_count,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'SERVER_ERROR',
+                'message': '批量删除失败',
+                'details': str(e)
+            }
+        }), 500
+
+# 删除问卷
+@app.route('/api/questionnaires/<int:questionnaire_id>', methods=['DELETE'])
+@admin_required
+def delete_questionnaire(questionnaire_id):
+    """删除指定问卷"""
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            
+            # 首先获取要删除的问卷信息用于日志记录
+            cursor.execute("SELECT name, type, data FROM questionnaires WHERE id = ?", (questionnaire_id,))
+            questionnaire_row = cursor.fetchone()
+            
+            if not questionnaire_row:
+                response_data, status_code = not_found_error('问卷不存在')
+                return jsonify(response_data), status_code
+            
+            # 提取问卷信息
+            questionnaire_name = questionnaire_row['name'] or '未知'
+            questionnaire_type = questionnaire_row['type'] or '未知'
+            
+            # 执行删除
+            cursor.execute("DELETE FROM questionnaires WHERE id = ?", (questionnaire_id,))
+            deleted_count = cursor.rowcount
+            
+            if deleted_count == 0:
+                response_data, status_code = not_found_error('问卷不存在或已被删除')
+                return jsonify(response_data), status_code
+            
+            # 重新排序ID - 保持连续性
+            cursor.execute("SELECT id FROM questionnaires ORDER BY created_at")
+            questionnaires = cursor.fetchall()
+            
+            for new_id, questionnaire in enumerate(questionnaires, 1):
+                old_id = questionnaire['id']
+                if old_id != new_id:
+                    cursor.execute("UPDATE questionnaires SET id = ? WHERE id = ?", (new_id, old_id))
+            
+            conn.commit()
+            
+            # 重置自增计数器
+            cursor.execute("UPDATE sqlite_sequence SET seq = (SELECT COUNT(*) FROM questionnaires) WHERE name = 'questionnaires'")
+            conn.commit()
+        
+        # 记录操作日志
+        OperationLogger.log(OperationLogger.DELETE_QUESTIONNAIRE, questionnaire_id, 
+                     f'删除问卷: {questionnaire_name} - {questionnaire_type}')
+        
+        return jsonify({
+            'success': True,
+            'message': '问卷删除成功，数据已重新编号',
+            'deleted_id': questionnaire_id,
+            'reindexed': True,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        response_data, status_code = server_error('删除问卷失败', str(e))
+        return jsonify(response_data), status_code
+
+# ==================== 系统监控和统计功能 ====================
+
+@app.route('/api/admin/statistics', methods=['GET'])
+@login_required
+def get_admin_statistics():
+    """获取管理统计数据 - 增强版本"""
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            
+            # 基础统计数据
+            cursor.execute("SELECT COUNT(*) FROM questionnaires")
+            total_count = cursor.fetchone()[0]
+            
+            # 今日新增问卷数
+            today = datetime.now().strftime('%Y-%m-%d')
+            cursor.execute("SELECT COUNT(*) FROM questionnaires WHERE DATE(created_at) = ?", (today,))
+            today_count = cursor.fetchone()[0]
+            
+            # 本周新增问卷数
+            cursor.execute("SELECT COUNT(*) FROM questionnaires WHERE DATE(created_at) >= DATE('now', '-7 days')")
+            week_count = cursor.fetchone()[0]
+            
+            # 本月新增问卷数
+            cursor.execute("SELECT COUNT(*) FROM questionnaires WHERE DATE(created_at) >= DATE('now', 'start of month')")
+            month_count = cursor.fetchone()[0]
+            
+            # 按类型分组的统计
+            cursor.execute("SELECT type, COUNT(*) FROM questionnaires GROUP BY type")
+            type_stats = dict(cursor.fetchall())
+            
+            # 按年级分组的统计
+            cursor.execute("SELECT grade, COUNT(*) FROM questionnaires WHERE grade IS NOT NULL GROUP BY grade")
+            grade_stats = dict(cursor.fetchall())
+            
+            # 最近30天的提交趋势
+            cursor.execute("""
+                SELECT DATE(created_at) as date, COUNT(*) as count 
+                FROM questionnaires 
+                WHERE DATE(created_at) >= DATE('now', '-30 days')
+                GROUP BY DATE(created_at)
+                ORDER BY date
+            """)
+            trend_data = [{'date': row[0], 'count': row[1]} for row in cursor.fetchall()]
+            
+            # 每小时提交分布（今日）
+            cursor.execute("""
+                SELECT strftime('%H', created_at) as hour, COUNT(*) as count
+                FROM questionnaires 
+                WHERE DATE(created_at) = ?
+                GROUP BY strftime('%H', created_at)
+                ORDER BY hour
+            """, (today,))
+            hourly_stats = [{'hour': int(row[0]), 'count': row[1]} for row in cursor.fetchall()]
+            
+            # 用户活动统计
+            cursor.execute("SELECT COUNT(*) FROM users")
+            total_users = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM users WHERE DATE(last_login) = ?", (today,))
+            active_users_today = cursor.fetchone()[0]
+            
+            # 操作日志统计
+            cursor.execute("SELECT COUNT(*) FROM operation_logs")
+            total_operations = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM operation_logs WHERE DATE(created_at) = ?", (today,))
+            operations_today = cursor.fetchone()[0]
+            
+            # 数据库大小统计
+            cursor.execute("SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size()")
+            db_size = cursor.fetchone()[0] if cursor.fetchone() else 0
+            
+        return jsonify({
+            'success': True,
+            'data': {
+                'overview': {
+                    'total_questionnaires': total_count,
+                    'today_submissions': today_count,
+                    'week_submissions': week_count,
+                    'month_submissions': month_count,
+                    'total_users': total_users,
+                    'active_users_today': active_users_today,
+                    'total_operations': total_operations,
+                    'operations_today': operations_today,
+                    'database_size': db_size
+                },
+                'distributions': {
+                    'type_distribution': type_stats,
+                    'grade_distribution': grade_stats
+                },
+                'trends': {
+                    'submission_trend': trend_data,
+                    'hourly_distribution': hourly_stats
+                }
+            },
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'SERVER_ERROR',
+                'message': '获取统计数据失败',
+                'details': str(e)
+            }
+        }), 500
+
+@app.route('/api/admin/system/health', methods=['GET'])
+@login_required
+def system_health_check():
+    """系统健康检查接口"""
+    try:
+        health_status = {
+            'status': 'healthy',
+            'checks': {},
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        # 数据库连接检查
+        try:
+            with get_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT 1")
+                cursor.fetchone()
+            health_status['checks']['database'] = {
+                'status': 'healthy',
+                'message': '数据库连接正常'
+            }
+        except Exception as e:
+            health_status['checks']['database'] = {
+                'status': 'unhealthy',
+                'message': f'数据库连接失败: {str(e)}'
+            }
+            health_status['status'] = 'unhealthy'
+        
+        # 磁盘空间检查
+        try:
+            import shutil
+            total, used, free = shutil.disk_usage(os.path.dirname(DATABASE))
+            free_percent = (free / total) * 100
+            
+            if free_percent > 10:
+                health_status['checks']['disk_space'] = {
+                    'status': 'healthy',
+                    'message': f'磁盘空间充足 ({free_percent:.1f}% 可用)',
+                    'free_space_gb': free // (1024**3),
+                    'free_percent': round(free_percent, 1)
+                }
+            else:
+                health_status['checks']['disk_space'] = {
+                    'status': 'warning',
+                    'message': f'磁盘空间不足 ({free_percent:.1f}% 可用)',
+                    'free_space_gb': free // (1024**3),
+                    'free_percent': round(free_percent, 1)
+                }
+                if health_status['status'] == 'healthy':
+                    health_status['status'] = 'warning'
+        except Exception as e:
+            health_status['checks']['disk_space'] = {
+                'status': 'unknown',
+                'message': f'无法检查磁盘空间: {str(e)}'
+            }
+        
+        # 内存使用检查
+        try:
+            import psutil
+            memory = psutil.virtual_memory()
+            memory_percent = memory.percent
+            
+            if memory_percent < 80:
+                health_status['checks']['memory'] = {
+                    'status': 'healthy',
+                    'message': f'内存使用正常 ({memory_percent:.1f}%)',
+                    'memory_percent': round(memory_percent, 1),
+                    'available_gb': round(memory.available / (1024**3), 1)
+                }
+            elif memory_percent < 90:
+                health_status['checks']['memory'] = {
+                    'status': 'warning',
+                    'message': f'内存使用较高 ({memory_percent:.1f}%)',
+                    'memory_percent': round(memory_percent, 1),
+                    'available_gb': round(memory.available / (1024**3), 1)
+                }
+                if health_status['status'] == 'healthy':
+                    health_status['status'] = 'warning'
+            else:
+                health_status['checks']['memory'] = {
+                    'status': 'critical',
+                    'message': f'内存使用过高 ({memory_percent:.1f}%)',
+                    'memory_percent': round(memory_percent, 1),
+                    'available_gb': round(memory.available / (1024**3), 1)
+                }
+                health_status['status'] = 'critical'
+        except ImportError:
+            health_status['checks']['memory'] = {
+                'status': 'unknown',
+                'message': '需要安装 psutil 库来检查内存使用'
+            }
+        except Exception as e:
+            health_status['checks']['memory'] = {
+                'status': 'unknown',
+                'message': f'无法检查内存使用: {str(e)}'
+            }
+        
+        # 会话存储检查
+        try:
+            session_count = len([k for k in session.keys() if not k.startswith('_')])
+            health_status['checks']['sessions'] = {
+                'status': 'healthy',
+                'message': f'会话系统正常 (当前会话项: {session_count})',
+                'session_items': session_count
+            }
+        except Exception as e:
+            health_status['checks']['sessions'] = {
+                'status': 'warning',
+                'message': f'会话系统异常: {str(e)}'
+            }
+            if health_status['status'] == 'healthy':
+                health_status['status'] = 'warning'
+        
+        return jsonify({
+            'success': True,
+            'data': health_status
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'SERVER_ERROR',
+                'message': '系统健康检查失败',
+                'details': str(e)
+            }
+        }), 500
+
+@app.route('/api/admin/system/performance', methods=['GET'])
+@login_required
+def system_performance_metrics():
+    """系统性能监控指标"""
+    try:
+        metrics = {
+            'timestamp': datetime.now().isoformat(),
+            'uptime': time.time() - app.config.get('START_TIME', time.time()),
+            'metrics': {}
+        }
+        
+        # 数据库性能指标
+        try:
+            with get_db() as conn:
+                cursor = conn.cursor()
+                
+                # 数据库大小
+                cursor.execute("SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size()")
+                db_size_result = cursor.fetchone()
+                db_size = db_size_result[0] if db_size_result else 0
+                
+                # 表统计
+                cursor.execute("SELECT COUNT(*) FROM questionnaires")
+                questionnaire_count = cursor.fetchone()[0]
+                
+                cursor.execute("SELECT COUNT(*) FROM operation_logs")
+                log_count = cursor.fetchone()[0]
+                
+                cursor.execute("SELECT COUNT(*) FROM users")
+                user_count = cursor.fetchone()[0]
+                
+                # 最近的操作频率
+                cursor.execute("""
+                    SELECT COUNT(*) FROM operation_logs 
+                    WHERE created_at >= datetime('now', '-1 hour')
+                """)
+                operations_last_hour = cursor.fetchone()[0]
+                
+                metrics['metrics']['database'] = {
+                    'size_bytes': db_size,
+                    'size_mb': round(db_size / (1024*1024), 2),
+                    'questionnaire_count': questionnaire_count,
+                    'log_count': log_count,
+                    'user_count': user_count,
+                    'operations_last_hour': operations_last_hour
+                }
+        except Exception as e:
+            metrics['metrics']['database'] = {
+                'error': f'数据库指标获取失败: {str(e)}'
+            }
+        
+        # 系统资源指标
+        try:
+            import psutil
+            
+            # CPU 使用率
+            cpu_percent = psutil.cpu_percent(interval=1)
+            
+            # 内存使用
+            memory = psutil.virtual_memory()
+            
+            # 磁盘使用
+            disk = psutil.disk_usage(os.path.dirname(DATABASE))
+            
+            metrics['metrics']['system'] = {
+                'cpu_percent': round(cpu_percent, 1),
+                'memory': {
+                    'total_gb': round(memory.total / (1024**3), 2),
+                    'available_gb': round(memory.available / (1024**3), 2),
+                    'percent': round(memory.percent, 1)
+                },
+                'disk': {
+                    'total_gb': round(disk.total / (1024**3), 2),
+                    'free_gb': round(disk.free / (1024**3), 2),
+                    'percent': round((disk.used / disk.total) * 100, 1)
+                }
+            }
+        except ImportError:
+            metrics['metrics']['system'] = {
+                'error': '需要安装 psutil 库来获取系统指标'
+            }
+        except Exception as e:
+            metrics['metrics']['system'] = {
+                'error': f'系统指标获取失败: {str(e)}'
+            }
+        
+        # 应用程序指标
+        try:
+            # 活跃会话数（简化统计）
+            active_sessions = 1 if 'user_id' in session else 0
+            
+            # 最近错误统计
+            with get_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT COUNT(*) FROM operation_logs 
+                    WHERE operation LIKE '%ERROR%' 
+                    AND created_at >= datetime('now', '-24 hours')
+                """)
+                errors_24h = cursor.fetchone()[0]
+            
+            metrics['metrics']['application'] = {
+                'active_sessions': active_sessions,
+                'errors_24h': errors_24h,
+                'flask_env': app.config.get('ENV', 'unknown'),
+                'debug_mode': app.debug
+            }
+        except Exception as e:
+            metrics['metrics']['application'] = {
+                'error': f'应用指标获取失败: {str(e)}'
+            }
+        
+        return jsonify({
+            'success': True,
+            'data': metrics
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'SERVER_ERROR',
+                'message': '获取性能指标失败',
+                'details': str(e)
+            }
+        }), 500
+
+@app.route('/api/admin/system/realtime', methods=['GET'])
+@login_required
+def realtime_statistics():
+    """实时统计数据接口"""
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            
+            # 最近1小时的活动
+            cursor.execute("""
+                SELECT COUNT(*) FROM questionnaires 
+                WHERE created_at >= datetime('now', '-1 hour')
+            """)
+            submissions_last_hour = cursor.fetchone()[0]
+            
+            # 最近1小时的操作
+            cursor.execute("""
+                SELECT COUNT(*) FROM operation_logs 
+                WHERE created_at >= datetime('now', '-1 hour')
+            """)
+            operations_last_hour = cursor.fetchone()[0]
+            
+            # 最近5分钟的活动
+            cursor.execute("""
+                SELECT COUNT(*) FROM questionnaires 
+                WHERE created_at >= datetime('now', '-5 minutes')
+            """)
+            submissions_last_5min = cursor.fetchone()[0]
+            
+            # 最近的提交记录
+            cursor.execute("""
+                SELECT id, name, type, created_at 
+                FROM questionnaires 
+                ORDER BY created_at DESC 
+                LIMIT 5
+            """)
+            recent_submissions = [
+                {
+                    'id': row[0],
+                    'name': row[1],
+                    'type': row[2],
+                    'created_at': row[3]
+                }
+                for row in cursor.fetchall()
+            ]
+            
+            # 最近的操作日志
+            cursor.execute("""
+                SELECT operation, created_at, details 
+                FROM operation_logs 
+                ORDER BY created_at DESC 
+                LIMIT 5
+            """)
+            recent_operations = [
+                {
+                    'operation': row[0],
+                    'created_at': row[1],
+                    'details': json.loads(row[2]) if row[2] else {}
+                }
+                for row in cursor.fetchall()
+            ]
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'activity': {
+                    'submissions_last_hour': submissions_last_hour,
+                    'operations_last_hour': operations_last_hour,
+                    'submissions_last_5min': submissions_last_5min
+                },
+                'recent': {
+                    'submissions': recent_submissions,
+                    'operations': recent_operations
+                },
+                'timestamp': datetime.now().isoformat()
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'SERVER_ERROR',
+                'message': '获取实时统计失败',
+                'details': str(e)
+            }
+        }), 500
+
+# 获取操作日志
+@app.route('/api/admin/logs', methods=['GET'])
+@admin_required
+def get_operation_logs():
+    try:
+        # 获取查询参数
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 50))
+        operation_type = request.args.get('operation', '').strip()
+        user_filter = request.args.get('user', '').strip()
+        date_from = request.args.get('date_from', '').strip()
+        date_to = request.args.get('date_to', '').strip()
+        sensitive_only = request.args.get('sensitive_only', '').lower() == 'true'
+        
+        # 限制每页最大数量
+        limit = min(limit, 200)
+        
+        with get_db() as conn:
+            cursor = conn.cursor()
+            
+            # 构建查询条件
+            where_conditions = []
+            params = []
+            
+            if operation_type:
+                where_conditions.append("ol.operation LIKE ?")
+                params.append(f"%{operation_type}%")
+            
+            if user_filter:
+                where_conditions.append("u.username LIKE ?")
+                params.append(f"%{user_filter}%")
+            
+            if date_from:
+                where_conditions.append("DATE(ol.created_at) >= ?")
+                params.append(date_from)
+            
+            if date_to:
+                where_conditions.append("DATE(ol.created_at) <= ?")
+                params.append(date_to)
+            
+            if sensitive_only:
+                sensitive_ops = "', '".join(OperationLogger.SENSITIVE_OPERATIONS)
+                where_conditions.append(f"ol.operation IN ('{sensitive_ops}')")
+            
+            where_clause = ""
+            if where_conditions:
+                where_clause = "WHERE " + " AND ".join(where_conditions)
+            
+            # 获取总数
+            count_query = f"""
+                SELECT COUNT(*) 
+                FROM operation_logs ol
+                LEFT JOIN users u ON ol.user_id = u.id
+                {where_clause}
+            """
+            cursor.execute(count_query, params)
+            total_count = cursor.fetchone()[0]
+            
+            # 获取分页数据
+            offset = (page - 1) * limit
+            query = f"""
+                SELECT ol.*, u.username 
+                FROM operation_logs ol
+                LEFT JOIN users u ON ol.user_id = u.id
+                {where_clause}
+                ORDER BY ol.created_at DESC
+                LIMIT ? OFFSET ?
+            """
+            cursor.execute(query, params + [limit, offset])
+            logs = cursor.fetchall()
+        
+        result = []
+        for log in logs:
+            # 解析详细信息
+            details_data = {}
+            try:
+                if log['details']:
+                    details_data = json.loads(log['details'])
+            except:
+                details_data = {'user_details': log['details']}
+            
+            # 判断是否为敏感操作
+            is_sensitive = log['operation'] in OperationLogger.SENSITIVE_OPERATIONS
+            
+            log_entry = {
+                'id': log['id'],
+                'user_id': log['user_id'],
+                'username': log['username'] or 'System',
+                'operation': log['operation'],
+                'target_id': log['target_id'],
+                'created_at': log['created_at'],
+                'is_sensitive': is_sensitive,
+                'ip_address': details_data.get('ip_address', 'unknown'),
+                'user_agent': details_data.get('user_agent', 'unknown')[:100] + '...' if len(details_data.get('user_agent', '')) > 100 else details_data.get('user_agent', 'unknown'),
+                'request_path': details_data.get('request_path', 'unknown'),
+                'request_method': details_data.get('request_method', 'unknown'),
+                'user_details': details_data.get('user_details', ''),
+                'raw_details': log['details']  # 保留原始详情用于详细查看
+            }
+            
+            result.append(log_entry)
+        
+        # 记录日志查看操作
+        OperationLogger.log('VIEW_LOGS', None, f'查看操作日志，页面: {page}, 过滤条件: {request.args}')
+        
+        return jsonify({
+            'success': True,
+            'data': result,
+            'pagination': {
+                'page': page,
+                'limit': limit,
+                'total': total_count,
+                'pages': (total_count + limit - 1) // limit
+            },
+            'filters': {
+                'operation_type': operation_type,
+                'user_filter': user_filter,
+                'date_from': date_from,
+                'date_to': date_to,
+                'sensitive_only': sensitive_only
+            }
+        })
+        
+    except Exception as e:
+        OperationLogger.log('SYSTEM_ERROR', None, f'获取操作日志失败: {str(e)}')
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'SERVER_ERROR',
+                'message': '获取操作日志失败',
+                'details': str(e)
+            }
+        }), 500
+
+@app.route('/api/admin/logs/<int:log_id>', methods=['GET'])
+@admin_required
+def get_log_detail(log_id):
+    """获取单个日志详情"""
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT ol.*, u.username 
+                FROM operation_logs ol
+                LEFT JOIN users u ON ol.user_id = u.id
+                WHERE ol.id = ?
+            """, (log_id,))
+            log = cursor.fetchone()
+        
+        if not log:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'NOT_FOUND',
+                    'message': '日志记录不存在'
+                }
+            }), 404
+        
+        # 解析详细信息
+        details_data = {}
+        try:
+            if log['details']:
+                details_data = json.loads(log['details'])
+        except:
+            details_data = {'user_details': log['details']}
+        
+        result = {
+            'id': log['id'],
+            'user_id': log['user_id'],
+            'username': log['username'] or 'System',
+            'operation': log['operation'],
+            'target_id': log['target_id'],
+            'created_at': log['created_at'],
+            'is_sensitive': log['operation'] in OperationLogger.SENSITIVE_OPERATIONS,
+            'details': details_data
+        }
+        
+        # 记录查看日志详情的操作
+        OperationLogger.log('VIEW_LOG_DETAIL', log_id, f'查看日志详情: {log["operation"]}')
+        
+        return jsonify({
+            'success': True,
+            'data': result
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'SERVER_ERROR',
+                'message': '获取日志详情失败',
+                'details': str(e)
+            }
+        }), 500
+
+@app.route('/api/admin/logs/statistics', methods=['GET'])
+@admin_required
+def get_log_statistics():
+    """获取日志统计信息"""
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            
+            # 总日志数
+            cursor.execute("SELECT COUNT(*) FROM operation_logs")
+            total_logs = cursor.fetchone()[0]
+            
+            # 今日日志数
+            today = datetime.now().strftime('%Y-%m-%d')
+            cursor.execute("SELECT COUNT(*) FROM operation_logs WHERE DATE(created_at) = ?", (today,))
+            today_logs = cursor.fetchone()[0]
+            
+            # 敏感操作数
+            sensitive_ops = "', '".join(OperationLogger.SENSITIVE_OPERATIONS)
+            cursor.execute(f"SELECT COUNT(*) FROM operation_logs WHERE operation IN ('{sensitive_ops}')")
+            sensitive_logs = cursor.fetchone()[0]
+            
+            # 按操作类型统计
+            cursor.execute("""
+                SELECT operation, COUNT(*) as count 
+                FROM operation_logs 
+                GROUP BY operation 
+                ORDER BY count DESC 
+                LIMIT 10
+            """)
+            operation_stats = [{'operation': row[0], 'count': row[1]} for row in cursor.fetchall()]
+            
+            # 按用户统计
+            cursor.execute("""
+                SELECT u.username, COUNT(*) as count 
+                FROM operation_logs ol
+                LEFT JOIN users u ON ol.user_id = u.id
+                WHERE u.username IS NOT NULL
+                GROUP BY u.username 
+                ORDER BY count DESC 
+                LIMIT 10
+            """)
+            user_stats = [{'username': row[0], 'count': row[1]} for row in cursor.fetchall()]
+            
+            # 最近7天的活动趋势
+            cursor.execute("""
+                SELECT DATE(created_at) as date, COUNT(*) as count 
+                FROM operation_logs 
+                WHERE DATE(created_at) >= DATE('now', '-7 days')
+                GROUP BY DATE(created_at)
+                ORDER BY date
+            """)
+            activity_trend = [{'date': row[0], 'count': row[1]} for row in cursor.fetchall()]
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'total_logs': total_logs,
+                'today_logs': today_logs,
+                'sensitive_logs': sensitive_logs,
+                'operation_statistics': operation_stats,
+                'user_statistics': user_stats,
+                'activity_trend': activity_trend
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'SERVER_ERROR',
+                'message': '获取日志统计失败',
+                'details': str(e)
+            }
+        }), 500
+
+@app.route('/api/admin/logs/export', methods=['POST'])
+@admin_required
+def export_logs():
+    """导出操作日志"""
+    try:
+        data = request.json or {}
+        export_format = data.get('format', 'csv').lower()
+        date_from = data.get('date_from', '')
+        date_to = data.get('date_to', '')
+        operation_filter = data.get('operation', '')
+        
+        with get_db() as conn:
+            cursor = conn.cursor()
+            
+            # 构建查询条件
+            where_conditions = []
+            params = []
+            
+            if date_from:
+                where_conditions.append("DATE(ol.created_at) >= ?")
+                params.append(date_from)
+            
+            if date_to:
+                where_conditions.append("DATE(ol.created_at) <= ?")
+                params.append(date_to)
+            
+            if operation_filter:
+                where_conditions.append("ol.operation LIKE ?")
+                params.append(f"%{operation_filter}%")
+            
+            where_clause = ""
+            if where_conditions:
+                where_clause = "WHERE " + " AND ".join(where_conditions)
+            
+            # 获取数据
+            query = f"""
+                SELECT ol.*, u.username 
+                FROM operation_logs ol
+                LEFT JOIN users u ON ol.user_id = u.id
+                {where_clause}
+                ORDER BY ol.created_at DESC
+                LIMIT 10000
+            """
+            cursor.execute(query, params)
+            logs = cursor.fetchall()
+        
+        if export_format == 'csv':
+            # 生成CSV
+            output = StringIO()
+            writer = csv.writer(output)
+            
+            # 写入标题行
+            writer.writerow(['ID', '用户名', '操作类型', '目标ID', '创建时间', '详情'])
+            
+            # 写入数据行
+            for log in logs:
+                details_data = {}
+                try:
+                    if log['details']:
+                        details_data = json.loads(log['details'])
+                except:
+                    details_data = {'user_details': log['details']}
+                
+                writer.writerow([
+                    log['id'],
+                    log['username'] or 'System',
+                    log['operation'],
+                    log['target_id'] or '',
+                    log['created_at'],
+                    details_data.get('user_details', '')
+                ])
+            
+            # 记录导出操作
+            OperationLogger.log('EXPORT_LOGS', None, f'导出操作日志，格式: {export_format}, 条数: {len(logs)}')
+            
+            # 返回CSV文件
+            response = make_response(output.getvalue())
+            response.headers['Content-Type'] = 'text/csv; charset=utf-8'
+            response.headers['Content-Disposition'] = f'attachment; filename=operation_logs_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+            
+            return response
+        
+        else:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'VALIDATION_ERROR',
+                    'message': '不支持的导出格式'
+                }
+            }), 400
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'SERVER_ERROR',
+                'message': '导出日志失败',
+                'details': str(e)
+            }
+        }), 500
+
+# 获取支持的问题类型
+@app.route('/api/question-types', methods=['GET'])
+def get_supported_question_types():
+    """获取系统支持的问题类型列表"""
+    try:
+        supported_types = question_processor.get_supported_types()
+        
+        # 为每种类型提供详细信息
+        type_info = {
+            'multiple_choice': {
+                'name': '选择题',
+                'description': '单选或多选题，用户从预设选项中选择答案',
+                'required_fields': ['question', 'options', 'selected'],
+                'optional_fields': ['can_speak']
+            },
+            'text_input': {
+                'name': '填空题',
+                'description': '文本输入题，用户填写文字答案',
+                'required_fields': ['question', 'answer'],
+                'optional_fields': ['max_length']
+            }
+        }
+        
+        result = []
+        for type_key in supported_types:
+            if type_key in type_info:
+                result.append({
+                    'type': type_key,
+                    **type_info[type_key]
+                })
+        
+        return jsonify({
+            'success': True,
+            'data': result,
+            'total': len(result)
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'SERVER_ERROR',
+                'message': '获取问题类型失败',
+                'details': str(e)
+            }
+        }), 500
+
+# 批量导出问卷数据 - 增强版本，支持 Excel 和 PDF
+@app.route('/api/questionnaires/export', methods=['POST'])
+@login_required
+def batch_export_questionnaires():
+    try:
+        from export_utils import export_questionnaires, get_export_filename, get_content_type
+        
+        data = request.json
+        questionnaire_ids = data.get('ids', [])
+        export_format = data.get('format', 'csv').lower()
+        include_details = data.get('include_details', True)
+        
+        if not questionnaire_ids:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'VALIDATION_ERROR',
+                    'message': '请选择要导出的问卷'
+                }
+            }), 400
+        
+        # 验证导出格式
+        supported_formats = ['csv', 'excel', 'xlsx', 'pdf', 'json']
+        if export_format not in supported_formats:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'VALIDATION_ERROR',
+                    'message': f'不支持的导出格式，支持: {", ".join(supported_formats)}'
+                }
+            }), 400
+        
+        # 获取问卷数据
+        with get_db() as conn:
+            cursor = conn.cursor()
+            placeholders = ','.join(['?'] * len(questionnaire_ids))
+            cursor.execute(f"SELECT * FROM questionnaires WHERE id IN ({placeholders}) ORDER BY created_at DESC", questionnaire_ids)
+            questionnaires = cursor.fetchall()
+        
+        if not questionnaires:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'NOT_FOUND',
+                    'message': '未找到指定的问卷数据'
+                }
+            }), 404
+        
+        # 处理 JSON 格式（保持原有逻辑）
+        if export_format == 'json':
+            result = []
+            for q in questionnaires:
+                result.append({
+                    'id': q['id'],
+                    'type': q['type'],
+                    'name': q['name'],
+                    'grade': q['grade'],
+                    'submission_date': q['submission_date'],
+                    'created_at': q['created_at'],
+                    'updated_at': q['updated_at'],
+                    'data': json.loads(q['data'])
+                })
+            
+            filename = get_export_filename('json', 'questionnaires_batch')
+            response = make_response(json.dumps(result, default=str, ensure_ascii=False, indent=2))
+            response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+            response.headers['Content-type'] = 'application/json; charset=utf-8'
+            
+            # 记录操作日志
+            OperationLogger.log(OperationLogger.EXPORT_DATA, None, f'批量导出问卷 {len(questionnaires)} 条 (JSON格式)')
+            
+            return response
+        
+        # 使用新的导出工具处理其他格式
+        try:
+            file_content = export_questionnaires(questionnaires, export_format, include_details)
+            filename = get_export_filename(export_format, 'questionnaires_batch')
+            content_type = get_content_type(export_format)
+            
+            response = make_response(file_content)
+            response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+            response.headers['Content-Type'] = content_type
+            
+            # 记录操作日志
+            OperationLogger.log(OperationLogger.EXPORT_DATA, None, 
+                         f'批量导出问卷 {len(questionnaires)} 条 ({export_format.upper()}格式)')
+            
+            return response
+            
+        except Exception as export_error:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'EXPORT_ERROR',
+                    'message': f'导出失败: {str(export_error)}',
+                    'details': str(export_error)
+                }
+            }), 500
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'SERVER_ERROR',
+                'message': '批量导出失败',
+                'details': str(e)
+            }
+        }), 500
+
+# 导出单个问卷数据 - 增强版本，支持多种格式
+@app.route('/api/export/<int:questionnaire_id>', methods=['GET'])
+@login_required
+def export_questionnaire(questionnaire_id):
+    try:
+        from export_utils import export_questionnaires, get_export_filename, get_content_type
+        
+        # 获取导出格式参数
+        export_format = request.args.get('format', 'csv').lower()
+        include_details = request.args.get('include_details', 'true').lower() == 'true'
+        
+        # 验证导出格式
+        supported_formats = ['csv', 'excel', 'xlsx', 'pdf', 'json']
+        if export_format not in supported_formats:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'VALIDATION_ERROR',
+                    'message': f'不支持的导出格式，支持: {", ".join(supported_formats)}'
+                }
+            }), 400
+        
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM questionnaires WHERE id = ?", (questionnaire_id,))
+            q = cursor.fetchone()
+        
+        if not q:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'NOT_FOUND',
+                    'message': '问卷不存在'
+                }
+            }), 404
+        
+        # 处理 JSON 格式（保持原有逻辑）
+        if export_format == 'json':
+            result = {
+                'id': q['id'],
+                'type': q['type'],
+                'name': q['name'],
+                'grade': q['grade'],
+                'submission_date': q['submission_date'],
+                'created_at': q['created_at'],
+                'updated_at': q['updated_at'],
+                'data': json.loads(q['data'])
+            }
+            
+            filename = get_export_filename('json', f'questionnaire_{questionnaire_id}')
+            response = make_response(json.dumps(result, default=str, ensure_ascii=False, indent=2))
+            response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+            response.headers['Content-type'] = 'application/json; charset=utf-8'
+            
+            # 记录操作日志
+            OperationLogger.log(OperationLogger.EXPORT_DATA, questionnaire_id, f'导出问卷 {questionnaire_id} (JSON格式)')
+            
+            return response
+        
+        # 使用新的导出工具处理其他格式
+        try:
+            questionnaires = [q]  # 包装成列表
+            file_content = export_questionnaires(questionnaires, export_format, include_details)
+            filename = get_export_filename(export_format, f'questionnaire_{questionnaire_id}')
+            content_type = get_content_type(export_format)
+            
+            response = make_response(file_content)
+            response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+            response.headers['Content-Type'] = content_type
+            
+            # 记录操作日志
+            OperationLogger.log(OperationLogger.EXPORT_DATA, questionnaire_id, 
+                         f'导出问卷 {questionnaire_id} ({export_format.upper()}格式)')
+            
+            return response
+            
+        except Exception as export_error:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'EXPORT_ERROR',
+                    'message': f'导出失败: {str(export_error)}',
+                    'details': str(export_error)
+                }
+            }), 500
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'SERVER_ERROR',
+                'message': '导出问卷失败',
+                'details': str(e)
+            }
+        }), 500
+
+# 高级导出功能 - 支持全量导出和自定义筛选
+@app.route('/api/admin/export/advanced', methods=['POST'])
+@admin_required
+def advanced_export():
+    """高级导出功能，支持全量导出和自定义筛选条件"""
+    try:
+        from export_utils import export_questionnaires, get_export_filename, get_content_type
+        
+        data = request.json or {}
+        export_format = data.get('format', 'csv').lower()
+        include_details = data.get('include_details', True)
+        
+        # 筛选条件
+        filters = data.get('filters', {})
+        date_from = filters.get('date_from', '')
+        date_to = filters.get('date_to', '')
+        questionnaire_type = filters.get('type', '')
+        grade = filters.get('grade', '')
+        name_search = filters.get('name_search', '')
+        
+        # 验证导出格式
+        supported_formats = ['csv', 'excel', 'xlsx', 'pdf']
+        if export_format not in supported_formats:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'VALIDATION_ERROR',
+                    'message': f'不支持的导出格式，支持: {", ".join(supported_formats)}'
+                }
+            }), 400
+        
+        # 构建查询条件
+        where_conditions = []
+        params = []
+        
+        if date_from:
+            where_conditions.append("DATE(created_at) >= ?")
+            params.append(date_from)
+        
+        if date_to:
+            where_conditions.append("DATE(created_at) <= ?")
+            params.append(date_to)
+        
+        if questionnaire_type:
+            where_conditions.append("type = ?")
+            params.append(questionnaire_type)
+        
+        if grade:
+            where_conditions.append("grade LIKE ?")
+            params.append(f"%{grade}%")
+        
+        if name_search:
+            where_conditions.append("name LIKE ?")
+            params.append(f"%{name_search}%")
+        
+        # 构建完整查询
+        where_clause = ""
+        if where_conditions:
+            where_clause = "WHERE " + " AND ".join(where_conditions)
+        
+        # 获取问卷数据
+        with get_db() as conn:
+            cursor = conn.cursor()
+            query = f"SELECT * FROM questionnaires {where_clause} ORDER BY created_at DESC"
+            cursor.execute(query, params)
+            questionnaires = cursor.fetchall()
+        
+        if not questionnaires:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'NOT_FOUND',
+                    'message': '未找到符合条件的问卷数据'
+                }
+            }), 404
+        
+        # 检查导出数量限制
+        max_export_limit = 1000  # 最大导出数量限制
+        if len(questionnaires) > max_export_limit:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'EXPORT_LIMIT_EXCEEDED',
+                    'message': f'导出数量超过限制，最多支持导出 {max_export_limit} 条记录，当前查询结果: {len(questionnaires)} 条'
+                }
+            }), 400
+        
+        # 执行导出
+        try:
+            file_content = export_questionnaires(questionnaires, export_format, include_details)
+            filename = get_export_filename(export_format, 'questionnaires_advanced')
+            content_type = get_content_type(export_format)
+            
+            response = make_response(file_content)
+            response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+            response.headers['Content-Type'] = content_type
+            
+            # 记录操作日志
+            filter_desc = []
+            if date_from or date_to:
+                filter_desc.append(f"日期: {date_from or '开始'} 至 {date_to or '结束'}")
+            if questionnaire_type:
+                filter_desc.append(f"类型: {questionnaire_type}")
+            if grade:
+                filter_desc.append(f"年级: {grade}")
+            if name_search:
+                filter_desc.append(f"姓名: {name_search}")
+            
+            filter_text = "; ".join(filter_desc) if filter_desc else "无筛选条件"
+            
+            OperationLogger.log(OperationLogger.EXPORT_DATA, None, 
+                         f'高级导出问卷 {len(questionnaires)} 条 ({export_format.upper()}格式) - 筛选条件: {filter_text}')
+            
+            return response
+            
+        except Exception as export_error:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'EXPORT_ERROR',
+                    'message': f'导出失败: {str(export_error)}',
+                    'details': str(export_error)
+                }
+            }), 500
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'SERVER_ERROR',
+                'message': '高级导出失败',
+                'details': str(e)
+            }
+        }), 500
+
+# 获取导出预览信息
+@app.route('/api/admin/export/preview', methods=['POST'])
+@admin_required
+def export_preview():
+    """获取导出预览信息，显示将要导出的数据统计"""
+    try:
+        data = request.json or {}
+        
+        # 筛选条件
+        filters = data.get('filters', {})
+        date_from = filters.get('date_from', '')
+        date_to = filters.get('date_to', '')
+        questionnaire_type = filters.get('type', '')
+        grade = filters.get('grade', '')
+        name_search = filters.get('name_search', '')
+        
+        # 构建查询条件
+        where_conditions = []
+        params = []
+        
+        if date_from:
+            where_conditions.append("DATE(created_at) >= ?")
+            params.append(date_from)
+        
+        if date_to:
+            where_conditions.append("DATE(created_at) <= ?")
+            params.append(date_to)
+        
+        if questionnaire_type:
+            where_conditions.append("type = ?")
+            params.append(questionnaire_type)
+        
+        if grade:
+            where_conditions.append("grade LIKE ?")
+            params.append(f"%{grade}%")
+        
+        if name_search:
+            where_conditions.append("name LIKE ?")
+            params.append(f"%{name_search}%")
+        
+        # 构建完整查询
+        where_clause = ""
+        if where_conditions:
+            where_clause = "WHERE " + " AND ".join(where_conditions)
+        
+        # 获取统计信息
+        with get_db() as conn:
+            cursor = conn.cursor()
+            
+            # 总数统计
+            count_query = f"SELECT COUNT(*) FROM questionnaires {where_clause}"
+            cursor.execute(count_query, params)
+            total_count = cursor.fetchone()[0]
+            
+            # 按类型统计
+            type_query = f"SELECT type, COUNT(*) FROM questionnaires {where_clause} GROUP BY type"
+            cursor.execute(type_query, params)
+            type_stats = dict(cursor.fetchall())
+            
+            # 按日期统计（最近7天）
+            date_query = f"""
+                SELECT DATE(created_at) as date, COUNT(*) 
+                FROM questionnaires {where_clause} 
+                GROUP BY DATE(created_at) 
+                ORDER BY DATE(created_at) DESC 
+                LIMIT 7
+            """
+            cursor.execute(date_query, params)
+            date_stats = dict(cursor.fetchall())
+        
+        return jsonify({
+            'success': True,
+            'preview': {
+                'total_count': total_count,
+                'type_statistics': type_stats,
+                'date_statistics': date_stats,
+                'export_limit': 1000,
+                'can_export': total_count <= 1000,
+                'filters_applied': {
+                    'date_from': date_from,
+                    'date_to': date_to,
+                    'type': questionnaire_type,
+                    'grade': grade,
+                    'name_search': name_search
+                }
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'SERVER_ERROR',
+                'message': '获取导出预览失败',
+                'details': str(e)
+            }
+        }), 500
+
+# 注册统一错误处理器
+register_error_handlers(app)
+
+# 管理页面路由
+@app.route('/admin')
+@login_required
+def admin_dashboard():
+    return render_template('admin.html')
+
+# 登录页面路由
+@app.route('/login')
+def login_page():
+    # 如果已经登录，重定向到管理页面
+    if 'user_id' in session:
+        return redirect(url_for('admin_dashboard'))
+    return render_template('login.html')
+
+# 首页路由
+@app.route('/')
+def index():
+    # 如果已经登录，重定向到管理页面，否则重定向到登录页面
+    if 'user_id' in session:
+        return redirect(url_for('admin_dashboard'))
+    else:
+        return redirect(url_for('login_page'))
+
+if __name__ == '__main__':
+    # 初始化数据库
+    init_db()
+    # 启动Flask应用
+    app.run(debug=True, host='0.0.0.0', port=5000)

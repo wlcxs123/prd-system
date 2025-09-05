@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>问卷管理系统 - 登录</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>问卷管理系统</h1>
+            <p>请登录以访问管理功能</p>
+        </div>
+        
+        <!-- 安全提示 -->
+        <div class="security-notice">
+            <strong>安全提示：</strong> 请确保您在安全的网络环境中登录，不要在公共设备上保存登录信息。
+        </div>
+        
+        <div id="alertContainer"></div>
+        
+        <form id="loginForm" novalidate>
+            <div class="form-group">
+                <label for="username">用户名 <span style="color: #dc3545;">*</span></label>
+                <input type="text" 
+                       id="username" 
+                       name="username" 
+                       class="form-control" 
+                       required 
+                       autocomplete="username"
+                       placeholder="请输入用户名"
+                       minlength="2"
+                       maxlength="50">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">密码 <span style="color: #dc3545;">*</span></label>
+                <input type="password" 
+                       id="password" 
+                       name="password" 
+                       class="form-control" 
+                       required 
+                       autocomplete="current-password"
+                       placeholder="请输入密码"
+                       minlength="6">
+            </div>
+            
+            <div class="remember-me">
+                <input type="checkbox" id="rememberMe" name="rememberMe">
+                <label for="rememberMe">记住登录状态（7天）</label>
+            </div>
+            
+            <button type="submit" id="loginBtn" class="btn btn-primary">
+                <span id="loginBtnText">登录</span>
+            </button>
+            
+            <div class="loading" id="loading">
+                <div class="loading-spinner"></div>
+                <span>正在验证登录信息...</span>
+            </div>
+        </form>
+        
+        <div class="footer">
+            <p><strong>测试账号：</strong> 用户名: admin, 密码: admin123</p>
+            <p>© 2024 问卷数据管理系统. 保留所有权利.</p>
+        </div>
+    </div>
+
+    <!-- 登录页面 JavaScript -->
+    <script src="{{ url_for('static', filename='js/login.js') }}"></script>
+    
+    <!-- 页面特定的初始化脚本 -->
+    <script>
+        // 页面加载完成后的额外初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 设置焦点到用户名输入框
+            const usernameInput = document.getElementById('username');
+            if (usernameInput) {
+                usernameInput.focus();
+            }
+            
+            // 处理记住我功能
+            const rememberMeCheckbox = document.getElementById('rememberMe');
+            if (rememberMeCheckbox) {
+                // 从localStorage恢复记住我状态
+                const rememberedUsername = localStorage.getItem('rememberedUsername');
+                if (rememberedUsername) {
+                    usernameInput.value = rememberedUsername;
+                    rememberMeCheckbox.checked = true;
+                    // 焦点移到密码框
+                    const passwordInput = document.getElementById('password');
+                    if (passwordInput) {
+                        passwordInput.focus();
+                    }
+                }
+                
+                // 监听记住我选项变化
+                rememberMeCheckbox.addEventListener('change', function() {
+                    if (!this.checked) {
+                        localStorage.removeItem('rememberedUsername');
+                    }
+                });
+            }
+            
+            // 监听登录成功事件，保存用户名
+            document.addEventListener('loginSuccess', function(event) {
+                const rememberMe = document.getElementById('rememberMe');
+                const username = document.getElementById('username').value.trim();
+                
+                if (rememberMe && rememberMe.checked && username) {
+                    localStorage.setItem('rememberedUsername', username);
+                } else {
+                    localStorage.removeItem('rememberedUsername');
+                }
+            });
+        });
+        
+        // 扩展登录管理器以支持记住我功能
+        if (window.loginManager) {
+            const originalHandleLogin = window.loginManager.handleLogin;
+            window.loginManager.handleLogin = function() {
+                const result = originalHandleLogin.call(this);
+                
+                // 如果登录成功，触发自定义事件
+                if (result && result.then) {
+                    result.then((success) => {
+                        if (success) {
+                            document.dispatchEvent(new CustomEvent('loginSuccess'));
+                        }
+                    });
+                }
+                
+                return result;
+            };
+        }
+    </script>
+</body>
+</html>

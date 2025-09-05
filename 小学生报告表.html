@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小学报告表格</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Nunito', sans-serif;
+        }
+
+        :root {
+            --primary-color: #6B7280;
+            --secondary-color: #F3F4F6;
+            --accent-color: #8B5CF6;
+            --text-color: #374151;
+            --light-accent: #EDE9FE;
+            --bg-gradient: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%);
+        }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-color);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            background-color: white;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%);
+            color: white;
+            padding: 30px 40px;
+            text-align: center;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .main-content {
+            padding: 30px 40px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+            padding: 25px;
+            border-radius: 15px;
+            background-color: var(--secondary-color);
+        }
+
+        .section-title {
+            color: var(--accent-color);
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--light-accent);
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title i {
+            margin-right: 10px;
+        }
+
+        .info-form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-color);
+        }
+
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 2px solid #E5E7EB;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+        
+        .privacy-note {
+            background-color: var(--light-accent);
+            color: var(--accent-color);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 0.9rem;
+        }
+
+        .button-container {
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .btn {
+            padding: 12px 28px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+        }
+
+        .btn-primary {
+            background-color: var(--accent-color);
+            color: white;
+        }
+        
+        .btn-primary:disabled {
+            background-color: #D1D5DB;
+            cursor: not-allowed;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: #7C3AED;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+        }
+        
+        .btn-secondary {
+            background-color: white;
+            color: var(--primary-color);
+            border: 2px solid var(--secondary-color);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        .question-container, .summary-container {
+            display: none;
+        }
+        
+        .question-card, .summary-item {
+            padding: 25px;
+            border-radius: 15px;
+            background-color: white;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.03);
+            margin-bottom: 30px;
+        }
+        
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .question-category {
+            background-color: var(--light-accent);
+            color: var(--accent-color);
+            padding: 5px 15px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        
+        .question-number {
+            color: var(--primary-color);
+        }
+
+        .question-text {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+        
+        /* 完成页面样式 */
+        .completion-page {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .completion-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .completion-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .completion-header h1 {
+            color: #28a745;
+            margin-bottom: 10px;
+        }
+        
+        .completion-subtitle {
+            color: #6c757d;
+            font-size: 1.1em;
+        }
+        
+        .info-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+       
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        
+        .completion-answers {
+            margin: 30px 0;
+        }
+        
+        .answers-list {
+            background: #fff;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+            overflow: hidden;
+        }
+        
+        .answer-section {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .answer-section h4 {
+            margin: 0;
+            color: #495057;
+        }
+        
+        .answer-item {
+            padding: 20px;
+            border-bottom: 1px solid #f1f3f4;
+        }
+        
+        .answer-item:last-child {
+            border-bottom: none;
+        }
+        
+        .answer-question {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .answer-content {
+            color: #555;
+            line-height: 1.6;
+            background: #fafbfc;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .completion-actions {
+            text-align: center;
+            margin-top: 30px;
+        }
+        
+        .btn-primary, .btn-secondary {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        
+        .question-content {
+            display: flex;
+            gap: 30px;
+        }
+        
+        .options-container {
+            flex: 2;
+        }
+        
+        .textarea-input {
+            width: 100%;
+            min-height: 150px;
+            padding: 15px;
+        }
+        
+        .rating-scale { margin-bottom: 20px; }
+        .rating-scale-label { font-weight: 600; margin-bottom: 10px; display: block; }
+        .rating-options { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 10px; background-color: #f9fafb; border-radius: 8px;}
+        .rating-option label { display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 0.9rem; text-align: center; min-width: 60px;}
+        .rating-option input { margin-bottom: 5px; width: 18px; height: 18px; accent-color: var(--accent-color);}
+        
+        .question-explanation {
+            flex: 1;
+            max-width: 350px;
+            background-color: #F9FAFB;
+            padding: 20px;
+            border-radius: 15px;
+            border-left: 4px solid var(--accent-color);
+            font-size: 0.95rem;
+        }
+
+        .explanation-title {
+            color: var(--accent-color);
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .navigation-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+        }
+
+        .summary-question {
+            font-weight: 600;
+            color: var(--accent-color);
+            margin-bottom: 8px;
+        }
+        
+        .summary-answer {
+            white-space: pre-wrap;
+            background-color: var(--secondary-color);
+            padding: 10px;
+            border-radius: 8px;
+            color: var(--text-color);
+        }
+
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: var(--primary-color);
+            font-size: 0.9rem;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in { animation: fadeIn 0.6s ease-out forwards; }
+        
+        @media (max-width: 992px) {
+            .question-content { flex-direction: column; }
+            .question-explanation { max-width: 100%; margin-top: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container fade-in">
+        <div class="header">
+            <h1 class="title">小学报告表格</h1>
+        </div>
+
+        <div class="main-content">
+            <div id="welcome-page">
+                <div class="section">
+                    <h2 class="section-title"><i class="fa fa-file-text-o"></i> 报告信息</h2>
+                    <div id="info-form" class="info-form-grid">
+                        <div class="form-group"><label for="childName">姓名</label><input type="text" id="childName" required></div>
+                        <div class="form-group"><label for="dob">出生日期</label><input type="date" id="dob" required></div>
+                        <div class="form-group"><label for="schoolName">学校</label><input type="text" id="schoolName" required></div>
+                        <div class="form-group"><label for="admissionDate">入学日期</label><input type="date" id="admissionDate" required></div>
+                        <div class="form-group" style="grid-column: 1 / -1;"><label for="address">地址</label><input type="text" id="address" required></div>
+                        <hr style="grid-column: 1 / -1; border-top: 2px solid var(--light-accent); margin: 10px 0;">
+                        <div class="form-group"><label for="fillerName">填表人姓名</label><input type="text" id="fillerName" required></div>
+                        <div class="form-group"><label for="fillDate">填表日期</label><input type="date" id="fillDate" required></div>
+                    </div>
+                    <div class="privacy-note">
+                        <strong>隐私保障协定:</strong> 我们发现,有时与家长和孩子讨论学校报告表格会对干预治疗很有帮助。任何你不希望与孩子的家人讨论的部分,请在报告上明确标记。我们将尊重你的意愿。
+                    </div>
+                </div>
+
+                <div class="button-container">
+                    <button id="start-btn" class="btn btn-primary" disabled><i class="fa fa-arrow-right"></i> 开始填写报告</button>
+                </div>
+            </div>
+
+            <div id="questions-container" class="question-container">
+                <div id="question-card"></div>
+                <div class="navigation-buttons">
+                    <button id="prev-btn" class="btn btn-secondary" disabled><i class="fa fa-arrow-left"></i> 上一题</button>
+                    <button id="next-btn" class="btn btn-primary">下一题 <i class="fa fa-arrow-right"></i></button>
+                </div>
+            </div>
+
+            <div id="summary-container" class="summary-container">
+                <div class="section">
+                    <h2 class="section-title"><i class="fa fa-check-square-o"></i> 报告内容摘要</h2>
+                    <div id="summary-info"></div>
+                    <div id="summary-content"></div>
+                </div>
+                <div class="button-container">
+                    <button id="restart-btn" class="btn btn-secondary"><i class="fa fa-refresh"></i> 重新填写</button>
+                    <button id="save-result-btn" class="btn btn-primary"><i class="fa fa-save"></i> 保存结果</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>&copy; 2025 专业心理评估支持系统</p>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. DOM Elements & State ---
+        const welcomePage = document.getElementById('welcome-page');
+        const questionsContainer = document.getElementById('questions-container');
+        const summaryContainer = document.getElementById('summary-container');
+        const questionCard = document.getElementById('question-card');
+        const startBtn = document.getElementById('start-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const restartBtn = document.getElementById('restart-btn');
+
+        let currentQuestionIndex = 0;
+        const userAnswers = {};
+        let reportInfo = {};
+
+        // --- 2. Data Source (from DOCX) ---
+        const questions = [
+            { id: 101, category: '1. 过去就读学校的信息', type: 'textarea', text: '孩子就读过的学校以及就读时间', explanation: '' },
+            { id: 102, category: '1. 过去就读学校的信息', type: 'textarea', text: '是否有任何关于[N]过去就读学校的记录或报告', explanation: '' },
+            { id: 201, category: '2. 目前就读的学校', type: 'textarea', text: '目前,你对[N]是否有担忧?担忧什么?', explanation: '请尽可能详细地描述这个孩子及你观察到的任何问题。' },
+            { id: 202, category: '2. 目前就读的学校', type: 'textarea', text: '这些问题在学校首次引起注意是什么时候?', explanation: '这些问题如何随着时间而改变？' },
+            { id: 301, category: '3. 言语、语言和沟通', type: 'textarea', text: '[N] 在学校说话的程度如何?', explanation: '孩子和任何人说话吗?以什么方式?在什么样的情景下?\n孩子与教职员工和其他孩子是否能适当地说话?请详细描述。' },
+            { id: 302, category: '3. 言语、语言和沟通', type: 'textarea', text: '如果[N]对任何人说话,他的言语和语言中是否有困难或不成熟的迹象?', explanation: '' },
+            { id: 303, category: '3. 言语、语言和沟通', type: 'textarea', text: '当不说话但需要说些什么的时候,[N]是如何沟通的?', explanation: '例如: 用手势?眼神?触碰?书写?' },
+            { id: 304, category: '3. 言语、语言和沟通', type: 'textarea', text: '在课堂上,[N]看起来在听课吗?有眼神交流吗?', explanation: '' },
+            { id: 305, category: '3. 言语、语言和沟通', type: 'textarea', text: '如果[N]想要什么,会如何得到它?', explanation: '例如: 指点、举手、触碰老师、展示作业、让另一个孩子传达他的需求;等待被注意到;发出声响;通过父母传递消息?' },
+            { id: 306, category: '3. 言语、语言和沟通', type: 'textarea', text: '当[N]需要说话(例如要求拼写、报告疾病或报告被嘲笑)时,你会做什么?', explanation: '' },
+            { id: 307, category: '3. 言语、语言和沟通', type: 'textarea', text: '回应点名的情况如何?与其他孩子相比,[N]回应点名情况怎么样?', explanation: '' },
+            { id: 308, category: '3. 言语、语言和沟通', type: 'textarea', text: '你如何评估[N]的阅读能力?', explanation: '' },
+            { id: 309, category: '3. 言语、语言和沟通', type: 'textarea', text: '在课堂围坐时间,情况是怎样的?', explanation: '' },
+            { id: 310, category: '3. 言语、语言和沟通', type: 'textarea', text: '孩子如厕情况如何?', explanation: '需要上厕所时,他如何表达?他需要帮助吗? [N]有任何失禁的情况发生吗?小便还是大便失禁?' },
+            { id: 311, category: '3. 言语、语言和沟通', type: 'textarea', text: '[N] 是否会主动进行一般性沟通,例如提问、发表评论、寻求帮助或报告疾病?', explanation: '' },
+            { id: 312, category: '3. 言语、语言和沟通', type: 'textarea', text: '你为改善[N]的沟通做了怎样的尝试?', explanation: '' },
+            { id: 313, category: '3. 言语、语言和沟通', type: 'textarea', text: '[N]在本学年的沟通情况有没有变化?', explanation: '' },
+            { id: 401, category: '4. 社交互动、气质和行为', type: 'textarea', text: '你会怎么形容[N]?', explanation: '请评论孩子的气质和行为,是快乐、焦虑、爱发号施令、害羞,还是其他?' },
+            { id: 402, category: '4. 社交互动、气质和行为', type: 'textarea', text: '[N]有任何特别的恐惧、痴迷的事物或习惯吗?', explanation: '' },
+            { id: 403, category: '4. 社交互动、气质和行为', type: 'textarea', text: '你认为[N] 曾被戏弄或欺负过吗?[N]怎么让你知道的?', explanation: '' },
+            { id: 404, category: '4. 社交互动、气质和行为', type: 'textarea', text: '[N] 和谁打成一片或坐在一起?', explanation: '有没有最好的朋友?是男生还是女生?在不同的情境下有不同的玩伴,还是只有同一群玩伴?' },
+            { id: 405, category: '4. 社交互动、气质和行为', type: 'textarea', text: '[N] 是会和其他小朋友一起玩,还是看着他们玩?在哪些情境下[N]会和别人一起玩?', explanation: '请评论孩子在午餐/课间休息时的自由活动情况、在有组织的活动中的表现,以及在校外和朋友玩的情况(如果你知道)。' },
+            { id: 406, category: '4. 社交互动、气质和行为', type: 'textarea', text: '[N]与你以及其他老师和成人相处得如何?', explanation: '是否相处的方式都相同?是否有最喜欢的方式?' },
+            { id: 501, category: '5. 能力、表现和兴趣', type: 'rating-scale', text: '请在下面的图表上勾出你对[N]能力的看法。', scales: [{ key: 'generalAbility', label: '一般能力' }, { key: 'achievement', label: '成就表现' }], options: [{ value: 1, text: '非常低' },{ value: 2, text: '低于平均' },{ value: 3, text: '平均' },{ value: 4, text: '优于平均' },{ value: 5, text: '非常好' }], explanation: '' },
+            { id: 502, category: '5. 能力、表现和兴趣', type: 'textarea', text: '如果可以的话,请提供任何阅读和拼写测试的详细信息及成绩。', explanation: '' },
+            { id: 503, category: '5. 能力、表现和兴趣', type: 'textarea', text: '请就[N]在各个学科领域的表现做出评论,指出其强项和弱项、特殊才能和兴趣,以及对学习的总体态度。', explanation: '' },
+            { id: 504, category: '5. 能力、表现和兴趣', type: 'textarea', text: '[N]参加任何俱乐部或课外活动吗?', explanation: '' },
+            { id: 601, category: '6. 额外的评估和协助', type: 'textarea', text: '学校的特殊教育需求协调员在多大程度上参与了[N] 在学校的教育工作?', explanation: '' },
+            { id: 602, category: '6. 额外的评估和协助', type: 'textarea', text: '[N]的特殊教育需求是否经过正式鉴定?', explanation: '正式的教育计划是什么?目前的目标是什么?' },
+            { id: 603, category: '6. 额外的评估和协助', type: 'textarea', text: '如果没有正式的教育目标,你觉得哪些目标适合[N]?', explanation: '' },
+            { id: 604, category: '6. 额外的评估和协助', type: 'textarea', text: '[N]在读写、语言、学习或校内外行为方面是否得到过任何额外的帮助?', explanation: '' },
+            { id: 605, category: '6. 额外的评估和协助', type: 'textarea', text: '教育心理学家是否知道你的担忧?', explanation: '请描述教育心理学家的参与情况。' },
+            { id: 606, category: '6. 额外的评估和协助', type: 'textarea', text: '[N]进行过心理测试吗?', explanation: '如果有,请提供详细资料或附上报告。' },
+            { id: 607, category: '6. 额外的评估和协助', type: 'textarea', text: '[N] 在校外是否还接受过其他评估,例如言语和语言评估或专业治疗?', explanation: '如果有,请提供详细资料或附上报告。' },
+            { id: 701, category: '7. 兄弟姐妹状况', type: 'textarea', text: '[N] 有没有兄弟姐妹在学校就读?他们在学校的表现如何?', explanation: '他们中的任何人有特殊需求吗?兄弟姐妹如何与[N]互动或支持[N]? (请详细说明。)' },
+            { id: 801, category: '8. 家长', type: 'textarea', text: '学校员工和[N]的父母对[N]有一样的担忧吗?', explanation: '请概述你与孩子的父母的讨论情况。' },
+            { id: 901, category: '9. 教职员工培训和经验', type: 'textarea', text: '你和其他主要工作人员对沉默或不愿说话的孩子有什么相关的经验,或受过什么样的培训?', explanation: '' },
+            { id: 902, category: '9. 教职员工培训和经验', type: 'textarea', text: '你觉得我们怎样做能够支持你?', explanation: '非常感谢你填写这份表格!' }
+        ];
+
+        // --- 3. Core Functions ---
+        function replaceN(text) {
+            const childName = reportInfo.childName || '[N]';
+            return text.replace(/\[N\]/g, `<strong style="color: var(--accent-color);">${childName}</strong>`);
+        }
+
+        function renderQuestion(index) {
+            questionCard.innerHTML = '';
+            const question = questions[index];
+            const qCard = document.createElement('div');
+            qCard.className = 'question-card fade-in';
+
+            qCard.innerHTML = `
+                <div class="question-header">
+                    <div class="question-category">${question.category}</div>
+                    <div class="question-number">问题 ${index + 1}/${questions.length}</div>
+                </div>
+                <div class="question-text">${replaceN(question.text)}</div>
+            `;
+
+            const qContent = document.createElement('div');
+            qContent.className = 'question-content';
+            const optionsContainer = document.createElement('div');
+            optionsContainer.className = 'options-container';
+
+            if (question.type === 'textarea') {
+                const textarea = document.createElement('textarea');
+                textarea.className = 'form-group textarea-input';
+                textarea.id = `q-${question.id}`;
+                textarea.placeholder = '请在此输入您的回答...';
+                textarea.value = userAnswers[question.id] || '';
+                optionsContainer.appendChild(textarea);
+            } else if (question.type === 'rating-scale') {
+                const answer = userAnswers[question.id] || {};
+                question.scales.forEach(scale => {
+                    const scaleDiv = document.createElement('div');
+                    scaleDiv.className = 'rating-scale';
+                    let optionsHTML = '';
+                    question.options.forEach(opt => {
+                        const isChecked = answer[scale.key] === opt.value;
+                        optionsHTML += `<label class="rating-option"><span>${opt.text}</span><input type="radio" name="q-${question.id}-${scale.key}" value="${opt.value}" ${isChecked ? 'checked' : ''}></label>`;
+                    });
+                    scaleDiv.innerHTML = `<span class="rating-scale-label">${scale.label}</span><div class="rating-options">${optionsHTML}</div>`;
+                    optionsContainer.appendChild(scaleDiv);
+                });
+            }
+
+            qContent.appendChild(optionsContainer);
+
+            if (question.explanation) {
+                const explanationDiv = document.createElement('div');
+                explanationDiv.className = 'question-explanation';
+                explanationDiv.innerHTML = `<div class="explanation-title"><i class="fa fa-lightbulb-o"></i> 提示内容</div><p style="white-space: pre-wrap;">${question.explanation}</p>`;
+                qContent.appendChild(explanationDiv);
+            }
+            
+            qCard.appendChild(qContent);
+            questionCard.appendChild(qCard);
+            
+            prevBtn.disabled = index === 0;
+            nextBtn.innerHTML = index === questions.length - 1 ? '完成并查看摘要 <i class="fa fa-check"></i>' : '下一题 <i class="fa fa-arrow-right"></i>';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function saveAnswer(index) {
+            const question = questions[index];
+            if (!question) return;
+
+            if (question.type === 'textarea') {
+                userAnswers[question.id] = document.getElementById(`q-${question.id}`).value;
+            } else if (question.type === 'rating-scale') {
+                const answer = userAnswers[question.id] || {};
+                question.scales.forEach(scale => {
+                    const selected = document.querySelector(`input[name="q-${question.id}-${scale.key}"]:checked`);
+                    if (selected) {
+                        answer[scale.key] = parseInt(selected.value);
+                    }
+                });
+                userAnswers[question.id] = answer;
+            }
+        }
+
+        function displaySummary() {
+            const summaryInfo = document.getElementById('summary-info');
+            const summaryContent = document.getElementById('summary-content');
+            
+            summaryInfo.innerHTML = `
+                <div class="summary-item">
+                    <h2 class="section-title"><i class="fa fa-file-text-o"></i> 报告基础信息</h2>
+                    <div class="info-form-grid">
+                        <div><strong>姓名:</strong> ${reportInfo.childName}</div>
+                        <div><strong>出生日期:</strong> ${reportInfo.dob}</div>
+                        <div><strong>学校:</strong> ${reportInfo.schoolName}</div>
+                        <div><strong>入学日期:</strong> ${reportInfo.admissionDate}</div>
+                        <div style="grid-column: 1 / -1;"><strong>地址:</strong> ${reportInfo.address}</div>
+                        <hr style="grid-column: 1 / -1; border: 0; border-top: 1px solid #ddd; margin: 10px 0;">
+                        <div><strong>填表人:</strong> ${reportInfo.fillerName}</div>
+                        <div><strong>填表日期:</strong> ${reportInfo.fillDate}</div>
+                    </div>
+                </div>`;
+            
+            summaryContent.innerHTML = '';
+            questions.forEach(q => {
+                const item = document.createElement('div');
+                item.className = 'summary-item';
+                let answerHTML = '<div class="summary-answer"><i>未作答</i></div>';
+                const answer = userAnswers[q.id];
+
+                if (answer && Object.keys(answer).length > 0) {
+                    if (q.type === 'textarea') {
+                        answerHTML = `<div class="summary-answer">${answer || '<i>未作答</i>'}</div>`;
+                    } else if (q.type === 'rating-scale') {
+                        let scaleAnswers = '';
+                        const getOptText = val => (q.options.find(opt => opt.value === val) || {}).text || 'N/A';
+                        q.scales.forEach(scale => {
+                            scaleAnswers += `<strong>${scale.label}:</strong> ${getOptText(answer[scale.key])}<br>`;
+                        });
+                        answerHTML = `<div class="summary-answer">${scaleAnswers || '<i>未作答</i>'}</div>`;
+                    }
+                }
+                item.innerHTML = `<div class="summary-question">${q.category} - ${replaceN(q.text)}</div>${answerHTML}`;
+                summaryContent.appendChild(item);
+            });
+
+            questionsContainer.style.display = 'none';
+            summaryContainer.style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // --- 4. Event Listeners ---
+        document.getElementById('info-form').addEventListener('input', () => {
+            const inputs = document.querySelectorAll('#info-form input[required]');
+            startBtn.disabled = ![...inputs].every(input => input.value);
+        });
+
+        startBtn.addEventListener('click', () => {
+            reportInfo = {
+                childName: document.getElementById('childName').value,
+                dob: document.getElementById('dob').value,
+                schoolName: document.getElementById('schoolName').value,
+                admissionDate: document.getElementById('admissionDate').value,
+                address: document.getElementById('address').value,
+                fillerName: document.getElementById('fillerName').value,
+                fillDate: document.getElementById('fillDate').value,
+            };
+            welcomePage.style.display = 'none';
+            questionsContainer.style.display = 'block';
+            renderQuestion(0);
+        });
+
+        prevBtn.addEventListener('click', () => {
+            saveAnswer(currentQuestionIndex);
+            currentQuestionIndex--;
+            renderQuestion(currentQuestionIndex);
+        });
+
+        nextBtn.addEventListener('click', () => {
+            saveAnswer(currentQuestionIndex);
+            if (currentQuestionIndex === questions.length - 1) {
+                displaySummary();
+            } else {
+                currentQuestionIndex++;
+                renderQuestion(currentQuestionIndex);
+            }
+        });
+        
+        restartBtn.addEventListener('click', () => {
+            currentQuestionIndex = 0;
+            Object.keys(userAnswers).forEach(key => delete userAnswers[key]);
+            document.querySelectorAll('#info-form input').forEach(input => input.value = '');
+            document.getElementById('fillDate').valueAsDate = new Date();
+            startBtn.disabled = true;
+            summaryContainer.style.display = 'none';
+            welcomePage.style.display = 'block';
+        });
+        
+        // Initialize
+        document.getElementById('fillDate').valueAsDate = new Date();
+        
+        // 读取localStorage中保存的基本信息
+        const savedInfo = localStorage.getItem('basicInfo');
+        if (savedInfo) {
+            const info = JSON.parse(savedInfo);
+            
+            // 填充姓名字段
+            const nameField = document.getElementById('childName');
+            if (nameField && info.name) {
+                nameField.value = info.name;
+            }
+            
+            // 填充出生日期字段
+            const birthdateField = document.getElementById('dob');
+            if (birthdateField && info.birthdate) {
+                birthdateField.value = info.birthdate;
+            }
+        }
+
+        // 添加保存结果功能
+        document.getElementById('save-result-btn').addEventListener('click', async function() {
+            try {
+                // 验证基本信息
+                const validationErrors = [];
+                if (!reportInfo.childName || !reportInfo.childName.trim()) {
+                    validationErrors.push('请填写儿童姓名');
+                }
+                if (!reportInfo.dob) {
+                    validationErrors.push('请选择出生日期');
+                }
+                if (!reportInfo.fillDate) {
+                    validationErrors.push('请选择填表日期');
+                }
+
+                if (validationErrors.length > 0) {
+                    alert('❌ 请完善以下信息：\n' + validationErrors.join('\n'));
+                    return;
+                }
+
+                // 构建符合API标准的问题数据
+                const questions = [];
+                let questionIndex = 1;
+                
+                Object.entries(userAnswers).forEach(([questionId, answer]) => {
+                    // 查找对应的问题文本
+                    const question = questionsData.find(q => q.id === questionId);
+                    const questionText = question ? question.text : questionId;
+                    
+                    if (typeof answer === 'string' && answer.trim()) {
+                        // 文本输入题
+                        questions.push({
+                            id: questionIndex++,
+                            type: 'text_input',
+                            question: questionText,
+                            answer: answer.trim()
+                        });
+                    } else if (typeof answer === 'object' && answer !== null) {
+                        // 评分题
+                        const ratings = Object.entries(answer).filter(([key, value]) => value !== undefined);
+                        if (ratings.length > 0) {
+                            ratings.forEach(([subQuestion, rating]) => {
+                                questions.push({
+                                    id: questionIndex++,
+                                    type: 'multiple_choice',
+                                    question: `${questionText} - ${subQuestion}`,
+                                    options: [
+                                        { value: 0, text: '从不' },
+                                        { value: 1, text: '很少' },
+                                        { value: 2, text: '有时' },
+                                        { value: 3, text: '经常' },
+                                        { value: 4, text: '总是' }
+                                    ],
+                                    selected: [rating]
+                                });
+                            });
+                        }
+                    }
+                });
+
+                // 检查是否有足够的答案
+                if (questions.length < 3) {
+                    alert('❌ 请至少回答3个问题后再提交');
+                    return;
+                }
+
+                // 构建符合API标准的完整数据对象
+                const dataToSubmit = {
+                    type: 'elementary_school_report',
+                    basic_info: {
+                        name: reportInfo.childName.trim(),
+                        grade: '小学生报告表',
+                        submission_date: reportInfo.fillDate
+                    },
+                    questions: questions,
+                    statistics: {
+                        total_score: questions.length,
+                        completion_rate: 100,
+                        submission_time: new Date().toISOString()
+                    }
+                };
+
+                // 发送POST请求到后端API
+                const response = await fetch('http://127.0.0.1:5000/api/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(dataToSubmit),
+                    mode: 'cors',
+                    credentials: 'include'
+                });
+
+                // 处理响应
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success) {
+                        alert('✅ 数据保存成功！\n问卷ID: ' + (result.id || result.record_id));
+                        showCompletion(result.id || result.record_id);
+                    } else {
+                        let errorMessage = result.error?.message || '保存失败';
+                        if (result.error?.details && Array.isArray(result.error.details)) {
+                            errorMessage = '数据验证失败：\n' + result.error.details.join('\n');
+                        }
+                        alert('❌ 保存失败：\n' + errorMessage);
+                    }
+                } else {
+                    let errorMessage = `服务器错误 (${response.status})`;
+                    try {
+                        const errorData = await response.json();
+                        if (errorData.error) {
+                            if (errorData.error.details && Array.isArray(errorData.error.details)) {
+                                errorMessage = '数据验证失败：\n' + errorData.error.details.join('\n');
+                            } else {
+                                errorMessage = errorData.error.message || errorData.message || errorMessage;
+                            }
+                        }
+                    } catch (e) {
+                        errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                    }
+                    alert(`❌ 数据保存失败:\n${errorMessage}`);
+                }
+            } catch (error) {
+                console.error('提交数据时出错:', error);
+                let errorMessage = '网络错误，请检查以下情况：\n\n';
+                
+                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                    errorMessage += '❌ 网络连接问题：\n';
+                    errorMessage += '  • 确保后端服务正在运行（运行 python app.py）\n';
+                    errorMessage += '  • 检查服务器地址是否正确 (127.0.0.1:5000)\n';
+                    errorMessage += '  • 检查防火墙设置\n\n';
+                } else if (error.message.includes('CORS')) {
+                    errorMessage += '❌ CORS配置问题：\n';
+                    errorMessage += '  • 后端服务器CORS配置可能有问题\n';
+                    errorMessage += '  • 请联系技术支持\n\n';
+                } else {
+                    errorMessage += `❌ 其他错误：${error.message}\n\n`;
+                }
+                
+                errorMessage += '💡 建议：\n';
+                errorMessage += '  • 刷新页面重试\n';
+                errorMessage += '  • 检查网络连接\n';
+                errorMessage += '  • 联系技术支持';
+                
+                alert(errorMessage);
+            }
+        });
+        
+        /**
+         * 显示完成页面
+         */
+        function showCompletion(recordId) {
+            // 隐藏问卷区域
+            document.querySelector('.container').style.display = 'none';
+            
+            // 创建完成页面
+            const completionPage = document.createElement('div');
+            completionPage.className = 'completion-page';
+            completionPage.innerHTML = `
+                <div class="completion-container">
+                    <div class="completion-header">
+                        <h1><i class="fa fa-check-circle"></i> 报告完成</h1>
+                        <p class="completion-subtitle">小学生报告表已成功保存</p>
+                    </div>
+                    
+                    <div class="completion-info">
+                        <div class="info-card">
+                            <h3><i class="fa fa-info-circle"></i> 基本信息</h3>
+                            <div class="info-grid">
+                                <div><strong>学生姓名:</strong> ${reportInfo.childName}</div>
+                                <div><strong>出生日期:</strong> ${reportInfo.dob}</div>
+                                <div><strong>学校:</strong> ${reportInfo.schoolName}</div>
+                                <div><strong>入学日期:</strong> ${reportInfo.admissionDate}</div>
+                                <div><strong>填表人:</strong> ${reportInfo.fillerName}</div>
+                                <div><strong>填表日期:</strong> ${reportInfo.fillDate}</div>
+                                <div><strong>记录ID:</strong> ${recordId}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="completion-answers">
+                        <h3><i class="fa fa-list-alt"></i> 回答总览</h3>
+                        ${generateAnswersHTML()}
+                    </div>
+                    
+                    <div class="completion-actions">
+                        <button class="btn-primary" onclick="window.location.reload()">
+                            <i class="fa fa-refresh"></i> 填写新报告
+                        </button>
+                        <button class="btn-secondary" onclick="window.print()">
+                            <i class="fa fa-print"></i> 打印
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(completionPage);
+        }
+        
+        /**
+         * 生成答案HTML
+         */
+        function generateAnswersHTML() {
+            let html = '<div class="answers-list">';
+            
+            questions.forEach((question, index) => {
+                const answer = userAnswers[question.id] || {};
+                let answerText = '未作答';
+                
+                if (question.type === 'textarea' && answer) {
+                    answerText = answer;
+                } else if (question.type === 'rating-scale' && Object.keys(answer).length > 0) {
+                    const getOptText = val => (question.options.find(opt => opt.value === val) || {}).text || 'N/A';
+                    let scaleAnswers = '';
+                    question.scales.forEach(scale => {
+                        scaleAnswers += `<strong>${scale.label}:</strong> ${getOptText(answer[scale.key])}<br>`;
+                    });
+                    answerText = scaleAnswers;
+                }
+                
+                html += `
+                    <div class="answer-item">
+                        <div class="answer-question">
+                            <strong>${question.category} - ${question.text.replace(/\d+\.\s*/, '')}</strong>
+                        </div>
+                        <div class="answer-content">${answerText}</div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            return html;
+        }
+
+    </script>
+</body>
+</html>

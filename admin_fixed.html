@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>问卷管理系统</title>
+    <script src="/static/js/error-handler.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            margin: 0;
+        }
+
+        .header p {
+            color: #6c757d;
+            margin: 5px 0 0 0;
+        }
+
+        .card {
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border: 1px solid #dee2e6;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            font-weight: bold;
+        }
+
+        .card-body {
+            padding: 20px;
+            background-color: white;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            margin: 2px;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #1e7e34;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+
+        .btn-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+
+        .btn-warning:hover {
+            background-color: #e0a800;
+        }
+
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 12px;
+            margin: 1px;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th,
+        .table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+
+        .table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .form-control:focus {
+            border-color: #80bdff;
+            outline: 0;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, .25);
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-danger {
+            color: #dc3545;
+        }
+
+        .text-muted {
+            color: #6c757d;
+        }
+
+        .pagination {
+            display: flex;
+            padding-left: 0;
+            list-style: none;
+            border-radius: 0.25rem;
+        }
+
+        .pagination li {
+            margin: 0 2px;
+        }
+
+        .pagination .page-link {
+            position: relative;
+            display: block;
+            padding: 0.5rem 0.75rem;
+            margin-left: -1px;
+            line-height: 1.25;
+            color: #007bff;
+            text-decoration: none;
+            background-color: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+            cursor: pointer;
+        }
+
+        .pagination .page-link:hover {
+            z-index: 2;
+            color: #0056b3;
+            text-decoration: none;
+            background-color: #e9ecef;
+            border-color: #dee2e6;
+        }
+
+        .pagination .page-item.active .page-link {
+            z-index: 3;
+            color: #fff;
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+
+        .pagination .page-item.disabled .page-link {
+            color: #6c757d;
+            pointer-events: none;
+            cursor: auto;
+            background-color: #fff;
+            border-color: #dee2e6;
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 0;
+            border: none;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .modal-body {
+            padding: 20px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .modal-footer {
+            background-color: #f8f9fa;
+            padding: 15px 20px;
+            border-top: 1px solid #dee2e6;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .close {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+
+        .close:hover,
+        .close:focus {
+            opacity: 0.7;
+        }
+
+        .question-group {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+        }
+
+        .question-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .question-answer {
+            margin-bottom: 8px;
+            padding: 8px;
+            background-color: white;
+            border-radius: 3px;
+            border-left: 3px solid #007bff;
+        }
+
+        .answer-label {
+            font-weight: bold;
+            color: #495057;
+            margin-right: 10px;
+        }
+
+        .answer-value {
+            color: #212529;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-col {
+            flex: 1;
+        }
+
+        .form-col-half {
+            flex: 0 0 48%;
+        }
+
+        .textarea-large {
+            min-height: 100px;
+            resize: vertical;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>问卷管理系统</h1>
+            <p>查看、修改和导出问卷评估结果</p>
+            <div style="float: right; margin-top: -40px;">
+                <button id="logoutBtn" class="btn btn-danger btn-sm">退出</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                问卷列表
+            </div>
+            <div class="card-body">
+                <!-- 搜索区域 -->
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="text" id="searchInput" class="form-control" placeholder="搜索姓名、类型或年级..."
+                            style="flex: 1; max-width: 300px;">
+                        <button id="searchBtn" class="btn btn-primary">搜索</button>
+                        <button id="clearSearchBtn" class="btn btn-secondary">清除</button>
+                        <button id="refreshBtn" class="btn btn-success">刷新</button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>问卷类型</th>
+                                <th>姓名</th>
+                                <th>性别</th>
+                                <th>出生日期</th>
+                                <th>提交时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="questionnaireTableBody">
+                            <tr>
+                                <td colspan="7" class="text-center">加载中...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 分页控件 -->
+                <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <span id="paginationInfo">显示第 1-20 条，共 0 条记录</span>
+                    </div>
+                    <div>
+                        <nav>
+                            <ul class="pagination" id="paginationControls" style="margin: 0;">
+                                <!-- 分页按钮将通过JavaScript动态生成 -->
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Modal -->
+    <div id="viewModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>查看问卷详情</h2>
+                <button class="close" onclick="closeModal('viewModal')">&times;</button>
+            </div>
+            <div class="modal-body" id="viewModalBody">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('viewModal')">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>编辑问卷</h2>
+                <button class="close" onclick="closeModal('editModal')">&times;</button>
+            </div>
+            <div class="modal-body" id="editModalBody">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('editModal')">取消</button>
+                <button class="btn btn-primary" onclick="saveQuestionnaire()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let currentPage = 1;
+        let pageSize = 20;
+        let totalPages = 1;
+        let totalRecords = 0;
+        let currentFilters = {
+            search: '',
+            type: '',
+            grade: '',
+            date_from: '',
+            date_to: '',
+            sort_by: 'created_at',
+            sort_order: 'desc'
+        };
+
+        // 辅助函数：获取问卷类型显示名称
+        function getTypeDisplayName(type) {
+            const typeMap = {
+                'speech_habit': '说话习惯记录',
+                'parent_interview': '家长访谈表',
+                'student_report': '小学生报告表',
+                'teen_interview': '青少年访谈表格',
+                'communication_rating': '小学生交流评定表',
+                'sm_factors': '可能的SM维持因素清单',
+                'sm_maintenance_factors': 'SM维持因素',
+                'elementary_school_communication_assessment': '小学生交流评估'
+            };
+            return typeMap[type] || type;
+        }
+
+        // 加载问卷列表
+        function loadQuestionnaires(page = currentPage) {
+            const params = new URLSearchParams({
+                page: page,
+                limit: pageSize,
+                ...currentFilters
+            });
+
+            // 移除空值参数
+            for (let [key, value] of params.entries()) {
+                if (!value) {
+                    params.delete(key);
+                }
+            }
+
+            const url = `/api/questionnaires?${params.toString()}`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(result => {
+                    const tableBody = document.getElementById('questionnaireTableBody');
+                    tableBody.innerHTML = '';
+
+                    if (!result.success) {
+                        tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">加载失败: ' + (result.error?.message || '未知错误') + '</td></tr>';
+                        return;
+                    }
+
+                    if (!result.data || result.data.length === 0) {
+                        tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">暂无数据</td></tr>';
+                        updatePaginationInfo(0, 0, 0);
+                        updatePaginationControls(1, 1);
+                        return;
+                    }
+
+                    // 更新分页状态
+                    currentPage = result.pagination.page;
+                    totalPages = result.pagination.pages;
+                    totalRecords = result.pagination.total;
+
+                    // 渲染表格数据
+                    result.data.forEach(questionnaire => {
+                        const row = document.createElement('tr');
+
+                        // 提取基本信息
+                        const basicInfo = questionnaire.data.basic_info || {};
+                        const name = basicInfo.name || questionnaire.name || '未知';
+                        const gender = basicInfo.gender || '未知';
+                        const birthdate = basicInfo.birthdate || basicInfo.birth_date || '未知';
+
+                        row.innerHTML = `<td>${questionnaire.id}</td><td>${getTypeDisplayName(questionnaire.type)}</td><td>${name}</td><td>${gender}</td><td>${birthdate}</td><td>${questionnaire.created_at}</td><td><button class="btn btn-primary btn-sm" onclick="viewQuestionnaire(${questionnaire.id})">查看</button><button class="btn btn-warning btn-sm" onclick="editQuestionnaire(${questionnaire.id})">编辑</button><button class="btn btn-success btn-sm" onclick="exportQuestionnaire(${questionnaire.id})">导出</button><button class="btn btn-danger btn-sm" onclick="deleteQuestionnaire(${questionnaire.id})">删除</button></td>`;
+                        tableBody.appendChild(row);
+                    });
+
+                    // 更新分页信息和控件
+                    updatePaginationInfo(result.pagination.page, result.pagination.limit, result.pagination.total);
+                    updatePaginationControls(result.pagination.page, result.pagination.pages);
+                })
+                .catch(error => {
+                    console.error('加载问卷列表失败:', error);
+                    const tableBody = document.getElementById('questionnaireTableBody');
+                    tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">网络错误，请稍后重试</td></tr>';
+                });
+        }
+
+        // 更新分页信息
+        function updatePaginationInfo(page, limit, total) {
+            const start = total > 0 ? (page - 1) * limit + 1 : 0;
+            const end = Math.min(page * limit, total);
+            const infoElement = document.getElementById('paginationInfo');
+            if (infoElement) {
+                infoElement.textContent = `显示第 ${start}-${end} 条，共 ${total} 条记录`;
+            }
+        }
+
+        // 更新分页控件
+        function updatePaginationControls(page, pages) {
+            const paginationElement = document.getElementById('paginationControls');
+            if (!paginationElement) return;
+
+            paginationElement.innerHTML = '';
+
+            if (pages <= 1) return;
+
+            // 上一页按钮
+            const prevItem = document.createElement('li');
+            prevItem.className = `page-item ${page <= 1 ? 'disabled' : ''}`;
+            prevItem.innerHTML = `<a class="page-link" onclick="goToPage(${page - 1})">上一页</a>`;
+            paginationElement.appendChild(prevItem);
+
+            // 页码按钮
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, page - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(pages, startPage + maxVisiblePages - 1);
+
+            for (let i = startPage; i <= endPage; i++) {
+                const pageItem = document.createElement('li');
+                pageItem.className = `page-item ${i === page ? 'active' : ''}`;
+                pageItem.innerHTML = `<a class="page-link" onclick="goToPage(${i})">${i}</a>`;
+                paginationElement.appendChild(pageItem);
+            }
+
+            // 下一页按钮
+            const nextItem = document.createElement('li');
+            nextItem.className = `page-item ${page >= pages ? 'disabled' : ''}`;
+            nextItem.innerHTML = `<a class="page-link" onclick="goToPage(${page + 1})">下一页</a>`;
+            paginationElement.appendChild(nextItem);
+        }
+
+        // 跳转到指定页面
+        function goToPage(page) {
+            if (page >= 1 && page <= totalPages && page !== currentPage) {
+                loadQuestionnaires(page);
+            }
+        }
+
+        // 搜索功能
+        function performSearch() {
+            currentFilters.search = document.getElementById('searchInput').value.trim();
+            currentPage = 1;
+            loadQuestionnaires(1);
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            currentFilters.search = '';
+            currentPage = 1;
+            loadQuestionnaires(1);
+        }
+
+        // 查看问卷详情
+        function viewQuestionnaire(id) {
+            console.log('正在获取问卷详情, ID:', id);
+
+            fetch(`/api/questionnaires/${id}`)
+                .then(response => response.json())
+                .then(result => {
+                    console.log('API响应:', result);
+
+                    if (result.success) {
+                        console.log('问卷数据:', result.data);
+                        showViewModal(result.data);
+                    } else {
+                        alert('获取问卷详情失败: ' + (result.error?.message || '未知错误'));
+                    }
+                })
+                .catch(error => {
+                    console.error('获取问卷详情失败:', error);
+                    alert('网络错误，请稍后重试');
+                });
+        }
+
+        // 编辑问卷
+        function editQuestionnaire(id) {
+            fetch(`/api/questionnaires/${id}`)
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        showEditModal(result.data);
+                    } else {
+                        alert('获取问卷详情失败: ' + (result.error?.message || '未知错误'));
+                    }
+                })
+                .catch(error => {
+                    console.error('获取问卷详情失败:', error);
+                    alert('网络错误，请稍后重试');
+                });
+        }
+
+        function exportQuestionnaire(id) {
+            window.open(`/api/questionnaires/${id}/export`, '_blank');
+        }
+
+        function deleteQuestionnaire(id) {
+            if (confirm('确定要删除这个问卷吗？此操作不可恢复。')) {
+                fetch(`/api/questionnaires/${id}`, {
+                    method: 'DELETE'
+                })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            alert('删除成功');
+                            loadQuestionnaires();
+                        } else {
+                            alert('删除失败: ' + (result.error?.message || '未知错误'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('删除失败:', error);
+                        alert('删除失败，请稍后重试');
+                    });
+            }
+        }
+
+        // 登出功能
+        function logout() {
+            if (confirm('确定要退出登录吗？')) {
+                fetch('/api/auth/logout', { method: 'POST' })
+                    .then(() => {
+                        window.location.href = '/login';
+                    })
+                    .catch(error => {
+                        console.error('退出登录失败:', error);
+                        window.location.href = '/login';
+                    });
+            }
+        }
+
+        // Modal functions
+        let currentEditingId = null;
+
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+            if (modalId === 'editModal') {
+                currentEditingId = null;
+            }
+        }
+
+        // 显示查看模态框
+        function showViewModal(questionnaire) {
+            console.log('显示查看模态框，问卷数据:', questionnaire);
+
+            const modalBody = document.getElementById('viewModalBody');
+            if (!modalBody) {
+                console.error('找不到模态框主体元素');
+                alert('界面错误：找不到模态框元素');
+                return;
+            }
+
+            try {
+                const content = renderQuestionnaireView(questionnaire);
+                console.log('生成的HTML内容长度:', content.length);
+                modalBody.innerHTML = content;
+                showModal('viewModal');
+            } catch (error) {
+                console.error('渲染问卷视图时出错:', error);
+                modalBody.innerHTML = `
+                    <div class="question-group">
+                        <div class="question-title">错误</div>
+                        <div class="question-answer">
+                            <span class="answer-label">渲染错误:</span>
+                            <span class="answer-value">${error.message}</span>
+                        </div>
+                        <div class="question-answer">
+                            <span class="answer-label">原始数据:</span>
+                            <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; white-space: pre-wrap;">${JSON.stringify(questionnaire, null, 2)}</pre>
+                        </div>
+                    </div>
+                `;
+                showModal('viewModal');
+            }
+        }
+
+        // 显示编辑模态框
+        function showEditModal(questionnaire) {
+            currentEditingId = questionnaire.id;
+            const modalBody = document.getElementById('editModalBody');
+            modalBody.innerHTML = renderQuestionnaireEdit(questionnaire);
+            showModal('editModal');
+        }
+
+        // 渲染问卷查看视图
+        function renderQuestionnaireView(questionnaire) {
+            console.log('开始渲染问卷视图，数据:', questionnaire);
+
+            if (!questionnaire) {
+                return '<div class="question-group"><div class="question-title">错误</div><div class="question-answer">问卷数据为空</div></div>';
+            }
+
+            let html = `
+                <div class="question-group">
+                    <div class="question-title">基本信息</div>
+                    <div class="question-answer">
+                        <span class="answer-label">问卷ID:</span>
+                        <span class="answer-value">${questionnaire.id || '未知'}</span>
+                    </div>
+                    <div class="question-answer">
+                        <span class="answer-label">问卷类型:</span>
+                        <span class="answer-value">${getTypeDisplayName(questionnaire.type || '未知')}</span>
+                    </div>
+                    <div class="question-answer">
+                        <span class="answer-label">提交时间:</span>
+                        <span class="answer-value">${questionnaire.created_at || '未知'}</span>
+                    </div>
+                    <div class="question-answer">
+                        <span class="answer-label">最后更新:</span>
+                        <span class="answer-value">${questionnaire.updated_at || '未更新'}</span>
+                    </div>
+                </div>
+                `;
+
+            console.log('基本信息渲染完成');
+
+            // 检查数据结构
+            console.log('问卷数据结构:', questionnaire.data);
+
+            // 渲染基本信息
+            if (questionnaire.data && questionnaire.data.basic_info) {
+                console.log('渲染基本信息:', questionnaire.data.basic_info);
+                html += `<div class="question-group">
+                    <div class="question-title">个人信息</div>`;
+
+                Object.entries(questionnaire.data.basic_info).forEach(([key, value]) => {
+                    const label = getFieldLabel(key);
+                    html += `
+                    <div class="question-answer">
+                        <span class="answer-label">${label}:</span>
+                        <span class="answer-value">${value || '未填写'}</span>
+                    </div>
+                    `;
+                });
+                html += `
+                </div>`;
+            } else {
+                console.log('没有找到basic_info数据');
+            }
+
+            // 渲染详细问题数据（如果存在）
+            if (questionnaire.data && questionnaire.data.detailedData && Array.isArray(questionnaire.data.detailedData)) {
+                console.log('渲染详细问题数据，数量:', questionnaire.data.detailedData.length);
+                html += `<div class="question-group">
+                    <div class="question-title">问题详情 (共${questionnaire.data.detailedData.length}个问题)</div>`;
+
+                questionnaire.data.detailedData.forEach((item, index) => {
+                    console.log(`处理问题 ${index + 1}:`, item);
+                    if (item.questionText) {
+                        html += `
+                        <div class="question-answer" style="border-left: 3px solid #007bff; margin-bottom: 15px; padding: 10px;">
+                            <div style="font-weight: bold; color: #2c3e50; margin-bottom: 5px;">
+                                问题 ${item.questionNumber || index + 1}: ${item.questionText}
+                            </div>
+                            <div style="margin-left: 15px;">
+                                <span class="answer-label">评分:</span>
+                                <span class="answer-value">${item.selectedOption === null ? '未选择 - 0 = 非常容易' : `${item.selectedOption} = ${item.selectedText}`}</span>
+                                ${item.score !== undefined ? `<br><span class="answer-label">得分:</span> <span class="answer-value">${item.score} 分</span>` : ''}
+                                ${item.speechIssue !== undefined ? `<br><span class="answer-label">说话能力:</span> <span class="answer-value">${item.speechIssue ? '是' : '否'}</span>` : ''}
+                            </div>
+                        </div>
+                        `;
+                    } else {
+                        console.log(`问题 ${index + 1} 没有questionText`);
+                    }
+                });
+                html += `</div>`;
+            } else {
+                console.log('没有找到detailedData或不是数组');
+            }
+
+            // 渲染其他问题和答案
+            if (questionnaire.data && questionnaire.data.questions) {
+                console.log('渲染问题数据:', questionnaire.data.questions);
+                html += `<div class="question-group">
+                    <div class="question-title">问题和答案</div>`;
+
+                Object.entries(questionnaire.data.questions).forEach(([questionKey, answer]) => {
+                    const questionText = getQuestionText('questions', questionKey);
+                    html += `
+                    <div class="question-answer">
+                        <span class="answer-label">${questionText}:</span>
+                        <span class="answer-value">${formatAnswer(answer)}</span>
+                    </div>
+                    `;
+                });
+                html += `</div>`;
+            } else {
+                console.log('没有找到questions数据');
+            }
+
+            // 渲染评分总结（如果存在）
+            if (questionnaire.data.totalScore !== undefined || questionnaire.data.averageScore !== undefined) {
+                html += `<div class="question-group">
+                    <div class="question-title">评分总结</div>`;
+
+                if (questionnaire.data.totalScore !== undefined) {
+                    html += `
+                    <div class="question-answer">
+                        <span class="answer-label">总分:</span>
+                        <span class="answer-value">${questionnaire.data.totalScore}</span>
+                    </div>
+                    `;
+                }
+
+                if (questionnaire.data.averageScore !== undefined) {
+                    html += `
+                    <div class="question-answer">
+                        <span class="answer-label">平均分:</span>
+                        <span class="answer-value">${questionnaire.data.averageScore.toFixed(2)}</span>
+                    </div>
+                    `;
+                }
+
+                if (questionnaire.data.speechIssueCount !== undefined) {
+                    html += `
+                    <div class="question-answer">
+                        <span class="answer-label">言语问题数量:</span>
+                        <span class="answer-value">${questionnaire.data.speechIssueCount}</span>
+                    </div>
+                    `;
+                }
+
+                html += `</div>`;
+            }
+
+            // 如果没有找到任何问题数据，显示原始数据结构
+            if (questionnaire.data && (!questionnaire.data.detailedData && !questionnaire.data.questions && Object.keys(questionnaire.data).length > 1)) {
+                console.log('显示原始数据结构');
+                html += `<div class="question-group">
+                    <div class="question-title">原始数据</div>
+                    <div class="question-answer">
+                        <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; white-space: pre-wrap;">${JSON.stringify(questionnaire.data, null, 2)}</pre>
+                    </div>
+                </div>`;
+            }
+
+            console.log('渲染完成，HTML长度:', html.length);
+            return html;
+        }
+
+        // 渲染问卷编辑表单
+        function renderQuestionnaireEdit(questionnaire) {
+            let html = `<form id="editForm">`;
+
+            // 基本信息编辑
+            if (questionnaire.data.basic_info) {
+                html += `<div class="question-group">
+                        <div class="question-title">个人信息</div>`;
+
+                Object.entries(questionnaire.data.basic_info).forEach(([key, value]) => {
+                    const label = getFieldLabel(key);
+                    html += `
+                        <div class="form-group">
+                            <label for="basic_${key}">${label}</label>
+                            <input type="text" id="basic_${key}" name="basic_info.${key}" class="form-control"
+                                value="${value || ''}" />
+                        </div>
+                        `;
+                });
+                html += `
+                    </div>`;
+            }
+
+            // 编辑详细问题数据（如果存在）
+            if (questionnaire.data.detailedData && Array.isArray(questionnaire.data.detailedData)) {
+                html += `<div class="question-group">
+                    <div class="question-title">问题详情编辑</div>
+                    <p style="color: #6c757d; font-size: 0.9em; margin-bottom: 15px;">
+                        注意：修改评分会影响总分计算
+                    </p>`;
+
+                questionnaire.data.detailedData.forEach((item, index) => {
+                    if (item.questionText) {
+                        html += `
+                        <div style="border: 1px solid #dee2e6; border-radius: 5px; padding: 15px; margin-bottom: 15px;">
+                            <div style="font-weight: bold; color: #2c3e50; margin-bottom: 10px;">
+                                问题 ${item.questionNumber || index + 1}: ${item.questionText}
+                            </div>
+                            <div class="form-row">
+                                <div class="form-col">
+                                    <label for="detail_${index}_selectedText">选择答案</label>
+                                    <input type="text" id="detail_${index}_selectedText" 
+                                           name="detailedData.${index}.selectedText" 
+                                           class="form-control" value="${item.selectedText || ''}" />
+                                </div>
+                                ${item.score !== undefined ? `
+                                <div class="form-col-half">
+                                    <label for="detail_${index}_score">评分</label>
+                                    <input type="number" id="detail_${index}_score" 
+                                           name="detailedData.${index}.score" 
+                                           class="form-control" value="${item.score}" min="0" max="4" />
+                                </div>
+                                ` : ''}
+                            </div>
+                            ${item.speechIssue !== undefined ? `
+                            <div class="form-group" style="margin-top: 10px;">
+                                <label>
+                                    <input type="checkbox" name="detailedData.${index}.speechIssue" 
+                                           ${item.speechIssue ? 'checked' : ''} />
+                                    说话能力
+                                </label>
+                            </div>
+                            ` : ''}
+                        </div>
+                        `;
+                    }
+                });
+                html += `</div>`;
+            }
+
+            // 问题答案编辑
+            if (questionnaire.data.questions) {
+                Object.entries(questionnaire.data.questions).forEach(([sectionKey, section]) => {
+                    if (typeof section === 'object' && section !== null) {
+                        html += `<div class="question-group">
+                        <div class="question-title">${getSectionTitle(sectionKey)}</div>`;
+
+                        Object.entries(section).forEach(([questionKey, answer]) => {
+                            const questionText = getQuestionText(sectionKey, questionKey);
+                            const fieldName = `questions.${sectionKey}.${questionKey}`;
+
+                            if (typeof answer === 'string' && answer.length > 50) {
+                                html += `
+                        <div class="form-group">
+                            <label for="${fieldName.replace(/\./g, '_')}">${questionText}</label>
+                            <textarea id="${fieldName.replace(/\./g, '_')}" name="${fieldName}"
+                                class="form-control textarea-large">${answer || ''}</textarea>
+                        </div>
+                        `;
+                            } else {
+                                html += `
+                        <div class="form-group">
+                            <label for="${fieldName.replace(/\./g, '_')}">${questionText}</label>
+                            <input type="text" id="${fieldName.replace(/\./g, '_')}" name="${fieldName}"
+                                class="form-control" value="${answer || ''}" />
+                        </div>
+                        `;
+                            }
+                        });
+                        html += `
+                    </div>`;
+                    }
+                });
+            }
+
+            html += `</form>`;
+            return html;
+        }
+
+        // 保存问卷修改
+        function saveQuestionnaire() {
+            if (!currentEditingId) return;
+
+            const form = document.getElementById('editForm');
+            const formData = new FormData(form);
+
+            // 构建更新数据
+            const updateData = {
+                type: '',
+                basic_info: {},
+                questions: {},
+                detailedData: []
+            };
+
+            // 处理表单数据
+            for (let [name, value] of formData.entries()) {
+                const parts = name.split('.');
+                if (parts[0] === 'basic_info') {
+                    updateData.basic_info[parts[1]] = value;
+                } else if (parts[0] === 'questions') {
+                    if (!updateData.questions[parts[1]]) {
+                        updateData.questions[parts[1]] = {};
+                    }
+                    updateData.questions[parts[1]][parts[2]] = value;
+                } else if (parts[0] === 'detailedData') {
+                    const index = parseInt(parts[1]);
+                    const field = parts[2];
+
+                    // 确保数组有足够的元素
+                    while (updateData.detailedData.length <= index) {
+                        updateData.detailedData.push({});
+                    }
+
+                    if (field === 'score') {
+                        updateData.detailedData[index][field] = parseInt(value) || 0;
+                    } else if (field === 'speechIssue') {
+                        updateData.detailedData[index][field] = true; // checkbox只有选中时才会提交
+                    } else {
+                        updateData.detailedData[index][field] = value;
+                    }
+                }
+            }
+
+            // 处理未选中的checkbox（speechIssue）
+            const checkboxes = form.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                if (!checkbox.checked && checkbox.name.includes('speechIssue')) {
+                    const parts = checkbox.name.split('.');
+                    const index = parseInt(parts[1]);
+                    if (updateData.detailedData[index]) {
+                        updateData.detailedData[index].speechIssue = false;
+                    }
+                }
+            });
+
+            // 发送更新请求
+            fetch(`/api/questionnaires/${currentEditingId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(updateData)
+            })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        alert('保存成功');
+                        closeModal('editModal');
+                        loadQuestionnaires(); // 刷新列表
+                    } else {
+                        alert('保存失败: ' + (result.error?.message || '未知错误'));
+                    }
+                })
+                .catch(error => {
+                    console.error('保存失败:', error);
+                    alert('网络错误，请稍后重试');
+                });
+        }
+
+        // 辅助函数
+        function getFieldLabel(key) {
+            const labelMap = {
+                'name': '姓名',
+                'gender': '性别',
+                'age': '年龄',
+                'grade': '年级',
+                'birthdate': '出生日期',
+                'birth_date': '出生日期',
+                'school': '学校',
+                'class': '班级',
+                'submission_date': '提交日期',
+                'evaluator': '评估者',
+                'relationship': '与孩子关系',
+                'evaluation_date': '评估日期'
+            };
+            return labelMap[key] || key;
+        }
+
+        function getSectionTitle(sectionKey) {
+            const titleMap = {
+                'section1': '第一部分',
+                'section2': '第二部分',
+                'section3': '第三部分',
+                'section4': '第四部分',
+                'section5': '第五部分',
+                'basic_questions': '基础问题',
+                'detailed_questions': '详细问题',
+                'assessment': '评估',
+                'communication': '交流评估',
+                'behavior': '行为评估',
+                'questions': '问题详情',
+                'summary': '总结信息',
+                'scores': '评分结果'
+            };
+            return titleMap[sectionKey] || sectionKey.replace(/_/g, ' ');
+        }
+
+        // 小学生交流评定表的问题映射
+        const communicationQuestions = {
+            'q1': '在家里和亲密的家人交谈',
+            'q2': '在商店或餐厅与你的亲密家人交谈,其他人可能会听到',
+            'q3': '在家里和其他亲戚说话',
+            'q4': '和陌生人说话',
+            'q5': '独自和班主任交谈',
+            'q6': '在班上其他孩子面前和班主任交谈',
+            'q7': '在学校与其他老师或成年人交谈',
+            'q8': '在课堂上举手提问',
+            'q9': '参加课堂讨论(提出自己的意见或想法)',
+            'q10': '回答出勤点名',
+            'q11': '加入课堂围坐时间的活动',
+            'q12': '询问是否可以上厕所',
+            'q13': '在不确定该怎么做时寻求帮助',
+            'q14': '独自给班主任朗读',
+            'q15': '在课堂前大声朗读',
+            'q16': '接近其他孩子,与他们说话和交朋友',
+            'q17': '如果其他孩子和你说话,你会回答他们',
+            'q18': '告诉其他孩子,他们让你感到很烦',
+            'q19': '在学校和朋友交谈',
+            'q20': '在学校和一群孩子交谈',
+            'q21': '在学校和不太熟悉的孩子交谈',
+            'q22': '在学校和其他班级的孩子交谈',
+            'q23': '在学校和年龄较大的孩子交谈',
+            'q24': '在学校和年龄较小的孩子交谈'
+        };
+
+        function getQuestionText(sectionKey, questionKey) {
+            // 特殊问题键的映射
+            const specialQuestions = {
+                'allow_multiple_choice': '允许多选',
+                'max_speak': '最大发言',
+                'option_count': '选项数量',
+                'is_multiple_choice': '是否多选题',
+                'speech_issue': '言语问题',
+                'selected_option': '选择的选项',
+                'score': '评分',
+                'total_score': '总分',
+                'average_score': '平均分'
+            };
+
+            // 如果有特殊映射，使用特殊映射
+            if (specialQuestions[questionKey]) {
+                return specialQuestions[questionKey];
+            }
+
+            // 如果是交流评定表的问题
+            if (communicationQuestions[questionKey]) {
+                return communicationQuestions[questionKey];
+            }
+
+            // 如果questionKey包含问题编号，尝试提取
+            const match = questionKey.match(/q(\d+)/);
+            if (match) {
+                const qNum = match[1];
+                return communicationQuestions[`q${qNum}`] || `问题 ${qNum}`;
+            }
+
+            // 默认格式化
+            return questionKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        function formatAnswer(answer) {
+            if (Array.isArray(answer)) {
+                return answer.join(', ');
+            }
+            if (typeof answer === 'object' && answer !== null) {
+                // 如果是评分对象，特殊处理
+                if (answer.score !== undefined) {
+                    let result = `评分: ${answer.score}`;
+                    if (answer.scoreText) {
+                        result += ` (${answer.scoreText})`;
+                    }
+                    if (answer.speechIssue !== undefined) {
+                        result += `, 说话能力: ${answer.speechIssue ? '是' : '否'}`;
+                    }
+                    return result;
+                }
+                return JSON.stringify(answer, null, 2);
+            }
+            return answer || '未填写';
+        }
+
+        // 渲染选项列表
+        function renderOptions(options, selectedValue) {
+            if (!options || !Array.isArray(options)) return '';
+            
+            let html = '<div style="margin-top: 5px; font-size: 12px; color: #666;">';
+            html += '<div style="margin-bottom: 3px;">所有选项:</div>';
+            
+            options.forEach(option => {
+                const isSelected = option.value === selectedValue;
+                html += `<div style="margin-left: 10px;">`;
+                html += `<span style="color: ${isSelected ? '#28a745' : '#999'};">${isSelected ? '✓' : '・'}</span> `;
+                html += `<span>${option.value} = ${option.text}</span>`;
+                html += `</div>`;
+            });
+            
+            html += '</div>';
+            return html;
+        }
+
+        // 页面初始化
+        document.addEventListener('DOMContentLoaded', function () {
+            // 加载问卷列表
+            loadQuestionnaires();
+
+            // 绑定事件监听器
+            document.getElementById('searchBtn').addEventListener('click', performSearch);
+            document.getElementById('clearSearchBtn').addEventListener('click', clearSearch);
+            document.getElementById('refreshBtn').addEventListener('click', () => loadQuestionnaires());
+            document.getElementById('logoutBtn').addEventListener('click', logout);
+
+            // 搜索框回车事件
+            document.getElementById('searchInput').addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    performSearch();
+                }
+            });
+
+            // 点击模态框外部关闭
+            window.onclick = function (event) {
+                const viewModal = document.getElementById('viewModal');
+                const editModal = document.getElementById('editModal');
+                if (event.target === viewModal) {
+                    closeModal('viewModal');
+                }
+                if (event.target === editModal) {
+                    closeModal('editModal');
+                }
+            };
+        });
+    </script>
+</body>
+
+</html>

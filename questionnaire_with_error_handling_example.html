@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>问卷示例 - 统一错误处理</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .questionnaire-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .form-group {
+            margin: 20px 0;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        .question-group {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .question-title {
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .option-group {
+            margin: 10px 0;
+        }
+        
+        .option-group label {
+            font-weight: normal;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+        
+        .option-group input[type="radio"],
+        .option-group input[type="checkbox"] {
+            width: auto;
+            margin-right: 8px;
+        }
+        
+        .submit-section {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 0 10px;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+        }
+        
+        .btn.secondary {
+            background: #6c757d;
+        }
+        
+        .btn.secondary:hover {
+            background: #545b62;
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="questionnaire-container">
+        <h1>问卷调查示例</h1>
+        <p>这是一个演示统一错误处理系统的问卷示例。</p>
+        
+        <form id="questionnaireForm">
+            <!-- 基本信息 -->
+            <div class="form-group">
+                <label for="name">姓名 *</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="grade">年级 *</label>
+                <select id="grade" name="grade" required>
+                    <option value="">请选择年级</option>
+                    <option value="一年级">一年级</option>
+                    <option value="二年级">二年级</option>
+                    <option value="三年级">三年级</option>
+                    <option value="四年级">四年级</option>
+                    <option value="五年级">五年级</option>
+                    <option value="六年级">六年级</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="submission_date">填表日期 *</label>
+                <input type="date" id="submission_date" name="submission_date" required>
+            </div>
+            
+            <!-- 问题1：选择题 -->
+            <div class="question-group">
+                <div class="question-title">1. 你最喜欢的学科是什么？</div>
+                <div class="option-group">
+                    <label>
+                        <input type="radio" name="question1" value="0" required>
+                        语文
+                    </label>
+                </div>
+                <div class="option-group">
+                    <label>
+                        <input type="radio" name="question1" value="1" required>
+                        数学
+                    </label>
+                </div>
+                <div class="option-group">
+                    <label>
+                        <input type="radio" name="question1" value="2" required>
+                        英语
+                    </label>
+                </div>
+                <div class="option-group">
+                    <label>
+                        <input type="radio" name="question1" value="3" required>
+                        科学
+                    </label>
+                </div>
+            </div>
+            
+            <!-- 问题2：多选题 -->
+            <div class="question-group">
+                <div class="question-title">2. 你的兴趣爱好有哪些？（可多选）</div>
+                <div class="option-group">
+                    <label>
+                        <input type="checkbox" name="question2" value="0">
+                        阅读
+                    </label>
+                </div>
+                <div class="option-group">
+                    <label>
+                        <input type="checkbox" name="question2" value="1">
+                        运动
+                    </label>
+                </div>
+                <div class="option-group">
+                    <label>
+                        <input type="checkbox" name="question2" value="2">
+                        音乐
+                    </label>
+                </div>
+                <div class="option-group">
+                    <label>
+                        <input type="checkbox" name="question2" value="3">
+                        绘画
+                    </label>
+                </div>
+            </div>
+            
+            <!-- 问题3：填空题 -->
+            <div class="question-group">
+                <div class="question-title">3. 请描述你的学习目标：</div>
+                <textarea name="question3" rows="4" placeholder="请在这里输入你的学习目标..." required></textarea>
+            </div>
+            
+            <!-- 提交按钮 -->
+            <div class="submit-section">
+                <button type="button" class="btn secondary" onclick="validateOnly()">仅验证</button>
+                <button type="button" class="btn" onclick="submitQuestionnaire()">提交问卷</button>
+                <button type="button" class="btn secondary" onclick="testErrorScenarios()">测试错误场景</button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- 引入错误处理组件 -->
+    <script src="backend/static/js/error-handler.js"></script>
+    <script src="backend/static/js/questionnaire-helper.js"></script>
+    
+    <script>
+        // 页面初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 设置默认日期
+            document.getElementById('submission_date').value = new Date().toISOString().split('T')[0];
+            
+            // 显示欢迎信息
+            setTimeout(() => {
+                errorHandler.showInfo('欢迎填写问卷', {
+                    details: '请认真填写每一项内容，系统会自动验证数据格式'
+                });
+            }, 500);
+        });
+        
+        // 收集表单数据
+        function collectFormData() {
+            const form = document.getElementById('questionnaireForm');
+            const formData = new FormData(form);
+            
+            // 基本信息
+            const basicInfo = {
+                name: formData.get('name'),
+                grade: formData.get('grade'),
+                submission_date: formData.get('submission_date')
+            };
+            
+            // 问题1：单选题
+            const question1Value = formData.get('question1');
+            const question1 = {
+                id: 1,
+                type: 'multiple_choice',
+                question: '你最喜欢的学科是什么？',
+                options: [
+                    { value: 0, text: '语文' },
+                    { value: 1, text: '数学' },
+                    { value: 2, text: '英语' },
+                    { value: 3, text: '科学' }
+                ],
+                selected: question1Value ? [parseInt(question1Value)] : []
+            };
+            
+            // 问题2：多选题
+            const question2Values = formData.getAll('question2');
+            const question2 = {
+                id: 2,
+                type: 'multiple_choice',
+                question: '你的兴趣爱好有哪些？',
+                options: [
+                    { value: 0, text: '阅读' },
+                    { value: 1, text: '运动' },
+                    { value: 2, text: '音乐' },
+                    { value: 3, text: '绘画' }
+                ],
+                selected: question2Values.map(v => parseInt(v))
+            };
+            
+            // 问题3：填空题
+            const question3 = {
+                id: 3,
+                type: 'text_input',
+                question: '请描述你的学习目标：',
+                answer: formData.get('question3') || ''
+            };
+            
+            return {
+                type: 'sample_questionnaire',
+                basic_info: basicInfo,
+                questions: [question1, question2, question3],
+                statistics: {
+                    total_score: 100,
+                    completion_rate: 100,
+                    submission_time: new Date().toISOString()
+                }
+            };
+        }
+        
+        // 仅验证数据
+        function validateOnly() {
+            try {
+                const data = collectFormData();
+                const errors = questionnaireHelper.validateQuestionnaire(data);
+                
+                if (errors.length > 0) {
+                    errorHandler.showError('数据验证失败', '请检查以下信息：', 'error', {
+                        details: errors
+                    });
+                } else {
+                    errorHandler.showSuccess('数据验证通过！', {
+                        details: '所有必填项都已正确填写'
+                    });
+                }
+            } catch (error) {
+                errorHandler.showError('验证过程出错', error.message, 'error');
+            }
+        }
+        
+        // 提交问卷
+        async function submitQuestionnaire() {
+            try {
+                const submitBtn = document.querySelector('.btn:not(.secondary)');
+                submitBtn.disabled = true;
+                submitBtn.textContent = '提交中...';
+                
+                const data = collectFormData();
+                
+                const result = await questionnaireHelper.submitQuestionnaire(data, {
+                    showLoading: true,
+                    onSuccess: (result) => {
+                        // 显示成功页面
+                        questionnaireHelper.showSuccessPage(result.id);
+                        
+                        // 清空表单
+                        document.getElementById('questionnaireForm').reset();
+                        document.getElementById('submission_date').value = new Date().toISOString().split('T')[0];
+                    }
+                });
+                
+            } catch (error) {
+                errorHandler.showError('提交失败', error.message, 'error');
+            } finally {
+                const submitBtn = document.querySelector('.btn:not(.secondary)');
+                submitBtn.disabled = false;
+                submitBtn.textContent = '提交问卷';
+            }
+        }
+        
+        // 测试各种错误场景
+        function testErrorScenarios() {
+            const scenarios = [
+                {
+                    name: '测试空数据提交',
+                    action: () => {
+                        return questionnaireHelper.submitQuestionnaire({
+                            type: 'empty_test',
+                            basic_info: {},
+                            questions: []
+                        });
+                    }
+                },
+                {
+                    name: '测试网络错误',
+                    action: () => {
+                        return errorHandler.get('http://nonexistent-server.com/api/test');
+                    }
+                },
+                {
+                    name: '测试服务器错误',
+                    action: () => {
+                        return errorHandler.get('http://localhost:5000/api/nonexistent-endpoint');
+                    }
+                },
+                {
+                    name: '测试认证错误',
+                    action: () => {
+                        return errorHandler.get('http://localhost:5000/api/admin/statistics');
+                    }
+                }
+            ];
+            
+            // 显示选择对话框
+            const scenarioNames = scenarios.map((s, i) => `${i + 1}. ${s.name}`).join('\n');
+            const choice = prompt(`请选择要测试的错误场景：\n\n${scenarioNames}\n\n请输入序号 (1-${scenarios.length}):`);
+            
+            const index = parseInt(choice) - 1;
+            if (index >= 0 && index < scenarios.length) {
+                const scenario = scenarios[index];
+                errorHandler.showInfo(`正在测试: ${scenario.name}`);
+                
+                scenario.action().catch(error => {
+                    console.log(`${scenario.name} 测试完成`);
+                });
+            }
+        }
+        
+        // 自动保存功能演示
+        let autoSaveCleanup = null;
+        
+        // 监听表单变化，启用自动保存
+        document.getElementById('questionnaireForm').addEventListener('input', function() {
+            if (autoSaveCleanup) {
+                autoSaveCleanup(); // 清理之前的自动保存
+            }
+            
+            try {
+                const data = collectFormData();
+                autoSaveCleanup = questionnaireHelper.enableAutoSave(data, 10000); // 10秒自动保存
+            } catch (error) {
+                console.warn('自动保存失败:', error);
+            }
+        });
+        
+        // 页面卸载时清理自动保存
+        window.addEventListener('beforeunload', function() {
+            if (autoSaveCleanup) {
+                autoSaveCleanup();
+            }
+        });
+        
+        // 页面加载时尝试恢复自动保存的数据
+        window.addEventListener('load', function() {
+            const savedData = questionnaireHelper.restoreAutoSavedData();
+            if (savedData) {
+                const restore = confirm('发现未完成的问卷数据，是否恢复？');
+                if (restore) {
+                    // 这里可以实现数据恢复逻辑
+                    errorHandler.showInfo('数据恢复功能', {
+                        details: '在实际应用中，这里会恢复之前填写的数据'
+                    });
+                }
+            }
+        });
+    </script>
+</body>
+</html>

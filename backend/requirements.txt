@@ -1,0 +1,7 @@
+flask
+flask-cors
+bcrypt
+marshmallow
+openpyxl
+reportlab
+pandas

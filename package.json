@@ -1,0 +1,18 @@
+{
+  "name": "questionnaire-delete-test",
+  "version": "1.0.0",
+  "description": "Playwright测试删除按钮绑定事件",
+  "main": "test_delete_playwright.js",
+  "scripts": {
+    "test": "node test_delete_playwright.js",
+    "test:headless": "node test_delete_playwright.js --headless",
+    "test:debug": "node --inspect-brk test_delete_playwright.js"
+  },
+  "dependencies": {
+    "playwright": "^1.40.0"
+  },
+  "devDependencies": {},
+  "keywords": ["playwright", "test", "delete-button"],
+  "author": "",
+  "license": "MIT"
+}

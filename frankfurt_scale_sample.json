@@ -1,0 +1,798 @@
+{
+  "type": "frankfurt_scale_selective_mutism",
+  "basic_info": {
+    "name": "测试儿童",
+    "grade": "6_11",
+    "submission_date": "2025-08-29",
+    "guardian": "测试家长"
+  },
+  "questions": [
+    {
+      "id": 1,
+      "type": "multiple_choice",
+      "question": "DS问题1",
+      "question_en": "DS Question 1",
+      "options": [
+        {
+          "value": 1,
+          "text": "是 = 1分"
+        },
+        {
+          "value": 0,
+          "text": "否 = 0分"
+        }
+      ],
+      "selected": [
+        1
+      ],
+      "section": "DS"
+    },
+    {
+      "id": 2,
+      "type": "multiple_choice",
+      "question": "DS问题2",
+      "question_en": "DS Question 2",
+      "options": [
+        {
+          "value": 1,
+          "text": "是 = 1分"
+        },
+        {
+          "value": 0,
+          "text": "否 = 0分"
+        }
+      ],
+      "selected": [
+        1
+      ],
+      "section": "DS"
+    },
+    {
+      "id": 3,
+      "type": "multiple_choice",
+      "question": "DS问题3",
+      "question_en": "DS Question 3",
+      "options": [
+        {
+          "value": 1,
+          "text": "是 = 1分"
+        },
+        {
+          "value": 0,
+          "text": "否 = 0分"
+        }
+      ],
+      "selected": [
+        0
+      ],
+      "section": "DS"
+    },
+    {
+      "id": 4,
+      "type": "multiple_choice",
+      "question": "DS问题4",
+      "question_en": "DS Question 4",
+      "options": [
+        {
+          "value": 1,
+          "text": "是 = 1分"
+        },
+        {
+          "value": 0,
+          "text": "否 = 0分"
+        }
+      ],
+      "selected": [
+        1
+      ],
+      "section": "DS"
+    },
+    {
+      "id": 5,
+      "type": "multiple_choice",
+      "question": "DS问题5",
+      "question_en": "DS Question 5",
+      "options": [
+        {
+          "value": 1,
+          "text": "是 = 1分"
+        },
+        {
+          "value": 0,
+          "text": "否 = 0分"
+        }
+      ],
+      "selected": [
+        1
+      ],
+      "section": "DS"
+    },
+    {
+      "id": 6,
+      "type": "multiple_choice",
+      "question": "DS问题6",
+      "question_en": "DS Question 6",
+      "options": [
+        {
+          "value": 1,
+          "text": "是 = 1分"
+        },
+        {
+          "value": 0,
+          "text": "否 = 0分"
+        }
+      ],
+      "selected": [
+        0
+      ],
+      "section": "DS"
+    },
+    {
+      "id": 7,
+      "type": "multiple_choice",
+      "question": "DS问题7",
+      "question_en": "DS Question 7",
+      "options": [
+        {
+          "value": 1,
+          "text": "是 = 1分"
+        },
+        {
+          "value": 0,
+          "text": "否 = 0分"
+        }
+      ],
+      "selected": [
+        1
+      ],
+      "section": "DS"
+    },
+    {
+      "id": 8,
+      "type": "multiple_choice",
+      "question": "DS问题8",
+      "question_en": "DS Question 8",
+      "options": [
+        {
+          "value": 1,
+          "text": "是 = 1分"
+        },
+        {
+          "value": 0,
+          "text": "否 = 0分"
+        }
+      ],
+      "selected": [
+        1
+      ],
+      "section": "DS"
+    },
+    {
+      "id": 9,
+      "type": "multiple_choice",
+      "question": "DS问题9",
+      "question_en": "DS Question 9",
+      "options": [
+        {
+          "value": 1,
+          "text": "是 = 1分"
+        },
+        {
+          "value": 0,
+          "text": "否 = 0分"
+        }
+      ],
+      "selected": [
+        1
+      ],
+      "section": "DS"
+    },
+    {
+      "id": 10,
+      "type": "multiple_choice",
+      "question": "DS问题10",
+      "question_en": "DS Question 10",
+      "options": [
+        {
+          "value": 1,
+          "text": "是 = 1分"
+        },
+        {
+          "value": 0,
+          "text": "否 = 0分"
+        }
+      ],
+      "selected": [
+        0
+      ],
+      "section": "DS"
+    },
+    {
+      "id": 11,
+      "type": "multiple_choice",
+      "question": "学校问题1",
+      "question_en": "School Question 1",
+      "options": [
+        {
+          "value": 0,
+          "text": "0 无问题"
+        },
+        {
+          "value": 1,
+          "text": "1 轻度限制"
+        },
+        {
+          "value": 2,
+          "text": "2 偶尔"
+        },
+        {
+          "value": 3,
+          "text": "3 几乎从不"
+        },
+        {
+          "value": 4,
+          "text": "4 完全不说"
+        }
+      ],
+      "selected": [
+        2
+      ],
+      "section": "SS_school"
+    },
+    {
+      "id": 12,
+      "type": "multiple_choice",
+      "question": "学校问题2",
+      "question_en": "School Question 2",
+      "options": [
+        {
+          "value": 0,
+          "text": "0 无问题"
+        },
+        {
+          "value": 1,
+          "text": "1 轻度限制"
+        },
+        {
+          "value": 2,
+          "text": "2 偶尔"
+        },
+        {
+          "value": 3,
+          "text": "3 几乎从不"
+        },
+        {
+          "value": 4,
+          "text": "4 完全不说"
+        }
+      ],
+      "selected": [
+        3
+      ],
+      "section": "SS_school"
+    },
+    {
+      "id": 13,
+      "type": "multiple_choice",
+      "question": "学校问题3",
+      "question_en": "School Question 3",
+      "options": [
+        {
+          "value": 0,
+          "text": "0 无问题"
+        },
+        {
+          "value": 1,
+          "text": "1 轻度限制"
+        },
+        {
+          "value": 2,
+          "text": "2 偶尔"
+        },
+        {
+          "value": 3,
+          "text": "3 几乎从不"
+        },
+        {
+          "value": 4,
+          "text": "4 完全不说"
+        }
+      ],
+      "selected": [
+        1
+      ],
+      "section": "SS_school"
+    },
+    {
+      "id": 14,
+      "type": "multiple_choice",
+      "question": "学校问题4",
+      "question_en": "School Question 4",
+      "options": [
+        {
+          "value": 0,
+          "text": "0 无问题"
+        },
+        {
+          "value": 1,
+          "text": "1 轻度限制"
+        },
+        {
+          "value": 2,
+          "text": "2 偶尔"
+        },
+        {
+          "value": 3,
+          "text": "3 几乎从不"
+        },
+        {
+          "value": 4,
+          "text": "4 完全不说"
+        }
+      ],
+      "selected": [
+        2
+      ],
+      "section": "SS_school"
+    },
+    {
+      "id": 15,
+      "type": "multiple_choice",
+      "question": "学校问题5",
+      "question_en": "School Question 5",
+      "options": [
+        {
+          "value": 0,
+          "text": "0 无问题"
+        },
+        {
+          "value": 1,
+          "text": "1 轻度限制"
+        },
+        {
+          "value": 2,
+          "text": "2 偶尔"
+        },
+        {
+          "value": 3,
+          "text": "3 几乎从不"
+        },
+        {
+          "value": 4,
+          "text": "4 完全不说"
+        }
+      ],
+      "selected": [
+        3
+      ],
+      "section": "SS_school"
+    },
+    {
+      "id": 16,
+      "type": "multiple_choice",
+      "question": "学校问题6",
+      "question_en": "School Question 6",
+      "options": [
+        {
+          "value": 0,
+          "text": "0 无问题"
+        },
+        {
+          "value": 1,
+          "text": "1 轻度限制"
+        },
+        {
+          "value": 2,
+          "text": "2 偶尔"
+        },
+        {
+          "value": 3,
+          "text": "3 几乎从不"
+        },
+        {
+          "value": 4,
+          "text": "4 完全不说"
+        }
+      ],
+      "selected": [
+        4
+      ],
+      "section": "SS_school"
+    },
+    {
+      "id": 17,
+      "type": "multiple_choice",
+      "question": "学校问题7",
+      "question_en": "School Question 7",
+      "options": [
+        {
+          "value": 0,
+          "text": "0 无问题"
+        },
+        {
+          "value": 1,
+          "text": "1 轻度限制"
+        },
+        {
+          "value": 2,
+          "text": "2 偶尔"
+        },
+        {
+          "value": 3,
+          "text": "3 几乎从不"
+        },
+        {
+          "value": 4,
+          "text": "4 完全不说"
+        }
+      ],
+      "selected": [
+        3
+      ],
+      "section": "SS_school"
+    },
+    {
+      "id": 18,
+      "type": "multiple_choice",
+      "question": "学校问题8",
+      "question_en": "School Question 8",
+      "options": [
+        {
+          "value": 0,
+          "text": "0 无问题"
+        },
+        {
+          "value": 1,
+          "text": "1 轻度限制"
+        },
+        {
+          "value": 2,
+          "text": "2 偶尔"
+        },
+        {
+          "value": 3,
+          "text": "3 几乎从不"
+        },
+        {
+          "value": 4,
+          "text": "4 完全不说"
+        }
+      ],
+      "selected": [
+        2
+      ],
+      "section": "SS_school"
+    },
+    {
+      "id": 19,
+      "type": "multiple_choice",
+      "question": "学校问题9",
+      "question_en": "School Question 9",
+      "options": [
+        {
+          "value": 0,
+          "text": "0 无问题"
+        },
+        {
+          "value": 1,
+          "text": "1 轻度限制"
+        },
+        {
+          "value": 2,
+          "text": "2 偶尔"
+        },
+        {
+          "value": 3,
+          "text": "3 几乎从不"
+        },
+        {
+          "value": 4,
+          "text": "4 完全不说"
+        }
+      ],
+      "selected": [
+        1
+      ],
+      "section": "SS_school"
+    },
+    {
+      "id": 20,
+      "type": "multiple_choice",
+      "question": "学校问题10",
+      "question_en": "School Question 10",
+      "options": [
+        {
+          "value": 0,
+          "text": "0 无问题"
+        },
+        {
+          "value": 1,
+          "text": "1 轻度限制"
+        },
+        {
+          "value": 2,
+          "text": "2 偶尔"
+        },
+        {
+          "value": 3,
+          "text": "3 几乎从不"
+        },
+        {
+          "value": 4,
+          "text": "4 完全不说"
+        }
+      ],
+      "selected": [
+        2
+      ],
+      "section": "SS_school"
+    },
+    {
+      "id": 21,
+      "type": "multiple_choice",
+      "question": "公共场景问题1",
+      "question_en": "Public Question 1",
+      "options": [
+        {
+          "value": 0,
+          "text": "0 无问题"
+        },
+        {
+          "value": 1,
+          "text": "1 轻度限制"
+        },
+        {
+          "value": 2,
+          "text": "2 偶尔"
+        },
+        {
+          "value": 3,
+          "text": "3 几乎从不"
+        },
+        {
+          "value": 4,
+          "text": "4 完全不说"
+        }
+      ],
+      "selected": [
+        3
+      ],
+      "section": "SS_public"
+    },
+    {
+      "id": 22,
+      "type": "multiple_choice",
+      "question": "公共场景问题2",
+      "question_en": "Public Question 2",
+      "options": [
+        {
+          "value": 0,
+          "text": "0 无问题"
+        },
+        {
+          "value": 1,
+          "text": "1 轻度限制"
+        },
+        {
+          "value": 2,
+          "text": "2 偶尔"
+        },
+        {
+          "value": 3,
+          "text": "3 几乎从不"
+        },
+        {
+          "value": 4,
+          "text": "4 完全不说"
+        }
+      ],
+      "selected": [
+        2
+      ],
+      "section": "SS_public"
+    },
+    {
+      "id": 23,
+      "type": "multiple_choice",
+      "question": "公共场景问题3",
+      "question_en": "Public Question 3",
+      "options": [
+        {
+          "value": 0,
+          "text": "0 无问题"
+        },
+        {
+          "value": 1,
+          "text": "1 轻度限制"
+        },
+        {
+          "value": 2,
+          "text": "2 偶尔"
+        },
+        {
+          "value": 3,
+          "text": "3 几乎从不"
+        },
+        {
+          "value": 4,
+          "text": "4 完全不说"
+        }
+      ],
+      "selected": [
+        4
+      ],
+      "section": "SS_public"
+    },
+    {
+      "id": 24,
+      "type": "multiple_choice",
+      "question": "公共场景问题4",
+      "question_en": "Public Question 4",
+      "options": [
+        {
+          "value": 0,
+          "text": "0 无问题"
+        },
+        {
+          "value": 1,
+          "text": "1 轻度限制"
+        },
+        {
+          "value": 2,
+          "text": "2 偶尔"
+        },
+        {
+          "value": 3,
+          "text": "3 几乎从不"
+        },
+        {
+          "value": 4,
+          "text": "4 完全不说"
+        }
+      ],
+      "selected": [
+        3
+      ],
+      "section": "SS_public"
+    },
+    {
+      "id": 25,
+      "type": "multiple_choice",
+      "question": "家庭场景问题1",
+      "question_en": "Home Question 1",
+      "options": [
+        {
+          "value": 0,
+          "text": "0 无问题"
+        },
+        {
+          "value": 1,
+          "text": "1 轻度限制"
+        },
+        {
+          "value": 2,
+          "text": "2 偶尔"
+        },
+        {
+          "value": 3,
+          "text": "3 几乎从不"
+        },
+        {
+          "value": 4,
+          "text": "4 完全不说"
+        }
+      ],
+      "selected": [
+        0
+      ],
+      "section": "SS_home"
+    },
+    {
+      "id": 26,
+      "type": "multiple_choice",
+      "question": "家庭场景问题2",
+      "question_en": "Home Question 2",
+      "options": [
+        {
+          "value": 0,
+          "text": "0 无问题"
+        },
+        {
+          "value": 1,
+          "text": "1 轻度限制"
+        },
+        {
+          "value": 2,
+          "text": "2 偶尔"
+        },
+        {
+          "value": 3,
+          "text": "3 几乎从不"
+        },
+        {
+          "value": 4,
+          "text": "4 完全不说"
+        }
+      ],
+      "selected": [
+        1
+      ],
+      "section": "SS_home"
+    },
+    {
+      "id": 27,
+      "type": "multiple_choice",
+      "question": "家庭场景问题3",
+      "question_en": "Home Question 3",
+      "options": [
+        {
+          "value": 0,
+          "text": "0 无问题"
+        },
+        {
+          "value": 1,
+          "text": "1 轻度限制"
+        },
+        {
+          "value": 2,
+          "text": "2 偶尔"
+        },
+        {
+          "value": 3,
+          "text": "3 几乎从不"
+        },
+        {
+          "value": 4,
+          "text": "4 完全不说"
+        }
+      ],
+      "selected": [
+        0
+      ],
+      "section": "SS_home"
+    },
+    {
+      "id": 28,
+      "type": "multiple_choice",
+      "question": "家庭场景问题4",
+      "question_en": "Home Question 4",
+      "options": [
+        {
+          "value": 0,
+          "text": "0 无问题"
+        },
+        {
+          "value": 1,
+          "text": "1 轻度限制"
+        },
+        {
+          "value": 2,
+          "text": "2 偶尔"
+        },
+        {
+          "value": 3,
+          "text": "3 几乎从不"
+        },
+        {
+          "value": 4,
+          "text": "4 完全不说"
+        }
+      ],
+      "selected": [
+        1
+      ],
+      "section": "SS_home"
+    }
+  ],
+  "statistics": {
+    "ds_total": 7,
+    "ss_school_total": 23,
+    "ss_public_total": 12,
+    "ss_home_total": 2,
+    "ss_total": 37,
+    "age_group": "6_11",
+    "risk_level": "high",
+    "completion_rate": 100,
+    "submission_time": "2025-08-29T10:28:05.027166"
+  }
+}
