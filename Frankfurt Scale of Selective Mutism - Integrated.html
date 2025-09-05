@@ -507,6 +507,135 @@ function validateData() {
   }
 }
 
+// 生成评估结果详细信息
+function generateAssessmentResults() {
+  var dsTotal = Number(dsTotalEl.textContent || 0);
+  var cut = CUTOFF[age];
+  var riskLevel = 'low';
+  var riskText = '低风险';
+  var interpretation = '';
+  
+  if (dsTotal >= cut) {
+    riskLevel = 'high';
+    riskText = '高风险';
+    interpretation = '≥' + cut + '：高度怀疑SM；建议转介评估。';
+  } else if (dsTotal >= cut - 2) {
+    riskLevel = 'mid';
+    riskText = '中等风险';
+    interpretation = (cut - 2) + '~' + (cut - 1) + '：可能SM；结合B部分与观察。';
+  } else {
+    riskText = '低风险';
+    interpretation = '<' + (cut - 2) + '：SM可能性较低（如B部分高分仍需关注）';
+  }
+  
+  return {
+    risk_level: riskLevel,
+    risk_text: riskText,
+    interpretation: interpretation,
+    cutoff_value: cut,
+    ds_score: dsTotal
+  };
+}
+
+// 生成主要困难场景分析
+function generateDifficultyAnalysis() {
+  var ssSchool = Number(sumSchoolEl.textContent || 0);
+  var ssPublic = Number(sumPublicEl.textContent || 0);
+  var ssHome = Number(sumHomeEl.textContent || 0);
+  
+  var primaryDifficulty = '暂无显著困难';
+  var maxScore = Math.max(ssSchool, ssPublic, ssHome);
+  
+  if (maxScore > 0) {
+    if (ssSchool === maxScore && ssSchool >= ssPublic && ssSchool >= ssHome) {
+      primaryDifficulty = '学校/幼儿园';
+    } else if (ssPublic === maxScore && ssPublic >= ssSchool && ssPublic >= ssHome) {
+      primaryDifficulty = '公共场合';
+    } else {
+      primaryDifficulty = '家庭';
+    }
+  }
+  
+  return {
+    primary_difficulty: primaryDifficulty,
+    school_score: ssSchool,
+    public_score: ssPublic,
+    home_score: ssHome,
+    max_score: maxScore
+  };
+}
+
+// 生成干预建议
+function generateInterventionSuggestions() {
+  var assessmentResults = generateAssessmentResults();
+  var suggestions = [
+    '避免当众点名或压力式催促；采用"先耳语→近距离低声→正常音量"的阶梯过渡。',
+    '在孩子能说话的环境中录"安全声音"，用于在学校/社区做渐进式播放与模仿。'
+  ];
+  
+  if (assessmentResults.risk_level !== 'low') {
+    suggestions.push('建议联系专业评估，制定系统渐进暴露计划。');
+  }
+  
+  return {
+    general_suggestions: suggestions,
+    professional_referral_needed: assessmentResults.risk_level !== 'low'
+  };
+}
+
+// 生成自主暴露层级
+function generateExposureHierarchy() {
+  var difficultyAnalysis = generateDifficultyAnalysis();
+  var primaryDifficulty = difficultyAnalysis.primary_difficulty;
+  
+  var exposureMap = {
+    '学校/幼儿园': [
+      '到校向固定老师点头',
+      '小声问好',
+      '与老师1词',
+      '与老师1句',
+      '课堂前私下对话',
+      '课堂内小声回答',
+      '朗读一句',
+      '朗读一段',
+      '举手一次',
+      '课后与老师简短交流'
+    ],
+    '公共场合': [
+      '商店向店员点头',
+      '说"谢谢"',
+      '说"你好"',
+      '关键词点单',
+      '完整点单',
+      '追加说明',
+      '独立结账说谢谢',
+      '问价',
+      '问路线',
+      '电话/前台咨询一句'
+    ],
+    '家庭': [
+      '对父母朋友点头',
+      '问好',
+      '说谢谢/再见',
+      '回答是/否',
+      '说出需求词',
+      '完整句',
+      '向来访者说一句',
+      '与同龄朋友说一句',
+      '表达喜好',
+      '讲述一天一件事'
+    ]
+  };
+  
+  var hierarchy = exposureMap[primaryDifficulty] || ['维持日常社交练习，2–4 周复测一次。'];
+  
+  return {
+    primary_focus: primaryDifficulty,
+    hierarchy_steps: hierarchy,
+    recommended_frequency: '2-4周复测一次'
+  };
+}
+
 // 转换为标准问卷格式
 function convertToStandardFormat() {
   var questions = [];
@@ -565,12 +694,11 @@ function convertToStandardFormat() {
     }
   });
   
-  // 计算风险等级
-  var dsTotal = Number(dsTotalEl.textContent || 0);
-  var cut = CUTOFF[age];
-  var riskLevel = 'low';
-  if (dsTotal >= cut) riskLevel = 'high';
-  else if (dsTotal >= cut - 2) riskLevel = 'mid';
+  // 生成详细评估信息
+  var assessmentResults = generateAssessmentResults();
+  var difficultyAnalysis = generateDifficultyAnalysis();
+  var interventionSuggestions = generateInterventionSuggestions();
+  var exposureHierarchy = generateExposureHierarchy();
   
   return {
     type: 'frankfurt_scale_selective_mutism',
@@ -582,15 +710,150 @@ function convertToStandardFormat() {
     },
     questions: questions,
     statistics: {
-      ds_total: dsTotal,
-      ss_school_total: Number(sumSchoolEl.textContent || 0),
-      ss_public_total: Number(sumPublicEl.textContent || 0),
-      ss_home_total: Number(sumHomeEl.textContent || 0),
-      ss_total: Number(ssTotalEl.textContent || 0),
+      ds_total: assessmentResults.ds_score,
+      ss_school_total: difficultyAnalysis.school_score,
+      ss_public_total: difficultyAnalysis.public_score,
+      ss_home_total: difficultyAnalysis.home_score,
+      ss_total: difficultyAnalysis.school_score + difficultyAnalysis.public_score + difficultyAnalysis.home_score,
       age_group: age,
-      risk_level: riskLevel,
+      risk_level: assessmentResults.risk_level,
       completion_rate: 100,
       submission_time: new Date().toISOString()
+    },
+    // 新增：详细评估报告信息
+    assessment_report: {
+      // 评估结果
+      assessment_results: {
+        risk_level: assessmentResults.risk_level,
+        risk_text: assessmentResults.risk_text,
+        interpretation: assessmentResults.interpretation,
+        cutoff_value: assessmentResults.cutoff_value,
+        meets_criteria: assessmentResults.ds_score >= assessmentResults.cutoff_value
+      },
+      // A部分（快速筛查）详细信息
+      diagnostic_scale: {
+        total_score: assessmentResults.ds_score,
+        cutoff_threshold: assessmentResults.cutoff_value,
+        risk_category: assessmentResults.risk_level,
+        interpretation: assessmentResults.interpretation,
+        individual_responses: (function() {
+          var responses = [];
+          for (var i = 1; i <= DS.length; i++) {
+            var dsId = 'DS_' + i;
+            responses.push({
+              question_number: i,
+              question_text: DS[i-1][0],
+              question_en: DS[i-1][1],
+              response: state.ds[dsId] !== undefined ? parseInt(state.ds[dsId]) : null,
+              response_text: state.ds[dsId] === '1' ? '是 = 1分' : (state.ds[dsId] === '0' ? '否 = 0分' : '未回答')
+            });
+          }
+          return responses;
+        })()
+      },
+      // B部分（说话情况评分）详细信息
+      severity_scale: {
+        school_subscore: difficultyAnalysis.school_score,
+        public_subscore: difficultyAnalysis.public_score,
+        home_subscore: difficultyAnalysis.home_score,
+        total_score: difficultyAnalysis.school_score + difficultyAnalysis.public_score + difficultyAnalysis.home_score,
+        subscale_details: {
+          school: {
+            score: difficultyAnalysis.school_score,
+            max_possible: SS[age].school.length * 4,
+            percentage: Math.round((difficultyAnalysis.school_score / (SS[age].school.length * 4)) * 100),
+            responses: (function() {
+              var responses = [];
+              for (var i = 1; i <= SS[age].school.length; i++) {
+                var ssId = 'SS_SCHOOL_' + i;
+                responses.push({
+                  question_number: i,
+                  question_text: SS[age].school[i-1][0],
+                  question_en: SS[age].school[i-1][1],
+                  response: state.ss.school[ssId] !== undefined ? state.ss.school[ssId] : null
+                });
+              }
+              return responses;
+            })()
+          },
+          public: {
+            score: difficultyAnalysis.public_score,
+            max_possible: SS[age].pub.length * 4,
+            percentage: Math.round((difficultyAnalysis.public_score / (SS[age].pub.length * 4)) * 100),
+            responses: (function() {
+              var responses = [];
+              for (var i = 1; i <= SS[age].pub.length; i++) {
+                var ssId = 'SS_PUB_' + i;
+                responses.push({
+                  question_number: i,
+                  question_text: SS[age].pub[i-1][0],
+                  question_en: SS[age].pub[i-1][1],
+                  response: state.ss.pub[ssId] !== undefined ? state.ss.pub[ssId] : null
+                });
+              }
+              return responses;
+            })()
+          },
+          home: {
+            score: difficultyAnalysis.home_score,
+            max_possible: SS[age].home.length * 4,
+            percentage: Math.round((difficultyAnalysis.home_score / (SS[age].home.length * 4)) * 100),
+            responses: (function() {
+              var responses = [];
+              for (var i = 1; i <= SS[age].home.length; i++) {
+                var ssId = 'SS_HOME_' + i;
+                responses.push({
+                  question_number: i,
+                  question_text: SS[age].home[i-1][0],
+                  question_en: SS[age].home[i-1][1],
+                  response: state.ss.home[ssId] !== undefined ? state.ss.home[ssId] : null
+                });
+              }
+              return responses;
+            })()
+          }
+        }
+      },
+      // 主要困难场景
+      primary_difficulty_analysis: {
+        primary_difficulty_area: difficultyAnalysis.primary_difficulty,
+        difficulty_scores: {
+          school: difficultyAnalysis.school_score,
+          public: difficultyAnalysis.public_score,
+          home: difficultyAnalysis.home_score
+        },
+        severity_ranking: (function() {
+          var scores = [
+            { area: '学校/幼儿园', score: difficultyAnalysis.school_score },
+            { area: '公共场合', score: difficultyAnalysis.public_score },
+            { area: '家庭', score: difficultyAnalysis.home_score }
+          ];
+          return scores.sort(function(a, b) { return b.score - a.score; });
+        })()
+      },
+      // 干预建议
+      intervention_recommendations: {
+        general_strategies: interventionSuggestions.general_suggestions,
+        professional_referral_needed: interventionSuggestions.professional_referral_needed,
+        specific_recommendations: {
+          environmental_modifications: '避免当众点名或压力式催促；采用"先耳语→近距离低声→正常音量"的阶梯过渡。',
+          therapeutic_techniques: '在孩子能说话的环境中录"安全声音"，用于在学校/社区做渐进式播放与模仿。',
+          professional_support: interventionSuggestions.professional_referral_needed ? '建议联系专业评估，制定系统渐进暴露计划。' : '继续观察，定期复测。'
+        }
+      },
+      // 自主暴露层级
+      exposure_hierarchy: {
+        primary_focus_area: exposureHierarchy.primary_focus,
+        hierarchy_steps: exposureHierarchy.hierarchy_steps,
+        recommended_frequency: exposureHierarchy.recommended_frequency,
+        step_by_step_plan: exposureHierarchy.hierarchy_steps.map(function(step, index) {
+          return {
+            step_number: index + 1,
+            description: step,
+            target_area: exposureHierarchy.primary_focus
+          };
+        })
+      }
     }
   };
 }

@@ -374,6 +374,7 @@
                         <button id="searchBtn" class="btn btn-primary">搜索</button>
                         <button id="clearSearchBtn" class="btn btn-secondary">清除</button>
                         <button id="refreshBtn" class="btn btn-success">刷新</button>
+                        <button id="batchDeleteBtn" class="btn btn-danger">批量删除</button>
                     </div>
                 </div>
 
@@ -381,6 +382,7 @@
                     <table class="table table-hover">
                         <thead>
                             <tr>
+                                <th><input type="checkbox" id="selectAllCheckbox"></th>
                                 <th>ID</th>
                                 <th>问卷类型</th>
                                 <th>姓名</th>
@@ -392,7 +394,7 @@
                         </thead>
                         <tbody id="questionnaireTableBody">
                             <tr>
-                                <td colspan="7" class="text-center">加载中...</td>
+                                <td colspan="8" class="text-center">加载中...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -529,7 +531,7 @@
                         const gender = basicInfo.gender || '未知';
                         const birthdate = basicInfo.birthdate || basicInfo.birth_date || '未知';
 
-                        row.innerHTML = `<td>${questionnaire.id}</td><td>${getTypeDisplayName(questionnaire.type)}</td><td>${name}</td><td>${gender}</td><td>${birthdate}</td><td>${questionnaire.created_at}</td><td><button class="btn btn-primary btn-sm" onclick="viewQuestionnaire(${questionnaire.id})">查看</button><button class="btn btn-warning btn-sm" onclick="editQuestionnaire(${questionnaire.id})">编辑</button><button class="btn btn-success btn-sm" onclick="exportQuestionnaire(${questionnaire.id})">导出</button><button class="btn btn-danger btn-sm" onclick="deleteQuestionnaire(${questionnaire.id})">删除</button></td>`;
+                        row.innerHTML = `<td><input type="checkbox" class="questionnaire-checkbox" value="${questionnaire.id}"></td><td>${questionnaire.id}</td><td>${getTypeDisplayName(questionnaire.type)}</td><td>${name}</td><td>${gender}</td><td>${birthdate}</td><td>${questionnaire.created_at}</td><td><button class="btn btn-primary btn-sm" onclick="viewQuestionnaire(${questionnaire.id})">查看</button><button class="btn btn-warning btn-sm" onclick="editQuestionnaire(${questionnaire.id})">编辑</button><button class="btn btn-success btn-sm" onclick="exportQuestionnaire(${questionnaire.id})">导出</button><button class="btn btn-danger btn-sm" onclick="deleteQuestionnaire(${questionnaire.id})">删除</button></td>`;
                         tableBody.appendChild(row);
                     });
 
@@ -673,6 +675,47 @@
             }
         }
 
+        // 批量删除功能
+        document.getElementById('batchDeleteBtn').addEventListener('click', function () {
+            const selectedIds = Array.from(document.querySelectorAll('.questionnaire-checkbox:checked')).map(cb => cb.value);
+
+            if (selectedIds.length === 0) {
+                alert('请至少选择一个问卷进行删除。');
+                return;
+            }
+
+            if (confirm(`确定要删除选中的 ${selectedIds.length} 个问卷吗？此操作不可恢复。`)) {
+                fetch('/api/questionnaires/batch-delete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ ids: selectedIds })
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        alert('批量删除成功');
+                        loadQuestionnaires();
+                    } else {
+                        alert('批量删除失败: ' + (result.error?.message || '未知错误'));
+                    }
+                })
+                .catch(error => {
+                    console.error('批量删除失败:', error);
+                    alert('批量删除失败，请稍后重试');
+                });
+            }
+        });
+
+        // 全选/取消全选
+        document.getElementById('selectAllCheckbox').addEventListener('change', function (e) {
+            const checkboxes = document.querySelectorAll('.questionnaire-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = e.target.checked;
+            });
+        });
+
         // 登出功能
         function logout() {
             if (confirm('确定要退出登录吗？')) {
@@ -746,209 +789,83 @@
 
         // 渲染问卷查看视图
         function renderQuestionnaireView(questionnaire) {
-            console.log('开始渲染问卷视图，数据:', questionnaire);
-
             if (!questionnaire) {
-                return '<div class="question-group"><div class="question-title">错误</div><div class="question-answer">问卷数据为空</div></div>';
+                return '<p>错误: 问卷数据为空。</p>';
             }
 
-            let html = `
-                <div class="question-group">
-                    <div class="question-title">基本信息</div>
-                    <div class="question-answer">
-                        <span class="answer-label">问卷ID:</span>
-                        <span class="answer-value">${questionnaire.id || '未知'}</span>
-                    </div>
-                    <div class="question-answer">
-                        <span class="answer-label">问卷类型:</span>
-                        <span class="answer-value">${getTypeDisplayName(questionnaire.type || '未知')}</span>
-                    </div>
-                    <div class="question-answer">
-                        <span class="answer-label">提交时间:</span>
-                        <span class="answer-value">${questionnaire.created_at || '未知'}</span>
-                    </div>
-                    <div class="question-answer">
-                        <span class="answer-label">最后更新:</span>
-                        <span class="answer-value">${questionnaire.updated_at || '未更新'}</span>
-                    </div>
-                </div>
-                `;
-
-            console.log('基本信息渲染完成');
-
-            // 检查数据结构
-            console.log('问卷数据结构:', questionnaire.data);
+            let html = '';
+            const data = questionnaire.data || {};
 
             // 渲染基本信息
-            if (questionnaire.data && questionnaire.data.basic_info) {
-                console.log('渲染基本信息:', questionnaire.data.basic_info);
-                html += `<div class="question-group">
-                    <div class="question-title">个人信息</div>`;
+            html += '<div class="question-group">';
+            html += '<div class="question-title">基本信息</div>';
+            html += `<div class="question-answer"><span class="answer-label">问卷ID:</span> <span class="answer-value">${questionnaire.id || '未知'}</span></div>`;
+            html += `<div class="question-answer"><span class="answer-label">问卷类型:</span> <span class="answer-value">${getTypeDisplayName(questionnaire.type || '未知')}</span></div>`;
+            html += `<div class="question-answer"><span class="answer-label">提交时间:</span> <span class="answer-value">${questionnaire.created_at || '未知'}</span></div>`;
+            html += '</div>';
 
-                Object.entries(questionnaire.data.basic_info).forEach(([key, value]) => {
-                    const label = getFieldLabel(key);
-                    html += `
-                    <div class="question-answer">
-                        <span class="answer-label">${label}:</span>
-                        <span class="answer-value">${value || '未填写'}</span>
-                    </div>
-                    `;
-                });
-                html += `
-                </div>`;
-            } else {
-                console.log('没有找到basic_info数据');
+            // 渲染个人信息
+            if (data.basic_info) {
+                html += '<div class="question-group">';
+                html += '<div class="question-title">个人信息</div>';
+                for (const [key, value] of Object.entries(data.basic_info)) {
+                    html += `<div class="question-answer"><span class="answer-label">${getFieldLabel(key)}:</span> <span class="answer-value">${value || '未填写'}</span></div>`;
+                }
+                html += '</div>';
             }
 
-            // 渲染详细问题数据（如果存在）
-            if (questionnaire.data && questionnaire.data.detailedData && Array.isArray(questionnaire.data.detailedData)) {
-                console.log('渲染详细问题数据，数量:', questionnaire.data.detailedData.length);
-                html += `<div class="question-group">
-                    <div class="question-title">问题详情 (共${questionnaire.data.detailedData.length}个问题)</div>`;
+            // 查找问题数组
+            let questions = [];
+            if (Array.isArray(data)) {
+                questions = data;
+            } else if (Array.isArray(data.questions)) {
+                questions = data.questions;
+            } else if (Array.isArray(data.data)) {
+                questions = data.data;
+            } else if (Array.isArray(data.detailedData)) {
+                questions = data.detailedData;
+            }
 
-                questionnaire.data.detailedData.forEach((item, index) => {
-                    console.log(`处理问题 ${index + 1}:`, item);
-                    if (item.questionText) {
-                        html += `
-                        <div class="question-answer" style="border-left: 3px solid #007bff; margin-bottom: 15px; padding: 10px;">
-                            <div style="font-weight: bold; color: #2c3e50; margin-bottom: 5px;">
-                                问题 ${item.questionNumber || index + 1}: ${item.questionText}
-                            </div>
-                            <div style="margin-left: 15px;">
-                                <span class="answer-label">评分:</span>
-                                <span class="answer-value">${item.selectedOption === null ? '未选择 - 0 = 非常容易' : `${item.selectedOption} = ${item.selectedText}`}</span>
-                                ${item.speechIssue !== undefined ? `<br><span class="answer-label">说话能力:</span> <span class="answer-value">${item.speechIssue ? '有困难' : '可以说话'}</span>` : ''}
-                                ${item.options ? `<br><span class="answer-label">所有选项:</span><br><div style="margin-left: 20px; margin-top: 5px;">${renderOptions(item.options, item.selectedOption)}</div>` : ''}
-                            </div>
-                        </div>
-                        `;
+            // 渲染问题
+            if (questions.length > 0) {
+                html += '<div class="question-group">';
+                html += '<div class="question-title">问卷内容</div>';
+                questions.forEach((q, index) => {
+                    const questionText = q.question || q.question_text || q.questionText || `问题 ${index + 1}`;
+                    html += `<div class="question-answer" style="margin-bottom: 15px; border-left: 3px solid #007bff; padding-left: 15px;">`;
+                    html += `<p><strong>${questionText}</strong></p>`;
+
+                    if (Array.isArray(q.options)) {
+                        html += '<ul>';
+                        q.options.forEach(option => {
+                            const isSelected = Array.isArray(q.selected) && q.selected.includes(option.value);
+                            html += `<li>${option.text} ${isSelected ? '<strong>(已选择)</strong>' : ''}</li>`;
+                        });
+                        html += '</ul>';
                     } else {
-                        console.log(`问题 ${index + 1} 没有questionText`);
-                    }
-                });
-                html += `</div>`;
-            } else {
-                console.log('没有找到detailedData或不是数组');
-            }
-
-            // 渲染其他问题和答案
-            // 渲染详细问题数据（新格式）
-            if (questionnaire.data && Array.isArray(questionnaire.data)) {
-                console.log('渲染详细问题数据（数组格式），数量:', questionnaire.data.length);
-                html += `<div class="question-group">
-                    <div class="question-title">问题详情 (共${questionnaire.data.length}个问题)</div>`;
-                
-                questionnaire.data.forEach((item, index) => {
-                    console.log(`处理问题 ${index}:`, item);
-                    if (item.question) {
-                        html += `
-                        <div class="question-answer" style="border-left: 3px solid #007bff; margin-bottom: 20px; padding: 15px; background: #f8f9fa;">
-                            <div style="font-weight: bold; color: #2c3e50; margin-bottom: 10px; font-size: 16px;">
-                                问题 ${index}: ${item.question}
-                            </div>
-                            
-                            <div style="margin-left: 15px;">
-                                <div style="margin-bottom: 10px;">
-                                    <span class="answer-label" style="font-weight: bold; color: #495057;">所有选项:</span>
-                                </div>
-                                <div style="margin-left: 20px; margin-bottom: 10px;">`;
-                        
-                        // 显示所有选项
-                        if (item.options && Array.isArray(item.options)) {
-                            item.options.forEach((option, optIndex) => {
-                                const isSelected = item.selected && item.selected.includes(option.value);
-                                const selectedStyle = isSelected ? 'background: #d4edda; border: 2px solid #28a745; font-weight: bold;' : 'background: #ffffff; border: 1px solid #dee2e6;';
-                                html += `
-                                <div style="padding: 8px 12px; margin: 5px 0; border-radius: 4px; ${selectedStyle}">
-                                    ${isSelected ? '✓ ' : ''}${option.value}: ${option.text}
-                                </div>`;
-                            });
+                        const answer = q.selected_texts || q.answer;
+                        if (answer) {
+                            html += `<p><strong>答案:</strong> ${Array.isArray(answer) ? answer.join(', ') : answer}</p>`;
                         }
-                        
-                        html += `
-                                </div>
-                                
-                                <div style="margin-top: 15px; padding: 10px; background: #e8f4fd; border-radius: 4px;">
-                                    <span class="answer-label" style="font-weight: bold; color: #0066cc;">选择的答案:</span>
-                                    <span class="answer-value" style="color: #0066cc; font-weight: bold;">
-                                        ${item.selected_texts ? item.selected_texts.join(', ') : '未选择'}
-                                    </span>
-                                    ${item.selected ? `<br><span style="color: #666; font-size: 14px;">选择值: ${item.selected.join(', ')}</span>` : ''}
-                                </div>
-                            </div>
-                        </div>
-                        `;
                     }
+                    html += '</div>';
                 });
-                html += `</div>`;
-            }
-            // 渲染问题数据（旧格式兼容）
-            else if (questionnaire.data && questionnaire.data.questions) {
-                console.log('渲染问题数据:', questionnaire.data.questions);
-                html += `<div class="question-group">
-                    <div class="question-title">问题和答案</div>`;
-
-                Object.entries(questionnaire.data.questions).forEach(([questionKey, answer]) => {
-                    const questionText = getQuestionText('questions', questionKey);
-                    html += `
-                    <div class="question-answer">
-                        <span class="answer-label">${questionText}:</span>
-                        <span class="answer-value">${formatAnswer(answer)}</span>
-                    </div>
-                    `;
-                });
-                html += `</div>`;
-            } else {
-                console.log('没有找到questions数据');
+                html += '</div>';
             }
 
-            // 渲染评分总结（如果存在）
-            if (questionnaire.data.totalScore !== undefined || questionnaire.data.averageScore !== undefined) {
-                html += `<div class="question-group">
-                    <div class="question-title">评分总结</div>`;
-
-                if (questionnaire.data.totalScore !== undefined) {
-                    html += `
-                    <div class="question-answer">
-                        <span class="answer-label">总分:</span>
-                        <span class="answer-value">${questionnaire.data.totalScore}</span>
+            // 如果是特定类型的问卷，并且有报告图片，则显示图片
+            if (questionnaire.type === 'frankfurt_scale_selective_mutism' && data.report_image_path) {
+                html += `
+                    <div class="question-group">
+                        <div class="question-title">报告图片</div>
+                        <div class="question-answer">
+                            <img src="/static/reports/${data.report_image_path}" alt="报告图片" style="max-width: 100%; height: auto; border-radius: 5px;">
+                        </div>
                     </div>
-                    `;
-                }
-
-                if (questionnaire.data.averageScore !== undefined) {
-                    html += `
-                    <div class="question-answer">
-                        <span class="answer-label">平均分:</span>
-                        <span class="answer-value">${questionnaire.data.averageScore.toFixed(2)}</span>
-                    </div>
-                    `;
-                }
-
-                if (questionnaire.data.speechIssueCount !== undefined) {
-                    html += `
-                    <div class="question-answer">
-                        <span class="answer-label">言语问题数量:</span>
-                        <span class="answer-value">${questionnaire.data.speechIssueCount}</span>
-                    </div>
-                    `;
-                }
-
-                html += `</div>`;
+                `;
             }
 
-            // 如果没有找到任何问题数据，显示原始数据结构
-            if (questionnaire.data && (!questionnaire.data.detailedData && !questionnaire.data.questions && Object.keys(questionnaire.data).length > 1)) {
-                console.log('显示原始数据结构');
-                html += `<div class="question-group">
-                    <div class="question-title">原始数据</div>
-                    <div class="question-answer">
-                        <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; white-space: pre-wrap;">${JSON.stringify(questionnaire.data, null, 2)}</pre>
-                    </div>
-                </div>`;
-            }
 
-            console.log('渲染完成，HTML长度:', html.length);
             return html;
         }
 
@@ -992,10 +909,10 @@
                             </div>
                             <div class="form-row">
                                 <div class="form-col">
-                                    <label for="detail_${index}_selectedText">评分</label>
+                                    <label for="detail_${index}_selectedText">选择答案</label>
                                     <input type="text" id="detail_${index}_selectedText" 
                                            name="detailedData.${index}.selectedText" 
-                                           class="form-control" value="${item.selectedOption === null ? '未选择 - 0 = 非常容易' : `${item.selectedOption} = ${item.selectedText}`}" />
+                                           class="form-control" value="${item.selectedText || ''}" />
                                 </div>
                                 ${item.score !== undefined ? `
                                 <div class="form-col-half">
@@ -1254,7 +1171,7 @@
                         result += ` (${answer.scoreText})`;
                     }
                     if (answer.speechIssue !== undefined) {
-                        result += `, 言语问题: ${answer.speechIssue ? '是' : '否'}`;
+                        result += `, 说话能力: ${answer.speechIssue ? '是' : '否'}`;
                     }
                     return result;
                 }
@@ -1264,15 +1181,21 @@
         }
 
         // 渲染选项显示
-        function renderOptions(options, selectedOption) {
+        function renderOptions(options, selectedValue) {
             if (!options || !Array.isArray(options)) return '';
             
-            let html = '';
+            let html = '<div style="margin-top: 5px; font-size: 12px; color: #666;">';
+            html += '<div style="margin-bottom: 3px;">所有选项:</div>';
+            
             options.forEach(option => {
-                const isSelected = option.value == selectedOption;
-                const symbol = isSelected ? '✓' : '・';
-                html += `<div style="margin: 2px 0;">${symbol} ${option.value}=${option.value} = ${option.text}</div>`;
+                const isSelected = option.value === selectedValue;
+                html += `<div style="margin-left: 10px;">`;
+                html += `<span style="color: ${isSelected ? '#28a745' : '#999'};">${isSelected ? '✓' : '・'}</span> `;
+                html += `<span>${option.value} = ${option.text}</span>`;
+                html += `</div>`;
             });
+            
+            html += '</div>';
             return html;
         }
 
