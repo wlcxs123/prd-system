@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>小布开口 · 选择性缄默筛查（安全版 v3.3）</title>
+<script src="config.js"></script>
 <style>
 :root{--brand:#FF7A59;--brand2:#FFC857;--ink:#111827;--muted:#667085;--bg:#fff9f5;--card:#fff;--line:#f0e6de;--ok:#12B886;--mid:#F59E0B;--hi:#EF4444}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 -apple-system,system-ui,Segoe UI,Roboto,Helvetica,Arial}
@@ -705,7 +706,7 @@ function submitToServer() {
   toast('正在提交数据...');
   
   // 发送数据到后端
-  fetch('http://localhost:5000/api/submit', {
+  fetch(CONFIG.getApiUrl(CONFIG.API.SUBMIT), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -751,7 +752,7 @@ function submitToServer() {
 
 // 检查服务器连接状态
 function checkServerConnection() {
-  return fetch('http://localhost:5000/api/auth/status', {
+  return fetch(CONFIG.getApiUrl(CONFIG.API.AUTH.STATUS), {
     method: 'GET',
     timeout: 5000
   })

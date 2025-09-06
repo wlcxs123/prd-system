@@ -6,6 +6,7 @@
     <title>小学报告表格</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="config.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap');
 
@@ -786,7 +787,7 @@
                 };
 
                 // 发送POST请求到后端API
-                const response = await fetch('http://127.0.0.1:5000/api/submit', {
+                const response = await fetch(CONFIG.getApiUrl(CONFIG.API.SUBMIT), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

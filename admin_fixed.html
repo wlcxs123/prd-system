@@ -5,7 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>问卷管理系统</title>
-    <script src="/static/js/error-handler.js"></script>
+    <script src="config.js"></script>
+    <script>
+        // 动态加载error-handler.js
+        const script = document.createElement('script');
+        script.src = CONFIG.BASE_URL + '/static/js/error-handler.js';
+        document.head.appendChild(script);
+    </script>
     <style>
         body {
             font-family: Arial, sans-serif;

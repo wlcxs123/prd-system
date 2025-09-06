@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>儿童选择性缄默家长问卷 (版块式)</title>
+  <script src="config.js"></script>
   <style>
     :root {
       --brand: #5B86E5;
@@ -635,7 +636,7 @@
 
         try {
           // 发送POST请求到后端
-          const response = await fetch('http://127.0.0.1:5000/api/submit', {
+          const response = await fetch(CONFIG.getApiUrl(CONFIG.API.SUBMIT), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

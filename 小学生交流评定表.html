@@ -7,6 +7,7 @@
     <title>小学生交流评定量表</title>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="config.js"></script>
 
     <style>
         /* 基础样式重置 */
@@ -1182,7 +1183,7 @@
 
             try {
                 // 测试基本连接
-                const response = await fetch('http://127.0.0.1:5000/', {
+                const response = await fetch(CONFIG.getPageUrl('/'), {
                     method: 'GET',
                     mode: 'no-cors'
                 });
@@ -1194,7 +1195,7 @@
 
             try {
                 // 测试CORS
-                const response = await fetch('http://127.0.0.1:5000/api/submit', {
+                const response = await fetch(CONFIG.getApiUrl(CONFIG.API.SUBMIT), {
                     method: 'OPTIONS',
                     mode: 'cors'
                 });
@@ -1206,7 +1207,7 @@
 
             try {
                 // 测试API端点 - 使用HEAD请求避免400错误
-                const response = await fetch('http://127.0.0.1:5000/api/submit', {
+                const response = await fetch(CONFIG.getApiUrl(CONFIG.API.SUBMIT), {
                     method: 'HEAD',
                     mode: 'cors'
                 });
@@ -1215,7 +1216,7 @@
             } catch (error) {
                 // 如果HEAD不支持，尝试OPTIONS
                 try {
-                    const optionsResponse = await fetch('http://127.0.0.1:5000/api/submit', {
+                    const optionsResponse = await fetch(CONFIG.getApiUrl(CONFIG.API.SUBMIT), {
                         method: 'OPTIONS',
                         mode: 'cors'
                     });
@@ -1401,7 +1402,7 @@
                     }
 
                     // 发送POST请求到后端API
-                    const response = await fetch('http://127.0.0.1:5000/api/submit', {
+                    const response = await fetch(CONFIG.getApiUrl(CONFIG.API.SUBMIT), {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',

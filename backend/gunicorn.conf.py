@@ -6,7 +6,7 @@ import os
 import multiprocessing
 
 # 服务器配置
-bind = f"0.0.0.0:{os.environ.get('PORT', '5000')}"
+bind = f"0.0.0.0:{os.environ.get('PORT', '8081')}"
 workers = int(os.environ.get('WORKERS', multiprocessing.cpu_count() * 2 + 1))
 worker_class = "sync"
 worker_connections = 1000

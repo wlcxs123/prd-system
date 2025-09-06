@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>问卷管理系统</title>
-    <script src="/static/js/error-handler.js"></script>
+    <script src="{{ url_for('static', filename='js/error-handler.js') }}"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -870,7 +870,7 @@
                     <div class="question-group">
                         <div class="question-title">报告图片</div>
                         <div class="question-answer">
-                            <img src="/static/reports/${data.report_image_path}" alt="报告图片" style="max-width: 100%; height: auto; border-radius: 5px;">
+                            <img src="{{ url_for('static', filename='') }}reports/${data.report_image_path}" alt="报告图片" style="max-width: 100%; height: auto; border-radius: 5px;">
                         </div>
                     </div>
                 `;

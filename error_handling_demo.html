@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>统一错误处理系统演示</title>
+    <script src="config.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -157,8 +158,16 @@
     </div>
     
     <!-- 加载错误处理脚本 -->
-    <script src="backend/static/js/error-handler.js"></script>
-    <script src="backend/static/js/questionnaire-helper.js"></script>
+    <script>
+    // 动态加载JS文件
+    const errorHandlerScript = document.createElement('script');
+    errorHandlerScript.src = CONFIG.BASE_URL + '/backend/static/js/error-handler.js';
+    document.head.appendChild(errorHandlerScript);
+    
+    const helperScript = document.createElement('script');
+    helperScript.src = CONFIG.BASE_URL + '/backend/static/js/questionnaire-helper.js';
+    document.head.appendChild(helperScript);
+    </script>
     
     <script>
         // 基本错误提示演示

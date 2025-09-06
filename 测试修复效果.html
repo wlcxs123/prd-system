@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>测试修复效果</title>
+    <script src="config.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -70,7 +71,7 @@
 
         async function testConnection() {
             try {
-                const response = await fetch('http://127.0.0.1:5000/api/submit', {
+                const response = await fetch(CONFIG.getApiUrl(CONFIG.API.SUBMIT), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -115,7 +116,7 @@
             };
 
             try {
-                const response = await fetch('http://127.0.0.1:5000/api/submit', {
+                const response = await fetch(CONFIG.getApiUrl(CONFIG.API.SUBMIT), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -135,7 +136,7 @@
 
         async function testError() {
             try {
-                const response = await fetch('http://127.0.0.1:5000/api/invalid-endpoint', {
+                const response = await fetch(CONFIG.BASE_URL + '/api/invalid-endpoint', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

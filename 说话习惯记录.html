@@ -6,6 +6,7 @@
     <title>说话习惯记录表</title>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="config.js"></script>
     
     <style>
         /* 基础样式重置 */
@@ -583,7 +584,7 @@
                 };
                 
                 // 发送数据到后端
-                fetch('http://127.0.0.1:5000/api/submit', {
+                fetch(CONFIG.getApiUrl(CONFIG.API.SUBMIT), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

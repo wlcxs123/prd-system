@@ -2918,7 +2918,7 @@ def generate_frankfurt_report_html(report_data):
                         </span>
                         (得分: {risk_assessment.get('school', {}).get('score', 0)})
                     </p>
-                    <p><small>{risk_assessment.get('school', {}).get('description', '')}</small></p>
+
                 </div>
                 <div class="public-risk">
                     <p><strong>公共场所：</strong>
@@ -2927,7 +2927,7 @@ def generate_frankfurt_report_html(report_data):
                         </span>
                         (得分: {risk_assessment.get('public', {}).get('score', 0)})
                     </p>
-                    <p><small>{risk_assessment.get('public', {}).get('description', '')}</small></p>
+
                 </div>
                 <div class="home-risk">
                     <p><strong>家庭环境：</strong>
@@ -2936,7 +2936,7 @@ def generate_frankfurt_report_html(report_data):
                         </span>
                         (得分: {risk_assessment.get('home', {}).get('score', 0)})
                     </p>
-                    <p><small>{risk_assessment.get('home', {}).get('description', '')}</small></p>
+
                 </div>
             </div>
         </div>
@@ -3002,4 +3002,4 @@ if __name__ == '__main__':
     # 初始化数据库
     init_db()
     # 启动Flask应用
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=8081)
