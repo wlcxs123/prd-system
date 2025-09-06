@@ -114,9 +114,22 @@ def init_db():
             submission_date DATE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            data TEXT NOT NULL
+            data TEXT NOT NULL,
+            report_data TEXT,
+            report_generated_at TIMESTAMP
         )
         ''')
+        
+        # 检查并添加新字段（用于数据库升级）
+        try:
+            cursor.execute("ALTER TABLE questionnaires ADD COLUMN report_data TEXT")
+        except sqlite3.OperationalError:
+            pass  # 字段已存在
+        
+        try:
+            cursor.execute("ALTER TABLE questionnaires ADD COLUMN report_generated_at TIMESTAMP")
+        except sqlite3.OperationalError:
+            pass  # 字段已存在
         
         # 创建用户认证表
         cursor.execute('''
@@ -2458,6 +2471,302 @@ def export_preview():
                 'details': str(e)
             }
         }), 500
+
+# Frankfurt Scale报告生成API
+@app.route('/api/generate_frankfurt_report', methods=['POST'])
+@login_required
+def generate_frankfurt_report():
+    """生成Frankfurt Scale选择性缄默筛查量表报告"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'INVALID_REQUEST',
+                    'message': '请求数据不能为空'
+                }
+            }), 400
+        
+        questionnaire_id = data.get('questionnaire_id')
+        
+        if not questionnaire_id:
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'MISSING_PARAMETERS',
+                    'message': '缺少必要参数：questionnaire_id'
+                }
+            }), 400
+        
+        # 验证问卷是否存在并获取完整数据
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT * FROM questionnaires WHERE id = ?', (questionnaire_id,))
+            questionnaire = cursor.fetchone()
+            
+            if not questionnaire:
+                return jsonify({
+                    'success': False,
+                    'error': {
+                        'code': 'QUESTIONNAIRE_NOT_FOUND',
+                        'message': '问卷不存在'
+                    }
+                }), 404
+            
+            # 获取列名
+            columns = [description[0] for description in cursor.description]
+            questionnaire_dict = dict(zip(columns, questionnaire))
+            
+            if questionnaire_dict['type'] != 'frankfurt_scale_selective_mutism':
+                return jsonify({
+                    'success': False,
+                    'error': {
+                        'code': 'INVALID_QUESTIONNAIRE_TYPE',
+                        'message': '问卷类型不匹配，只支持frankfurt_scale_selective_mutism类型'
+                    }
+                }), 400
+            
+            # 从问卷数据生成报告数据
+            report_data = generate_frankfurt_report_data(questionnaire_dict)
+            
+            # 生成报告HTML
+            report_html = generate_frankfurt_report_html(report_data)
+            
+            # 保存报告到数据库
+            report_json = json.dumps(report_data, ensure_ascii=False)
+            cursor.execute(
+                'UPDATE questionnaires SET report_data = ?, report_generated_at = ? WHERE id = ?',
+                (report_json, datetime.now().isoformat(), questionnaire_id)
+            )
+            conn.commit()
+            
+            return jsonify({
+                'success': True,
+                'data': {
+                    'questionnaire_id': questionnaire_id,
+                    'report_html': report_html,
+                    'report_data': report_data,
+                    'generated_at': datetime.now().isoformat()
+                }
+            })
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': {
+                'code': 'SERVER_ERROR',
+                'message': '生成报告失败',
+                'details': str(e)
+            }
+        }), 500
+
+def generate_frankfurt_report_data(questionnaire_dict):
+    """从问卷数据生成Frankfurt Scale报告数据"""
+    try:
+        # 解析问卷数据
+        data = json.loads(questionnaire_dict.get('data', '{}'))
+        basic_info = data.get('basic_info', {})
+        questions = data.get('questions', [])
+        
+        # 初始化报告数据
+        report_data = {
+            'basic_info': {
+                'name': basic_info.get('name', questionnaire_dict.get('name', '未知')),
+                'gender': basic_info.get('gender', '未知'),
+                'age': basic_info.get('age', '未知'),
+                'birthdate': basic_info.get('birthdate', basic_info.get('birth_date', '未知'))
+            },
+            'scores': {
+                'ds_total': 0,
+                'ss_total': 0,
+                'ds_average': 0,
+                'ss_average': 0
+            },
+            'risk_assessment': {
+                'level': '低风险',
+                'color': '#28a745',
+                'description': ''
+            },
+            'interventions': [],
+            'exposure_hierarchy': []
+        }
+        
+        # 计算DS和SS得分
+        ds_count = 0
+        ss_count = 0
+        
+        for question in questions:
+            if isinstance(question, dict):
+                section = question.get('section', '')
+                selected = question.get('selected', [])
+                
+                # 获取选中的分数
+                score = 0
+                if selected and len(selected) > 0:
+                    try:
+                        score = int(selected[0])
+                    except (ValueError, TypeError):
+                        score = 0
+                
+                # 根据section字段判断是DS还是SS
+                if section == 'DS':
+                    report_data['scores']['ds_total'] += score
+                    ds_count += 1
+                elif section.startswith('SS_'):
+                    report_data['scores']['ss_total'] += score
+                    ss_count += 1
+        
+        # 计算平均分
+        if ds_count > 0:
+            report_data['scores']['ds_average'] = round(report_data['scores']['ds_total'] / ds_count, 2)
+        if ss_count > 0:
+            report_data['scores']['ss_average'] = round(report_data['scores']['ss_total'] / ss_count, 2)
+        
+        total_score = report_data['scores']['ds_total'] + report_data['scores']['ss_total']
+        
+        # 风险评估
+        if total_score >= 30:
+            report_data['risk_assessment'] = {
+                'level': '高风险',
+                'color': '#dc3545',
+                'description': '建议立即寻求专业心理治疗师的帮助'
+            }
+        elif total_score >= 15:
+            report_data['risk_assessment'] = {
+                'level': '中等风险',
+                'color': '#ffc107',
+                'description': '建议学校心理咨询师介入，家长和教师需要密切配合'
+            }
+        else:
+            report_data['risk_assessment'] = {
+                'level': '低风险',
+                'color': '#28a745',
+                'description': '继续观察和支持，创造积极的交流环境'
+            }
+        
+        # 生成干预建议
+        if report_data['risk_assessment']['level'] == '高风险':
+            report_data['interventions'] = [
+                '建议寻求专业心理治疗师的帮助',
+                '考虑认知行为疗法(CBT)治疗',
+                '家庭治疗可能会有帮助',
+                '制定个性化的治疗计划'
+            ]
+        elif report_data['risk_assessment']['level'] == '中等风险':
+            report_data['interventions'] = [
+                '建议学校心理咨询师介入',
+                '家长和教师需要密切配合',
+                '逐步暴露疗法可能有效',
+                '建立支持性的学习环境'
+            ]
+        else:
+            report_data['interventions'] = [
+                '继续观察和支持',
+                '创造积极的交流环境',
+                '鼓励孩子表达自己',
+                '保持耐心和理解'
+            ]
+        
+        # 生成暴露层次
+        report_data['exposure_hierarchy'] = [
+            {'level': 1, 'activity': '在家中与亲密家人交谈', 'difficulty': '最容易'},
+            {'level': 2, 'activity': '在熟悉环境中与朋友交谈', 'difficulty': '容易'},
+            {'level': 3, 'activity': '在小组中发言', 'difficulty': '中等'},
+            {'level': 4, 'activity': '在课堂上回答问题', 'difficulty': '困难'},
+            {'level': 5, 'activity': '在陌生人面前讲话', 'difficulty': '最困难'}
+        ]
+        
+        return report_data
+        
+    except Exception as e:
+        # 返回默认报告数据
+        return {
+            'basic_info': {
+                'name': questionnaire_dict.get('name', '未知'),
+                'gender': '未知',
+                'age': '未知',
+                'birthdate': '未知'
+            },
+            'scores': {
+                'ds_total': 0,
+                'ss_total': 0,
+                'ds_average': 0,
+                'ss_average': 0
+            },
+            'risk_assessment': {
+                'level': '无法评估',
+                'color': '#6c757d',
+                'description': f'数据解析错误: {str(e)}'
+            },
+            'interventions': ['请联系专业人员进行评估'],
+            'exposure_hierarchy': []
+        }
+
+def generate_frankfurt_report_html(report_data):
+    """生成Frankfurt Scale报告的HTML内容"""
+    basic_info = report_data.get('basic_info', {})
+    scores = report_data.get('scores', {})
+    risk_assessment = report_data.get('risk_assessment', {})
+    interventions = report_data.get('interventions', [])
+    exposure_hierarchy = report_data.get('exposure_hierarchy', [])
+    
+    html = f"""
+    <div class="frankfurt-report">
+        <h2>Frankfurt Scale选择性缄默筛查量表 - 评估报告</h2>
+        
+        <div class="basic-info">
+            <h3>基本信息</h3>
+            <p><strong>姓名：</strong>{basic_info.get('name', '未填写')}</p>
+            <p><strong>性别：</strong>{basic_info.get('gender', '未填写')}</p>
+            <p><strong>年龄：</strong>{basic_info.get('age', '未填写')}</p>
+            <p><strong>生日：</strong>{basic_info.get('birthdate', '未填写')}</p>
+        </div>
+        
+        <div class="scores-summary">
+            <h3>评分总结</h3>
+            <p><strong>DS部分总分：</strong>{scores.get('ds_total', 0)} (平均分: {scores.get('ds_average', 0)})</p>
+            <p><strong>SS部分总分：</strong>{scores.get('ss_total', 0)} (平均分: {scores.get('ss_average', 0)})</p>
+        </div>
+        
+        <div class="risk-assessment">
+            <h3>风险评估</h3>
+            <p style="color: {risk_assessment.get('color', '#000')}; font-weight: bold;">
+                风险等级：{risk_assessment.get('level', '未知')}
+            </p>
+        </div>
+        
+        <div class="interventions">
+            <h3>干预建议</h3>
+            <ul>
+    """
+    
+    for intervention in interventions:
+        html += f"<li>{intervention}</li>"
+    
+    html += """
+            </ul>
+        </div>
+        
+        <div class="exposure-hierarchy">
+            <h3>自主暴露层级</h3>
+            <ol>
+    """
+    
+    for item in exposure_hierarchy:
+        html += f"<li>{item.get('description', '')} (难度: {item.get('difficulty', '')})</li>"
+    
+    html += f"""
+            </ol>
+        </div>
+        
+        <div class="report-footer">
+            <p><small>报告生成时间：{report_data.get('generated_at', '')}</small></p>
+        </div>
+    </div>
+    """
+    
+    return html
 
 # 注册统一错误处理器
 register_error_handlers(app)

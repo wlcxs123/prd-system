@@ -476,7 +476,8 @@
                 'communication_rating': '小学生交流评定表',
                 'sm_factors': '可能的SM维持因素清单',
                 'sm_maintenance_factors': 'SM维持因素',
-                'elementary_school_communication_assessment': '小学生交流评估'
+                'elementary_school_communication_assessment': '小学生交流评估',
+                'frankfurt_scale_selective_mutism': 'Frankfurt Scale选择性缄默筛查量表'
             };
             return typeMap[type] || type;
         }
@@ -531,7 +532,17 @@
                         const gender = basicInfo.gender || '未知';
                         const birthdate = basicInfo.birthdate || basicInfo.birth_date || '未知';
 
-                        row.innerHTML = `<td><input type="checkbox" class="questionnaire-checkbox" value="${questionnaire.id}"></td><td>${questionnaire.id}</td><td>${getTypeDisplayName(questionnaire.type)}</td><td>${name}</td><td>${gender}</td><td>${birthdate}</td><td>${questionnaire.created_at}</td><td><button class="btn btn-primary btn-sm" onclick="viewQuestionnaire(${questionnaire.id})">查看</button><button class="btn btn-warning btn-sm" onclick="editQuestionnaire(${questionnaire.id})">编辑</button><button class="btn btn-success btn-sm" onclick="exportQuestionnaire(${questionnaire.id})">导出</button><button class="btn btn-danger btn-sm" onclick="deleteQuestionnaire(${questionnaire.id})">删除</button></td>`;
+                        // 构建操作按钮
+                        let actionButtons = `<button class="btn btn-primary btn-sm" onclick="viewQuestionnaire(${questionnaire.id})">查看</button><button class="btn btn-warning btn-sm" onclick="editQuestionnaire(${questionnaire.id})">编辑</button><button class="btn btn-success btn-sm" onclick="exportQuestionnaire(${questionnaire.id})">导出</button>`;
+                        
+                        // 为Frankfurt Scale类型添加生成报告按钮
+                        if (questionnaire.type === 'frankfurt_scale_selective_mutism') {
+                            actionButtons += `<button class="btn btn-info btn-sm" onclick="generateFrankfurtReport(${questionnaire.id})">生成报告</button>`;
+                        }
+                        
+                        actionButtons += `<button class="btn btn-danger btn-sm" onclick="deleteQuestionnaire(${questionnaire.id})">删除</button>`;
+                        
+                        row.innerHTML = `<td><input type="checkbox" class="questionnaire-checkbox" value="${questionnaire.id}"></td><td>${questionnaire.id}</td><td>${getTypeDisplayName(questionnaire.type)}</td><td>${name}</td><td>${gender}</td><td>${birthdate}</td><td>${questionnaire.created_at}</td><td>${actionButtons}</td>`;
                         tableBody.appendChild(row);
                     });
 
@@ -1197,6 +1208,200 @@
             
             html += '</div>';
             return html;
+        }
+
+        // 生成Frankfurt报告
+        function generateFrankfurtReport(questionnaireId) {
+            const button = event.target;
+            const originalText = button.textContent;
+            button.textContent = '生成中...';
+            button.disabled = true;
+
+            fetch(`/api/generate_frankfurt_report`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ questionnaire_id: questionnaireId })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    // 显示报告内容
+                    showFrankfurtReport(result.data);
+                } else {
+                    alert('报告生成失败: ' + (result.error?.message || '未知错误'));
+                }
+            })
+            .catch(error => {
+                console.error('生成报告失败:', error);
+                alert('网络错误，请稍后重试');
+            })
+            .finally(() => {
+                button.textContent = originalText;
+                button.disabled = false;
+            });
+        }
+
+        // 显示Frankfurt报告
+        function showFrankfurtReport(reportData) {
+            // 创建报告模态框
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+            `;
+
+            const modalContent = document.createElement('div');
+            modalContent.style.cssText = `
+                background: white;
+                border-radius: 8px;
+                padding: 20px;
+                max-width: 90%;
+                max-height: 90%;
+                overflow-y: auto;
+                position: relative;
+            `;
+
+            // 添加关闭按钮
+            const closeBtn = document.createElement('button');
+            closeBtn.innerHTML = '×';
+            closeBtn.style.cssText = `
+                position: absolute;
+                top: 10px;
+                right: 15px;
+                background: none;
+                border: none;
+                font-size: 24px;
+                cursor: pointer;
+                color: #999;
+            `;
+            closeBtn.onclick = () => document.body.removeChild(modal);
+
+            // 添加报告内容
+            const reportContent = document.createElement('div');
+            reportContent.innerHTML = `
+                <style>
+                    .frankfurt-report h2 { color: #2c3e50; margin-bottom: 20px; }
+                    .frankfurt-report h3 { color: #34495e; margin: 15px 0 10px 0; }
+                    .frankfurt-report .basic-info, .frankfurt-report .scores-summary, 
+                    .frankfurt-report .risk-assessment, .frankfurt-report .interventions, 
+                    .frankfurt-report .exposure-hierarchy { 
+                        margin-bottom: 20px; 
+                        padding: 15px; 
+                        border: 1px solid #ddd; 
+                        border-radius: 5px; 
+                    }
+                    .frankfurt-report .basic-info { background-color: #f8f9fa; }
+                    .frankfurt-report .scores-summary { background-color: #e3f2fd; }
+                    .frankfurt-report .risk-assessment { background-color: #fff3e0; }
+                    .frankfurt-report .interventions { background-color: #f1f8e9; }
+                    .frankfurt-report .exposure-hierarchy { background-color: #fce4ec; }
+                    .frankfurt-report p { margin: 5px 0; }
+                    .frankfurt-report ul { margin: 10px 0; padding-left: 20px; }
+                    .frankfurt-report li { margin: 5px 0; }
+                </style>
+                ${reportData.report_html}
+                <div style="margin-top: 20px; text-align: center; color: #666; font-size: 12px;">
+                    报告生成时间: ${new Date(reportData.generated_at).toLocaleString('zh-CN')}
+                </div>
+            `;
+
+            modalContent.appendChild(closeBtn);
+            modalContent.appendChild(reportContent);
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+
+            // 点击模态框外部关闭
+            modal.onclick = (e) => {
+                if (e.target === modal) {
+                    document.body.removeChild(modal);
+                }
+            };
+        }
+
+        // 生成报告数据
+        function generateReportData(data) {
+            const reportData = {
+                ds_score: 0,
+                ss_score: 0,
+                total_score: 0,
+                risk_level: '低风险',
+                interventions: [],
+                exposure_hierarchy: []
+            };
+
+            // 计算DS和SS得分
+            if (data.questions) {
+                data.questions.forEach(q => {
+                    const score = parseInt(q.answer) || 0;
+                    if (q.question.includes('DS')) {
+                        reportData.ds_score += score;
+                    } else if (q.question.includes('SS')) {
+                        reportData.ss_score += score;
+                    }
+                });
+            }
+
+            reportData.total_score = reportData.ds_score + reportData.ss_score;
+
+            // 判断风险等级
+            if (reportData.total_score >= 30) {
+                reportData.risk_level = '高风险';
+            } else if (reportData.total_score >= 15) {
+                reportData.risk_level = '中等风险';
+            }
+
+            // 生成干预建议
+            reportData.interventions = generateInterventions(reportData);
+
+            // 生成暴露层次
+            reportData.exposure_hierarchy = generateExposureHierarchy(reportData);
+
+            return reportData;
+        }
+
+        // 生成干预建议
+        function generateInterventions(reportData) {
+            const interventions = [];
+
+            if (reportData.risk_level === '高风险') {
+                interventions.push('建议寻求专业心理治疗师的帮助');
+                interventions.push('考虑认知行为疗法(CBT)治疗');
+                interventions.push('家庭治疗可能会有帮助');
+            } else if (reportData.risk_level === '中等风险') {
+                interventions.push('建议学校心理咨询师介入');
+                interventions.push('家长和教师需要密切配合');
+                interventions.push('逐步暴露疗法可能有效');
+            } else {
+                interventions.push('继续观察和支持');
+                interventions.push('创造积极的交流环境');
+                interventions.push('鼓励孩子表达自己');
+            }
+
+            return interventions;
+        }
+
+        // 生成暴露层次
+        function generateExposureHierarchy(reportData) {
+            const hierarchy = [
+                { level: 1, activity: '在家中与亲密家人交谈', difficulty: '最容易' },
+                { level: 2, activity: '在熟悉环境中与朋友交谈', difficulty: '容易' },
+                { level: 3, activity: '在小组中发言', difficulty: '中等' },
+                { level: 4, activity: '在课堂上回答问题', difficulty: '困难' },
+                { level: 5, activity: '在陌生人面前讲话', difficulty: '最困难' }
+            ];
+
+            return hierarchy;
         }
 
         // 页面初始化

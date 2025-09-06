@@ -474,7 +474,8 @@
                 'communication_rating': '小学生交流评定表',
                 'sm_factors': '可能的SM维持因素清单',
                 'sm_maintenance_factors': 'SM维持因素',
-                'elementary_school_communication_assessment': '小学生交流评估'
+                'elementary_school_communication_assessment': '小学生交流评估',
+                'frankfurt_scale_selective_mutism': 'Frankfurt Scale选择性缄默筛查量表'
             };
             return typeMap[type] || type;
         }
@@ -529,7 +530,20 @@
                         const gender = basicInfo.gender || '未知';
                         const birthdate = basicInfo.birthdate || basicInfo.birth_date || '未知';
 
-                        row.innerHTML = `<td>${questionnaire.id}</td><td>${getTypeDisplayName(questionnaire.type)}</td><td>${name}</td><td>${gender}</td><td>${birthdate}</td><td>${questionnaire.created_at}</td><td><button class="btn btn-primary btn-sm" onclick="viewQuestionnaire(${questionnaire.id})">查看</button><button class="btn btn-warning btn-sm" onclick="editQuestionnaire(${questionnaire.id})">编辑</button><button class="btn btn-success btn-sm" onclick="exportQuestionnaire(${questionnaire.id})">导出</button><button class="btn btn-danger btn-sm" onclick="deleteQuestionnaire(${questionnaire.id})">删除</button></td>`;
+                        // 构建操作按钮
+                        let actionButtons = `
+                            <button class="btn btn-primary btn-sm" onclick="viewQuestionnaire(${questionnaire.id})">查看</button>
+                            <button class="btn btn-warning btn-sm" onclick="editQuestionnaire(${questionnaire.id})">编辑</button>
+                            <button class="btn btn-success btn-sm" onclick="exportQuestionnaire(${questionnaire.id})">导出</button>`;
+                        
+                        // 为frankfurt_scale_selective_mutism类型添加生成报告按钮
+                        if (questionnaire.type === 'frankfurt_scale_selective_mutism') {
+                            actionButtons += `<button class="btn btn-info btn-sm" onclick="generateFrankfurtReport(${questionnaire.id})">生成报告</button>`;
+                        }
+                        
+                        actionButtons += `<button class="btn btn-danger btn-sm" onclick="deleteQuestionnaire(${questionnaire.id})">删除</button>`;
+                        
+                        row.innerHTML = `<td>${questionnaire.id}</td><td>${getTypeDisplayName(questionnaire.type)}</td><td>${name}</td><td>${gender}</td><td>${birthdate}</td><td>${questionnaire.created_at}</td><td>${actionButtons}</td>`;
                         tableBody.appendChild(row);
                     });
 
@@ -1229,6 +1243,174 @@
             
             html += '</div>';
             return html;
+        }
+
+        // 生成Frankfurt Scale报告
+        function generateFrankfurtReport(questionnaireId) {
+            // 显示加载状态
+            const button = event.target;
+            const originalText = button.textContent;
+            button.textContent = '生成中...';
+            button.disabled = true;
+            
+            // 获取问卷数据
+            fetch(`/api/questionnaires/${questionnaireId}`)
+                .then(response => response.json())
+                .then(result => {
+                    if (!result.success) {
+                        throw new Error(result.error?.message || '获取问卷数据失败');
+                    }
+                    
+                    const questionnaire = result.data;
+                    if (questionnaire.type !== 'frankfurt_scale_selective_mutism') {
+                        throw new Error('问卷类型不匹配');
+                    }
+                    
+                    // 生成报告
+                    const reportData = generateReportData(questionnaire.data);
+                    
+                    // 发送报告生成请求到后端
+                    return fetch('/api/generate-frankfurt-report', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            questionnaire_id: questionnaireId,
+                            report_data: reportData
+                        })
+                    });
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        alert('报告生成成功！');
+                        // 刷新问卷列表以显示最新状态
+                        loadQuestionnaires();
+                    } else {
+                        throw new Error(result.error?.message || '报告生成失败');
+                    }
+                })
+                .catch(error => {
+                    console.error('生成报告失败:', error);
+                    alert('生成报告失败: ' + error.message);
+                })
+                .finally(() => {
+                    // 恢复按钮状态
+                    button.textContent = originalText;
+                    button.disabled = false;
+                });
+        }
+        
+        // 生成报告数据
+        function generateReportData(questionnaireData) {
+            const data = questionnaireData;
+            const basicInfo = data.basic_info || {};
+            
+            // 计算DS和SS部分得分
+            let dsTotal = 0, ssTotal = 0;
+            let dsCount = 0, ssCount = 0;
+            
+            // DS部分 (问题1-17)
+            for (let i = 1; i <= 17; i++) {
+                const score = data[`q${i}`];
+                if (score !== undefined && score !== null) {
+                    dsTotal += parseInt(score) || 0;
+                    dsCount++;
+                }
+            }
+            
+            // SS部分 (问题18-24)
+            for (let i = 18; i <= 24; i++) {
+                const score = data[`q${i}`];
+                if (score !== undefined && score !== null) {
+                    ssTotal += parseInt(score) || 0;
+                    ssCount++;
+                }
+            }
+            
+            const dsAverage = dsCount > 0 ? (dsTotal / dsCount).toFixed(2) : 0;
+            const ssAverage = ssCount > 0 ? (ssTotal / ssCount).toFixed(2) : 0;
+            
+            // 风险等级判断
+            let riskLevel = '低风险';
+            let riskColor = '#28a745';
+            
+            if (dsAverage >= 2.0 || ssAverage >= 2.0) {
+                riskLevel = '高风险';
+                riskColor = '#dc3545';
+            } else if (dsAverage >= 1.5 || ssAverage >= 1.5) {
+                riskLevel = '中等风险';
+                riskColor = '#ffc107';
+            }
+            
+            // 生成干预建议
+            const interventions = generateInterventions(dsAverage, ssAverage, data);
+            
+            // 生成自主暴露层级
+            const exposureHierarchy = generateExposureHierarchy(data);
+            
+            return {
+                basic_info: basicInfo,
+                scores: {
+                    ds_total: dsTotal,
+                    ds_average: dsAverage,
+                    ds_count: dsCount,
+                    ss_total: ssTotal,
+                    ss_average: ssAverage,
+                    ss_count: ssCount
+                },
+                risk_assessment: {
+                    level: riskLevel,
+                    color: riskColor
+                },
+                interventions: interventions,
+                exposure_hierarchy: exposureHierarchy,
+                generated_at: new Date().toISOString()
+            };
+        }
+        
+        // 生成干预建议
+        function generateInterventions(dsAverage, ssAverage, data) {
+            const interventions = [];
+            
+            if (dsAverage >= 2.0) {
+                interventions.push('建议进行专业的选择性缄默症评估和干预');
+                interventions.push('考虑认知行为疗法(CBT)或暴露疗法');
+            }
+            
+            if (ssAverage >= 2.0) {
+                interventions.push('关注社交技能训练');
+                interventions.push('提供社交支持和鼓励');
+            }
+            
+            if (dsAverage >= 1.5 || ssAverage >= 1.5) {
+                interventions.push('建议定期监测和评估');
+                interventions.push('与学校老师和家长密切合作');
+            }
+            
+            if (interventions.length === 0) {
+                interventions.push('继续观察和支持');
+                interventions.push('维持良好的沟通环境');
+            }
+            
+            return interventions;
+        }
+        
+        // 生成自主暴露层级
+        function generateExposureHierarchy(data) {
+            const hierarchy = [];
+            
+            // 基于问卷回答生成个性化的暴露层级
+            const scenarios = [
+                { level: 1, description: '与熟悉的家庭成员交谈', difficulty: '容易' },
+                { level: 2, description: '在小组中与同伴交流', difficulty: '中等' },
+                { level: 3, description: '在课堂上回答问题', difficulty: '中等' },
+                { level: 4, description: '与陌生人进行简单对话', difficulty: '困难' },
+                { level: 5, description: '在公共场所大声说话', difficulty: '困难' }
+            ];
+            
+            return scenarios;
         }
 
         // 页面初始化
