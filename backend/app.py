@@ -2581,12 +2581,38 @@ def generate_frankfurt_report_data(questionnaire_dict):
                 'ds_total': 0,
                 'ss_total': 0,
                 'ds_average': 0,
-                'ss_average': 0
+                'ss_average': 0,
+                'ss_school_total': 0,
+                'ss_school_average': 0,
+                'ss_public_total': 0,
+                'ss_public_average': 0,
+                'ss_home_total': 0,
+                'ss_home_average': 0
             },
             'risk_assessment': {
-                'level': '低风险',
-                'color': '#28a745',
-                'description': ''
+                'overall': {
+                    'level': '低风险',
+                    'color': '#28a745',
+                    'description': ''
+                },
+                'school': {
+                    'level': '低风险',
+                    'color': '#28a745',
+                    'description': '',
+                    'score': 0
+                },
+                'public': {
+                    'level': '低风险',
+                    'color': '#28a745',
+                    'description': '',
+                    'score': 0
+                },
+                'home': {
+                    'level': '低风险',
+                    'color': '#28a745',
+                    'description': '',
+                    'score': 0
+                }
             },
             'interventions': [],
             'exposure_hierarchy': []
@@ -2595,6 +2621,9 @@ def generate_frankfurt_report_data(questionnaire_dict):
         # 计算DS和SS得分
         ds_count = 0
         ss_count = 0
+        ss_school_count = 0
+        ss_public_count = 0
+        ss_home_count = 0
         
         for question in questions:
             if isinstance(question, dict):
@@ -2613,8 +2642,20 @@ def generate_frankfurt_report_data(questionnaire_dict):
                 if section == 'DS':
                     report_data['scores']['ds_total'] += score
                     ds_count += 1
-                elif section.startswith('SS_'):
+                elif section == 'SS_school':
+                    report_data['scores']['ss_school_total'] += score
                     report_data['scores']['ss_total'] += score
+                    ss_school_count += 1
+                    ss_count += 1
+                elif section == 'SS_public':
+                    report_data['scores']['ss_public_total'] += score
+                    report_data['scores']['ss_total'] += score
+                    ss_public_count += 1
+                    ss_count += 1
+                elif section == 'SS_home':
+                    report_data['scores']['ss_home_total'] += score
+                    report_data['scores']['ss_total'] += score
+                    ss_home_count += 1
                     ss_count += 1
         
         # 计算平均分
@@ -2622,51 +2663,170 @@ def generate_frankfurt_report_data(questionnaire_dict):
             report_data['scores']['ds_average'] = round(report_data['scores']['ds_total'] / ds_count, 2)
         if ss_count > 0:
             report_data['scores']['ss_average'] = round(report_data['scores']['ss_total'] / ss_count, 2)
+        if ss_school_count > 0:
+            report_data['scores']['ss_school_average'] = round(report_data['scores']['ss_school_total'] / ss_school_count, 2)
+        if ss_public_count > 0:
+            report_data['scores']['ss_public_average'] = round(report_data['scores']['ss_public_total'] / ss_public_count, 2)
+        if ss_home_count > 0:
+            report_data['scores']['ss_home_average'] = round(report_data['scores']['ss_home_total'] / ss_home_count, 2)
         
         total_score = report_data['scores']['ds_total'] + report_data['scores']['ss_total']
         
-        # 风险评估
+        # 整体风险评估
         if total_score >= 30:
-            report_data['risk_assessment'] = {
+            report_data['risk_assessment']['overall'] = {
                 'level': '高风险',
                 'color': '#dc3545',
                 'description': '建议立即寻求专业心理治疗师的帮助'
             }
         elif total_score >= 15:
-            report_data['risk_assessment'] = {
+            report_data['risk_assessment']['overall'] = {
                 'level': '中等风险',
                 'color': '#ffc107',
                 'description': '建议学校心理咨询师介入，家长和教师需要密切配合'
             }
         else:
-            report_data['risk_assessment'] = {
+            report_data['risk_assessment']['overall'] = {
                 'level': '低风险',
                 'color': '#28a745',
                 'description': '继续观察和支持，创造积极的交流环境'
             }
         
-        # 生成干预建议
-        if report_data['risk_assessment']['level'] == '高风险':
-            report_data['interventions'] = [
-                '建议寻求专业心理治疗师的帮助',
-                '考虑认知行为疗法(CBT)治疗',
-                '家庭治疗可能会有帮助',
-                '制定个性化的治疗计划'
-            ]
-        elif report_data['risk_assessment']['level'] == '中等风险':
-            report_data['interventions'] = [
-                '建议学校心理咨询师介入',
-                '家长和教师需要密切配合',
-                '逐步暴露疗法可能有效',
-                '建立支持性的学习环境'
-            ]
+        # 学校环境风险评估
+        school_score = report_data['scores']['ss_school_total']
+        report_data['risk_assessment']['school']['score'] = school_score
+        if school_score >= 20:
+            report_data['risk_assessment']['school'].update({
+                'level': '高风险',
+                'color': '#dc3545',
+                'description': '在学校环境中表现出严重的选择性缄默症状，需要学校心理咨询师立即介入'
+            })
+        elif school_score >= 10:
+            report_data['risk_assessment']['school'].update({
+                'level': '中等风险',
+                'color': '#ffc107',
+                'description': '在学校环境中有明显的交流困难，建议与老师密切合作制定支持计划'
+            })
         else:
-            report_data['interventions'] = [
+            report_data['risk_assessment']['school'].update({
+                'level': '低风险',
+                'color': '#28a745',
+                'description': '在学校环境中表现相对良好，继续鼓励参与课堂活动'
+            })
+        
+        # 公共场所/社区环境风险评估
+        public_score = report_data['scores']['ss_public_total']
+        report_data['risk_assessment']['public']['score'] = public_score
+        if public_score >= 16:
+            report_data['risk_assessment']['public'].update({
+                'level': '高风险',
+                'color': '#dc3545',
+                'description': '在公共场所表现出严重的社交回避，需要系统性的暴露疗法'
+            })
+        elif public_score >= 8:
+            report_data['risk_assessment']['public'].update({
+                'level': '中等风险',
+                'color': '#ffc107',
+                'description': '在公共场所有一定的交流困难，建议逐步增加社区活动参与'
+            })
+        else:
+            report_data['risk_assessment']['public'].update({
+                'level': '低风险',
+                'color': '#28a745',
+                'description': '在公共场所表现较好，可以适当增加社交机会'
+            })
+        
+        # 家庭环境风险评估
+        home_score = report_data['scores']['ss_home_total']
+        report_data['risk_assessment']['home']['score'] = home_score
+        if home_score >= 16:
+            report_data['risk_assessment']['home'].update({
+                'level': '高风险',
+                'color': '#dc3545',
+                'description': '即使在家庭环境中也存在严重的交流障碍，建议家庭治疗介入'
+            })
+        elif home_score >= 8:
+            report_data['risk_assessment']['home'].update({
+                'level': '中等风险',
+                'color': '#ffc107',
+                'description': '在家庭环境中有一定的交流限制，建议家长学习支持性沟通技巧'
+            })
+        else:
+            report_data['risk_assessment']['home'].update({
+                'level': '低风险',
+                'color': '#28a745',
+                'description': '在家庭环境中表现良好，这是一个重要的支持基础'
+            })
+        
+        # 生成综合干预建议
+        interventions = []
+        
+        # 基于整体风险等级的建议
+        if report_data['risk_assessment']['overall']['level'] == '高风险':
+            interventions.extend([
+                '立即寻求专业心理治疗师的帮助',
+                '制定个性化的治疗计划',
+                '家庭和学校需要密切配合',
+                '考虑药物治疗的可能性'
+            ])
+        elif report_data['risk_assessment']['overall']['level'] == '中等风险':
+            interventions.extend([
+                '学校心理咨询师介入',
+                '家长和教师密切配合',
+                '创建支持性的交流环境',
+                '定期评估进展情况'
+            ])
+        else:
+            interventions.extend([
                 '继续观察和支持',
                 '创造积极的交流环境',
-                '鼓励孩子表达自己',
-                '保持耐心和理解'
-            ]
+                '鼓励参与社交活动',
+                '定期关注情况变化'
+            ])
+        
+        # 基于学校环境的具体建议
+        if report_data['risk_assessment']['school']['level'] == '高风险':
+            interventions.extend([
+                '学校环境：安排专门的心理支持老师',
+                '学校环境：创建安全的表达空间',
+                '学校环境：与同学建立伙伴支持系统'
+            ])
+        elif report_data['risk_assessment']['school']['level'] == '中等风险':
+            interventions.extend([
+                '学校环境：与班主任制定个性化支持计划',
+                '学校环境：鼓励参与小组活动',
+                '学校环境：提供非言语表达机会'
+            ])
+        
+        # 基于公共场所的具体建议
+        if report_data['risk_assessment']['public']['level'] == '高风险':
+            interventions.extend([
+                '社区环境：进行系统性暴露疗法',
+                '社区环境：从熟悉的环境开始练习',
+                '社区环境：家长陪同参与社区活动'
+            ])
+        elif report_data['risk_assessment']['public']['level'] == '中等风险':
+            interventions.extend([
+                '社区环境：逐步增加社区活动参与',
+                '社区环境：选择舒适的社交场所',
+                '社区环境：建立社区支持网络'
+            ])
+        
+        # 基于家庭环境的具体建议
+        if report_data['risk_assessment']['home']['level'] == '高风险':
+            interventions.extend([
+                '家庭环境：考虑家庭治疗',
+                '家庭环境：改善家庭沟通模式',
+                '家庭环境：创建无压力的表达空间'
+            ])
+        elif report_data['risk_assessment']['home']['level'] == '中等风险':
+            interventions.extend([
+                '家庭环境：家长学习支持性沟通技巧',
+                '家庭环境：建立规律的家庭交流时间',
+                '家庭环境：鼓励家庭内的表达尝试'
+            ])
+        
+        report_data['interventions'] = interventions
         
         # 生成暴露层次
         report_data['exposure_hierarchy'] = [
@@ -2725,15 +2885,60 @@ def generate_frankfurt_report_html(report_data):
         
         <div class="scores-summary">
             <h3>评分总结</h3>
-            <p><strong>DS部分总分：</strong>{scores.get('ds_total', 0)} (平均分: {scores.get('ds_average', 0)})</p>
-            <p><strong>SS部分总分：</strong>{scores.get('ss_total', 0)} (平均分: {scores.get('ss_average', 0)})</p>
+            <div class="ds-scores">
+                <h4>DS部分（诊断症状）</h4>
+                <p><strong>总分：</strong>{scores.get('ds_total', 0)} (平均分: {scores.get('ds_average', 0)})</p>
+            </div>
+            <div class="ss-scores">
+                <h4>SS部分（情境特异性）</h4>
+                <p><strong>总分：</strong>{scores.get('ss_total', 0)} (平均分: {scores.get('ss_average', 0)})</p>
+                <div class="ss-breakdown">
+                    <p><strong>学校环境：</strong>{scores.get('ss_school_total', 0)} (平均分: {scores.get('ss_school_average', 0)})</p>
+                    <p><strong>公共场所：</strong>{scores.get('ss_public_total', 0)} (平均分: {scores.get('ss_public_average', 0)})</p>
+                    <p><strong>家庭环境：</strong>{scores.get('ss_home_total', 0)} (平均分: {scores.get('ss_home_average', 0)})</p>
+                </div>
+            </div>
         </div>
         
         <div class="risk-assessment">
             <h3>风险评估</h3>
-            <p style="color: {risk_assessment.get('color', '#000')}; font-weight: bold;">
-                风险等级：{risk_assessment.get('level', '未知')}
-            </p>
+            <div class="overall-risk">
+                <h4>整体风险评估</h4>
+                <p style="color: {risk_assessment.get('overall', {}).get('color', '#000')}; font-weight: bold;">
+                    风险等级：{risk_assessment.get('overall', {}).get('level', '未知')}
+                </p>
+                <p>{risk_assessment.get('overall', {}).get('description', '')}</p>
+            </div>
+            <div class="detailed-risk">
+                <h4>分环境风险评估</h4>
+                <div class="school-risk">
+                    <p><strong>学校环境：</strong>
+                        <span style="color: {risk_assessment.get('school', {}).get('color', '#000')}; font-weight: bold;">
+                            {risk_assessment.get('school', {}).get('level', '未知')}
+                        </span>
+                        (得分: {risk_assessment.get('school', {}).get('score', 0)})
+                    </p>
+                    <p><small>{risk_assessment.get('school', {}).get('description', '')}</small></p>
+                </div>
+                <div class="public-risk">
+                    <p><strong>公共场所：</strong>
+                        <span style="color: {risk_assessment.get('public', {}).get('color', '#000')}; font-weight: bold;">
+                            {risk_assessment.get('public', {}).get('level', '未知')}
+                        </span>
+                        (得分: {risk_assessment.get('public', {}).get('score', 0)})
+                    </p>
+                    <p><small>{risk_assessment.get('public', {}).get('description', '')}</small></p>
+                </div>
+                <div class="home-risk">
+                    <p><strong>家庭环境：</strong>
+                        <span style="color: {risk_assessment.get('home', {}).get('color', '#000')}; font-weight: bold;">
+                            {risk_assessment.get('home', {}).get('level', '未知')}
+                        </span>
+                        (得分: {risk_assessment.get('home', {}).get('score', 0)})
+                    </p>
+                    <p><small>{risk_assessment.get('home', {}).get('description', '')}</small></p>
+                </div>
+            </div>
         </div>
         
         <div class="interventions">
@@ -2754,14 +2959,13 @@ def generate_frankfurt_report_html(report_data):
     """
     
     for item in exposure_hierarchy:
-        html += f"<li>{item.get('description', '')} (难度: {item.get('difficulty', '')})</li>"
+        html += f"<li>{item.get('activity', '')} (难度: {item.get('difficulty', '')})</li>"
     
     html += f"""
             </ol>
         </div>
         
         <div class="report-footer">
-            <p><small>报告生成时间：{report_data.get('generated_at', '')}</small></p>
         </div>
     </div>
     """
