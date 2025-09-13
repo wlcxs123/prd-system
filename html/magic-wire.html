@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>魔法连线 · 网络版 | 小布开口</title>
+<meta name="description" content="魔法连线 · 网络版 — 小布开口出品。使用网络图片的儿童配对益智游戏，支持手机/平板/PC，自适应布局">
+
+<!-- 环境配置 -->
+<script src="env-config.js"></script>
+<style>
+  :root{
+    --y-1:#FFE370; --y-2:#FFC93A; --y-3:#FFB31A; --o-1:#FF8A3D; --o-2:#FF9B57;
+    --r-1:#FF5B6E; --g-1:#6FCF6A; --b-1:#50B7F5; --pink:#FF76A8; --ink:#4A3A2A;
+    --muted:#6B5B4B; --white:#FFFFFF; --sticker-border: 4px solid #fff;
+    --shadow-1: 0 10px 24px rgba(0,0,0,.12); --shadow-2: 0 14px 32px rgba(0,0,0,.16);
+    --shadow-soft: 0 20px 50px rgba(255,179,26,.25); --r-lg: 28px; --r-md: 20px; --r-sm: 14px;
+  }
+  body{
+    margin:0; color:var(--ink); font-family: "Smiley Sans", ui-rounded, system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC","Hiragino Sans GB","Microsoft YaHei", sans-serif;
+    background: radial-gradient(1400px 700px at 100% -10%, rgba(255,255,255,.35), transparent 60%) no-repeat, linear-gradient(180deg, var(--y-1), var(--y-2));
+    background-image: radial-gradient(1200px 500px at -10% 0%, rgba(255,255,255,.35), transparent 60%), linear-gradient(180deg, var(--y-1), var(--y-2)), url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><g fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="3"><path d="M20 20h40a10 10 0 110 10 10 10 0 100 20h40v40H20z"/><circle cx="95" cy="25" r="8"/><circle cx="25" cy="95" r="8"/></g></svg>');
+    background-size: auto, auto, 120px 120px;
+  }
+  .wrap{max-width:min(1280px, 96vw); margin:0 auto; padding:clamp(10px,2vw,18px)}
+  header{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+    background: linear-gradient(180deg, #FFF6D7, #FFE8A8); border: var(--sticker-border); border-radius: var(--r-lg);
+    box-shadow: var(--shadow-1), var(--shadow-soft); padding: 10px 12px;
+  }
+  .brand{ display:flex; gap:12px; align-items:center; }
+  .logo{
+    width: clamp(52px, 7vw, 72px); height: clamp(52px, 7vw, 72px); flex:0 0 auto; border-radius: 20px;
+    background: radial-gradient(circle at 30% 30%, #FFEFB5, #FFD46E 70%); border: var(--sticker-border); box-shadow: var(--shadow-2);
+    display:grid; place-items:center;
+  }
+  .titles h1{ margin:0; font-size:clamp(18px, 2.4vw, 26px); letter-spacing:.5px; font-weight:900; }
+  .titles .sub{ font-size:clamp(12px, 1.6vw, 14px); color:var(--muted) }
+  .controls{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+  .pill{
+    display:inline-flex; align-items:center; gap:8px; border: var(--sticker-border); background:#FFF9E6; color:var(--ink);
+    border-radius: 999px; padding:6px 10px; box-shadow: var(--shadow-1);
+  }
+  select, button{
+    appearance:none; border:none; cursor:pointer; border-radius: 16px; padding:10px 14px; font-size:clamp(13px, 1.6vw, 15px); box-shadow: var(--shadow-1);
+  }
+  select{ background:#FFF3CC; color:var(--ink); border:2px solid rgba(0,0,0,.06) }
+  button.primary{ background:linear-gradient(180deg, var(--o-1), var(--o-2)); color:var(--white); font-weight:800; border: var(--sticker-border); }
+  button.sub{ background:linear-gradient(180deg, #6FCF6A, #45B34A); color:var(--white); font-weight:800; border: var(--sticker-border); }
+  button.ghost{ background:#FFF3CC; color:#8A5A00; border: var(--sticker-border); font-weight:700; }
+  button:active{ transform:translateY(1px) }
+  .status{
+    margin:clamp(8px, 1.5vw, 12px) 0; font-size:clamp(13px, 1.6vw, 15px); color:#8A5A00;
+    background:linear-gradient(90deg, rgba(255,255,255,.7), rgba(255,255,255,.45)); border: var(--sticker-border);
+    padding:10px 12px; border-radius: 16px; box-shadow: var(--shadow-1);
+  }
+  .board{
+    position:relative; display:grid; grid-template-columns: 1fr 1fr; column-gap: clamp(28px, 10vw, 240px); row-gap: clamp(10px,1.6vw,16px);
+    min-height: min(64vh, 720px); padding: clamp(12px, 1.8vw, 20px); border-radius: var(--r-lg);
+    background: radial-gradient(90% 60% at 50% 0%, rgba(255,255,255,.9), rgba(255,255,255,.8) 40%, rgba(255,255,255,.7) 100%), linear-gradient(180deg, #FFF6D7, #FFE8A8);
+    border: var(--sticker-border); box-shadow: var(--shadow-2), var(--shadow-soft); overflow:hidden;
+  }
+  .col{ display:grid; gap:clamp(10px, 1.6vw, 14px); align-content:start; grid-auto-rows:minmax(clamp(60px,8.2vw,80px), auto); }
+  .card{
+    display:flex; align-items:center; gap:10px; width: clamp(150px, 28vw, 240px);
+    padding: clamp(10px, 1.7vw, 14px) clamp(12px, 2vw, 16px); border-radius: 20px;
+    background: radial-gradient(140% 120% at 20% -20%, #FFFFFF, #FFF3CC 70%); border: var(--sticker-border);
+    box-shadow: var(--shadow-1); user-select:none; touch-action:none; transition: all 0.2s ease;
+  }
+  .card .img-box{
+    width: clamp(42px, 8vw, 74px); height: clamp(42px, 8vw, 74px); flex-shrink: 0;
+    border-radius: 16px; overflow: hidden; border: 3px solid #fff;
+    box-shadow: 0 4px 8px rgba(0,0,0,.15); background: #f8f8f8;
+  }
+  .card .img-box img{
+    width: 100%; height: 100%; object-fit: cover; object-position: center;
+  }
+  .card .label{ font-size: clamp(13px, 2.1vw, 18px); font-weight:900; letter-spacing:.3px; color:#6B4A00; }
+  .card.selecting{ box-shadow:0 16px 26px rgba(255,179,26,.32), inset 0 0 0 4px rgba(255,179,26,.45); transform: scale(1.02); }
+  .card.locked{ opacity:.85; box-shadow: inset 0 0 0 4px rgba(111,207,106,.45); filter: grayscale(30%); }
+  .card.shake{ animation:shake .25s linear }
+  @keyframes shake{0%{transform:translateX(0)}25%{transform:translateX(-3px)}50%{transform:translateX(3px)}75%{transform:translateX(-3px)}100%{transform:translateX(0)}}
+  .wires{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:5 }
+  .wire{ stroke-width:8; stroke-linecap:round; filter: drop-shadow(0 2px 3px rgba(0,0,0,.18)); }
+  .wire.temp{ stroke-dasharray:10 10; opacity:.95 }
+  .wire.good{ stroke: var(--o-1) }
+  .wire.bad{ stroke: var(--r-1) }
+  .wire.neutral{ stroke: var(--y-3) }
+  .actionbar{ display:flex; gap:8px; justify-content:center; margin-top:clamp(8px, 1.4vw, 12px) }
+  .modal{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.25); z-index:12; }
+  .modal.show{ display:flex }
+  .modal-card{
+    width:min(92vw, 560px); background: radial-gradient(180px 120px at 10% -10%, rgba(255,179,26,.18), transparent 60%), linear-gradient(180deg, #FFF6D7, #FFE8A8);
+    border: var(--sticker-border); border-radius: 22px; padding:22px; box-shadow: var(--shadow-2); text-align:center; color:var(--ink);
+  }
+  .modal h2{ margin:.3em 0 .2em; font-size:clamp(22px, 3vw, 30px) }
+  .modal p{ margin:.2em 0 1em; color:var(--muted) }
+  .modal .badge{ display:inline-block; padding:6px 12px; border-radius:999px; background:#FFF; border: var(--sticker-border); margin-bottom:8px; box-shadow: var(--shadow-1)}
+  .modal .btns{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap }
+  .confetti{ position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:11 }
+  .confetti i{ position:absolute; width:10px; height:16px; opacity:.95; top:-20px; transform:translateY(-100px); animation:fall linear forwards }
+  @keyframes fall{ to{ transform: translateY(110vh) rotate(720deg) } }
+  @media (max-width: 980px){ .board{ column-gap: clamp(20px, 8vw, 120px) } }
+  @media (max-width: 720px){ .card{ width: auto } }
+  @media (max-width: 480px){
+    header{ border-radius: var(--r-md) }
+    .board{ border-radius: var(--r-md) }
+    .titles h1{ font-size: 18px }
+  }
+  @media (min-width: 540px) and (max-width: 720px) and (orientation: portrait){ .col{ grid-auto-rows:minmax(72px, auto) } }
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; scroll-behavior:auto !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg width="100%" height="100%" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+          <path d="M10 18a16 16 0 0 1 16-16h20a16 16 0 0 1 16 16v10a16 16 0 0 1-16 16h-9l-9 9v-9H26A16 16 0 0 1 10 28Z" fill="#FFE8A8" stroke="#FFFFFF" stroke-width="3" />
+          <rect x="36" y="34" width="6" height="24" rx="3" transform="rotate(35 39 46)" fill="#FF8A3D"/>
+          <rect x="36" y="30" width="6" height="8" rx="3" transform="rotate(35 39 34)" fill="#FFC93A" />
+          <g fill="#FFC93A" stroke="#E08A00" stroke-width=".6">
+            <path d="M55 10l2 4 4 .6-3 2.9.8 4.1-3.8-2.1-3.8 2.1.8-4.1-3-2.9 4-.6z"/>
+            <path d="M22 8l1.2 2.4 2.6.4-2 1.9.5 2.6-2.3-1.3-2.3 1.3.5-2.6-2-1.9 2.6-.4z" transform="translate(8 6)"/>
+          </g>
+          <path d="M16 24h20a8 8 0 0 1 0 16H26l-6 6v-6h-4Z" fill="none" stroke="#FF8A3D" stroke-width="3" opacity=".9"/>
+        </svg>
+      </div>
+      <div class="titles">
+        <h1>魔法连线 · 网络版</h1>
+        <div class="sub">小布开口 | 网络图片更精彩</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <span class="pill">难度：
+        <select id="difficulty">
+          <option value="4" selected>入门 4 对</option>
+          <option value="6">中级 6 对</option>
+          <option value="8">挑战 8 对</option>
+        </select>
+      </span>
+      <span class="pill">题库：
+        <select id="deck">
+          <option value="main" selected>动物世界</option>
+          <option value="animals">动物+食物</option>
+          <option value="jobs">职业+工具</option>
+        </select>
+      </span>
+      <button id="newGame" class="primary">新一局</button>
+      <button id="giveHint" class="ghost">提示</button>
+    </div>
+  </header>
+
+  <div id="status" class="status">正在加载网络图片…</div>
+
+  <section id="board" class="board" aria-label="游戏区域">
+    <div id="leftCol" class="col" aria-label="左边选项"></div>
+    <div id="rightCol" class="col" aria-label="右边选项"></div>
+    <svg id="wires" class="wires" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" preserveAspectRatio="none"></svg>
+  </section>
+
+  <div class="actionbar">
+    <button id="restart" class="sub">重来一局</button>
+    <button id="levelUp" class="primary">升级难度</button>
+  </div>
+</div>
+
+<div id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal-card">
+    <div class="badge" id="modalBadge">🎉 胜利</div>
+    <h2 id="modalTitle">宝贝你真棒！</h2>
+    <p id="modalMsg">全部配对完成！再来一局或升级难度继续挑战吧～</p>
+    <div class="btns">
+      <button id="modalRestart" class="sub">重来一局</button>
+      <button id="modalLevelUp" class="primary">升级难度</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========== 网络图片映射系统 =========== */
+// 使用全局环境配置
+const BASE_URL = window.ENV_CONFIG ? window.ENV_CONFIG.baseUrl + '/imgs/' : '/imgs/';
+window.ENV_CONFIG && window.ENV_CONFIG.log('Magic-wire initialized', {
+    BASE_URL: BASE_URL,
+    environment: window.ENV_CONFIG.getEnvDescription()
+});
+
+const IMAGE_MAP = {
+  // 动物映射
+  'dog': { left: { img: BASE_URL + '小狗.jpg', label: '小狗' }, right: { img: BASE_URL + '骨头.jpg', label: '骨头' } },
+  'cat': { left: { img: BASE_URL + '小猫.jpg', label: '小猫' }, right: { img: BASE_URL + '小鱼.jpg', label: '小鱼' } },
+  'rabbit': { left: { img: BASE_URL + '兔子.jpg', label: '兔子' }, right: { img: BASE_URL + '胡萝卜.jpg', label: '胡萝卜' } },
+  'panda': { left: { img: BASE_URL + '熊猫.jpg', label: '熊猫' }, right: { img: BASE_URL + '竹子.jpg', label: '竹子' } },
+  'penguin': { left: { img: BASE_URL + '企鹅.jpg', label: '企鹅' }, right: { img: BASE_URL + '冰块.jpg', label: '冰块' } },
+  'elephant': { left: { img: BASE_URL + '大象.jpg', label: '大象' }, right: { img: BASE_URL + '花生.jpg', label: '花生' } },
+  'monkey': { left: { img: BASE_URL + '猴子.jpg', label: '猴子' }, right: { img: BASE_URL + '香蕉.jpg', label: '香蕉' } },
+  'squirrel': { left: { img: BASE_URL + '松鼠.jpg', label: '松鼠' }, right: { img: BASE_URL + '橡果.jpg', label: '橡果' } },
+  'frog': { left: { img: BASE_URL + '青蛙.jpg', label: '青蛙' }, right: { img: BASE_URL + '小飞虫.jpg', label: '小飞虫' } },
+  'croc': { left: { img: BASE_URL + '鳄鱼.jpg', label: '鳄鱼' }, right: { img: BASE_URL + '河流.jpg', label: '河流' } },
+  'dolphin': { left: { img: BASE_URL + '海豚.jpg', label: '海豚' }, right: { img: BASE_URL + '海底.jpg', label: '海底' } },
+  'cow': { left: { img: BASE_URL + '奶牛.jpg', label: '奶牛' }, right: { img: BASE_URL + '牛奶.jpg', label: '牛奶' } },
+  'pig': { left: { img: BASE_URL + '小猪.jpg', label: '小猪' }, right: { img: BASE_URL + '猪圈.jpg', label: '猪圈' } },
+  'chicken': { left: { img: BASE_URL + '母鸡.jpg', label: '母鸡' }, right: { img: BASE_URL + '鸡蛋.jpg', label: '鸡蛋' } },
+  'sheep': { left: { img: BASE_URL + '绵羊.jpg', label: '绵羊' }, right: { img: BASE_URL + '羊毛.jpg', label: '羊毛' } },
+  'horse': { left: { img: BASE_URL + '马.jpg', label: '马' }, right: { img: BASE_URL + '马蹄铁.jpg', label: '马蹄铁' } },
+  'turtle': { left: { img: BASE_URL + '乌龟.jpg', label: '乌龟' }, right: { img: BASE_URL + '池塘.jpg', label: '池塘' } },
+  'koala': { left: { img: BASE_URL + '考拉.jpg', label: '考拉' }, right: { img: BASE_URL + '桉树叶.jpg', label: '桉树叶' } },
+  'owl': { left: { img: BASE_URL + '猫头鹰.jpg', label: '猫头鹰' }, right: { img: BASE_URL + '书本.jpg', label: '书本' } },
+  'fox': { left: { img: BASE_URL + '狐狸.jpg', label: '狐狸' }, right: { img: BASE_URL + '洞穴.jpg', label: '洞穴' } },
+  'bird': { left: { img: BASE_URL + '小鸟.jpg', label: '小鸟' }, right: { img: BASE_URL + '鸟巢.jpg', label: '鸟巢' } },
+  'bee': { left: { img: BASE_URL + '蜜蜂.jpg', label: '蜜蜂' }, right: { img: BASE_URL + '蜂蜜.jpg', label: '蜂蜜' } },
+  
+  // 职业映射
+  'doctor': { left: { img: BASE_URL + '医生.jpg', label: '医生' }, right: { img: BASE_URL + '听诊器.jpg', label: '听诊器' } },
+  'fire': { left: { img: BASE_URL + '消防员.jpg', label: '消防员' }, right: { img: BASE_URL + '灭火器.jpg', label: '灭火器' } },
+  'police': { left: { img: BASE_URL + '警察.jpg', label: '警察' }, right: { img: BASE_URL + '警车.jpg', label: '警车' } },
+  'teacher': { left: { img: BASE_URL + '老师.jpg', label: '老师' }, right: { img: BASE_URL + '课本.jpg', label: '课本' } },
+  'chef': { left: { img: BASE_URL + '厨师.jpg', label: '厨师' }, right: { img: BASE_URL + '平底锅.jpg', label: '平底锅' } },
+  'painter': { left: { img: BASE_URL + '画家.jpg', label: '画家' }, right: { img: BASE_URL + '画笔.jpg', label: '画笔' } },
+  'musician': { left: { img: BASE_URL + '音乐家.jpg', label: '音乐家' }, right: { img: BASE_URL + '吉他.jpg', label: '吉他' } },
+  'mail': { left: { img: BASE_URL + '邮递员.jpg', label: '邮递员' }, right: { img: BASE_URL + '信件.jpg', label: '信件' } },
+  'barber': { left: { img: BASE_URL + '理发师.jpg', label: '理发师' }, right: { img: BASE_URL + '剪刀.jpg', label: '剪刀' } },
+  'builder': { left: { img: BASE_URL + '工人.jpg', label: '工人' }, right: { img: BASE_URL + '锤子.jpg', label: '锤子' } },
+  'baker': { left: { img: BASE_URL + '面包师.jpg', label: '面包师' }, right: { img: BASE_URL + '面包.jpg', label: '面包' } },
+  'astronaut': { left: { img: BASE_URL + '宇航员.jpg', label: '宇航员' }, right: { img: BASE_URL + '火箭.jpg', label: '火箭' } },
+  'pilot': { left: { img: BASE_URL + '飞行员.jpg', label: '飞行员' }, right: { img: BASE_URL + '飞机.jpg', label: '飞机' } },
+  'knight': { left: { img: BASE_URL + '骑士.jpg', label: '骑士' }, right: { img: BASE_URL + '盾牌.jpg', label: '盾牌' } },
+  'magician': { left: { img: BASE_URL + '魔法师.jpg', label: '魔法师' }, right: { img: BASE_URL + '魔法棒.jpg', label: '魔法棒' } },
+  'gardener': { left: { img: BASE_URL + '园丁.jpg', label: '园丁' }, right: { img: BASE_URL + '花朵.jpg', label: '花朵' } },
+  'farmer': { left: { img: BASE_URL + '农夫.jpg', label: '农夫' }, right: { img: BASE_URL + '拖拉机.jpg', label: '拖拉机' } },
+  'fisher': { left: { img: BASE_URL + '渔夫.jpg', label: '渔夫' }, right: { img: BASE_URL + '鱼竿.jpg', label: '鱼竿' } },
+  'diver': { left: { img: BASE_URL + '潜水员.jpg', label: '潜水员' }, right: { img: BASE_URL + '护目镜.jpg', label: '护目镜' } },
+  'singer': { left: { img: BASE_URL + '歌手.jpg', label: '歌手' }, right: { img: BASE_URL + '麦克风.jpg', label: '麦克风' } },
+  'photo': { left: { img: BASE_URL + '摄影师.jpg', label: '摄影师' }, right: { img: BASE_URL + '相机.jpg', label: '相机' } },
+  'writer': { left: { img: BASE_URL + '写作者.jpg', label: '写作者' }, right: { img: BASE_URL + '铅笔.jpg', label: '铅笔' } },
+  
+  // 其他映射
+  'car': { left: { img: BASE_URL + '汽车.jpg', label: '汽车' }, right: { img: BASE_URL + '轮子.jpg', label: '轮子' } },
+  'train': { left: { img: BASE_URL + '火车.jpg', label: '火车' }, right: { img: BASE_URL + '铁轨.jpg', label: '铁轨' } },
+  'rain': { left: { img: BASE_URL + '下雨.jpg', label: '下雨' }, right: { img: BASE_URL + '雨伞.jpg', label: '雨伞' } },
+  'sun': { left: { img: BASE_URL + '太阳.jpg', label: '太阳' }, right: { img: BASE_URL + '太阳帽.jpg', label: '太阳帽' } },
+  'pirate': { left: { img: BASE_URL + '海盗.jpg', label: '海盗' }, right: { img: BASE_URL + '宝藏.jpg', label: '宝藏' } },
+  'swimmer': { left: { img: BASE_URL + '游泳.jpg', label: '游泳' }, right: { img: BASE_URL + '护目镜.jpg', label: '护目镜' } }
+};
+
+/* =========== 题库配置 =========== */
+const DECK_MAIN = [
+  { id:'dog', left:'小狗', right:'骨头' }, { id:'cat', left:'小猫', right:'小鱼' },
+  { id:'rabbit', left:'兔子', right:'胡萝卜' }, { id:'panda', left:'熊猫', right:'竹子' },
+  { id:'penguin', left:'企鹅', right:'冰块' }, { id:'elephant', left:'大象', right:'花生' },
+  { id:'monkey', left:'猴子', right:'香蕉' }, { id:'squirrel', left:'松鼠', right:'橡果' },
+  { id:'cow', left:'奶牛', right:'牛奶' }, { id:'pig', left:'小猪', right:'猪圈' },
+  { id:'chicken', left:'母鸡', right:'鸡蛋' }, { id:'sheep', left:'绵羊', right:'羊毛' },
+  { id:'horse', left:'马', right:'马蹄铁' }, { id:'turtle', left:'乌龟', right:'池塘' },
+  { id:'bee', left:'蜜蜂', right:'蜂蜜' }, { id:'bird', left:'小鸟', right:'鸟巢' },
+  { id:'frog', left:'青蛙', right:'小飞虫' }, { id:'fox', left:'狐狸', right:'洞穴' },
+  { id:'koala', left:'考拉', right:'桉树叶' }, { id:'owl', left:'猫头鹰', right:'书本' }
+];
+
+const DECK_ANIMALS = [
+  { id:'rabbit', left:'兔子', right:'胡萝卜' }, { id:'panda', left:'熊猫', right:'竹子' },
+  { id:'monkey', left:'猴子', right:'香蕉' }, { id:'dog', left:'小狗', right:'骨头' },
+  { id:'cat', left:'小猫', right:'小鱼' }, { id:'squirrel', left:'松鼠', right:'橡果' },
+  { id:'bird', left:'小鸟', right:'鸟巢' }, { id:'penguin', left:'企鹅', right:'冰块' }
+];
+
+const DECK_JOBS = [
+  { id:'doctor', left:'医生', right:'听诊器' }, { id:'teacher', left:'老师', right:'课本' },
+  { id:'police', left:'警察', right:'警车' }, { id:'fire', left:'消防员', right:'灭火器' },
+  { id:'chef', left:'厨师', right:'平底锅' }, { id:'farmer', left:'农夫', right:'拖拉机' },
+  { id:'painter', left:'画家', right:'画笔' }, { id:'musician', left:'音乐家', right:'吉他' }
+];
+
+const DECKS = { main: DECK_MAIN, animals: DECK_ANIMALS, jobs: DECK_JOBS };
+
+/* =========== 游戏核心逻辑 =========== */
+const $ = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>Array.from(r.querySelectorAll(s));
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const setStatus=t=>$('#status').textContent=t;
+
+const state={selected:null,lines:[],pairCount:0,activePairs:[],rect:null,temp:null};
+const board=$('#board'), svg=$('#wires'), leftCol=$('#leftCol'), rightCol=$('#rightCol');
+const selDiff=$('#difficulty'), selDeck=$('#deck');
+const btnNew=$('#newGame'), btnHint=$('#giveHint');
+const btnRestart=$('#restart'), btnLevelUp=$('#levelUp');
+const modal=$('#modal'), modalBadge=$('#modalBadge'), modalTitle=$('#modalTitle'), modalMsg=$('#modalMsg');
+const modalRestart=$('#modalRestart'), modalLevelUp=$('#modalLevelUp');
+
+/* =========== 布局&连线 =========== */
+const boardRect=()=> (state.rect=board.getBoundingClientRect(), state.rect);
+function anchorPoint(el){
+  const r=el.getBoundingClientRect(), b=boardRect();
+  const side=el.dataset.side;
+  const offset=6;
+  const x = side==='left' ? (r.right - b.left - offset) : (r.left - b.left + offset);
+  const y = r.top - b.top + r.height/2;
+  return {x,y};
+}
+function makeLine(x1,y1,x2,y2,cls='neutral'){
+  const ln=document.createElementNS('http://www.w3.org/2000/svg','line');
+  ln.setAttribute('x1',x1); ln.setAttribute('y1',y1);
+  ln.setAttribute('x2',x2); ln.setAttribute('y2',y2);
+  ln.setAttribute('class','wire '+cls);
+  svg.appendChild(ln); return ln;
+}
+const updLine =(ln,x1,y1,x2,y2)=>{ 
+  ln.setAttribute('x1',x1); ln.setAttribute('y1',y1); 
+  ln.setAttribute('x2',x2); ln.setAttribute('y2',y2); 
+};
+function drawPermanent(a,b){ 
+  const A=anchorPoint(a), B=anchorPoint(b); 
+  const ln=makeLine(A.x,A.y,B.x,B.y,'good'); 
+  state.lines.push({leftEl:a,rightEl:b,lineEl:ln}); 
+}
+function redrawAll(){ 
+  boardRect(); 
+  state.lines.forEach(r=>{ 
+    const A=anchorPoint(r.leftEl), B=anchorPoint(r.rightEl); 
+    updLine(r.lineEl,A.x,A.y,B.x,B.y); 
+  }); 
+}
+
+/* =========== 渲染系统 =========== */
+function cardHTML(side, item){
+  const config = IMAGE_MAP[item.id];
+  const imgData = side === 'left' ? config.left : config.right;
+  return `
+    <div class="card" data-side="${side}" data-id="${item.id}" tabindex="0" role="button" aria-label="${imgData.label}">
+      <div class="img-box">
+        <img src="${imgData.img}" alt="${imgData.label}" loading="lazy">
+      </div>
+      <div class="label">${imgData.label}</div>
+    </div>
+  `;
+}
+
+function renderBoard(){
+  svg.innerHTML=''; leftCol.innerHTML=''; rightCol.innerHTML='';
+  state.lines=[]; state.selected=null;
+  const L=shuffle(state.activePairs.map(p=>({id:p.id,label:p.left})));
+  const R=shuffle(state.activePairs.map(p=>({id:p.id,label:p.right})));
+  L.forEach(x=>leftCol.insertAdjacentHTML('beforeend', cardHTML('left', x)));
+  R.forEach(x=>rightCol.insertAdjacentHTML('beforeend', cardHTML('right', x)));
+  attachEvents();
+  setStatus(`请开始连线：已配对 0 / ${state.pairCount} 对`);
+  setTimeout(boardRect, 80);
+}
+
+/* =========== 交互系统 =========== */
+function attachEvents(){ 
+  $$('.card',leftCol).forEach(bindCard); 
+  $$('.card',rightCol).forEach(bindCard); 
+}
+function bindCard(el){
+  el.addEventListener('click', e=>{ 
+    e.preventDefault(); 
+    if(el.classList.contains('locked')) return; 
+    selectCard(el); 
+  });
+  el.addEventListener('pointerdown', e=>{ 
+    if(el.classList.contains('locked')) return; 
+    startDrag(el,e); 
+  });
+}
+
+function selectCard(el){
+  if(state.selected===el){ 
+    el.classList.remove('selecting'); 
+    state.selected=null; 
+    return; 
+  }
+  $$('.card.selecting').forEach(n=>n.classList.remove('selecting'));
+  el.classList.add('selecting'); 
+  state.selected=el;
+}
+
+function startDrag(startEl,e){
+  selectCard(startEl); 
+  boardRect();
+  const A=anchorPoint(startEl);
+  const temp=makeLine(A.x,A.y,A.x,A.y,'neutral'); 
+  temp.classList.add('temp'); 
+  state.temp=temp;
+
+  const move=ev=>{ 
+    const pt=toBoardPoint(ev.clientX,ev.clientY); 
+    updLine(temp,A.x,A.y,pt.x,pt.y); 
+  };
+  const end =ev=>{
+    cleanup();
+    let hit = document.elementFromPoint(ev.clientX, ev.clientY);
+    hit = hit && hit.closest && hit.closest('.card');
+    let target = (hit && hit.dataset.side!==startEl.dataset.side && !hit.classList.contains('locked')) ? hit : null;
+    if(!target){ target = nearestOpposite(startEl.dataset.side, ev.clientX, ev.clientY, autoRadius()); }
+    if(target) tryConnect(startEl, target);
+  };
+  const cleanup=()=>{ 
+    document.removeEventListener('pointermove',move); 
+    document.removeEventListener('pointerup',end); 
+    document.removeEventListener('pointercancel',end); 
+    if(state.temp?.parentNode) state.temp.remove(); 
+    state.temp=null; 
+  };
+  
+  document.addEventListener('pointermove', move, {passive:true});
+  document.addEventListener('pointerup', end);
+  document.addEventListener('pointercancel', end);
+}
+
+const toBoardPoint=(cx,cy)=>{ 
+  const b=boardRect(); 
+  return {
+    x:Math.max(0,Math.min(cx-b.left,b.width)), 
+    y:Math.max(0,Math.min(cy-b.top,b.height))
+  }; 
+};
+
+function autoRadius(){ 
+  const b=boardRect(); 
+  return Math.max(80, Math.min(160, Math.min(b.width,b.height)/5)); 
+}
+
+function nearestOpposite(side,cx,cy,r){
+  const list=$$('.card').filter(el=>el.dataset.side!==side && !el.classList.contains('locked'));
+  let best=null, bestD=Infinity;
+  list.forEach(el=>{ 
+    const rect=el.getBoundingClientRect(); 
+    const x=rect.left+rect.width/2, y=rect.top+rect.height/2;
+    const d=Math.hypot(cx-x, cy-y); 
+    if(d<bestD){ bestD=d; best=el; } 
+  });
+  return bestD<=r ? best : null;
+}
+
+function tryConnect(a,b){
+  if(a.classList.contains('locked')||b.classList.contains('locked')){
+    shake(a);shake(b);return;
+  }
+  if(a.dataset.side===b.dataset.side){shake(a);shake(b);return;}
+  const ok=a.dataset.id===b.dataset.id;
+  if(ok){ 
+    a.classList.add('locked','selecting'); 
+    b.classList.add('locked'); 
+    drawPermanent(a,b); 
+    onProgress(); 
+    pulse(a); 
+  } else { 
+    wrongFlash(a,b); 
+  }
+  $$('.card.selecting').forEach(n=>n.classList.remove('selecting')); 
+  state.selected=null;
+}
+
+const shake=el=>{ 
+  el.classList.add('shake'); 
+  setTimeout(()=>el.classList.remove('shake'),250); 
+};
+
+function wrongFlash(a,b){ 
+  const A=anchorPoint(a), B=anchorPoint(b); 
+  const bad=makeLine(A.x,A.y,B.x,B.y,'bad'); 
+  bad.classList.add('temp'); 
+  setTimeout(()=>bad.remove(),420); 
+}
+
+function pulse(el){ 
+  el.animate?.([{
+    transform:'scale(1)'},
+    {transform:'scale(1.03)'}
+  ],{duration:220,easing:'ease-out'}); 
+}
+
+/* =========== 进度系统 =========== */
+function onProgress(){
+  const done=state.lines.length;
+  setStatus(`已配对 ${done} / ${state.pairCount} 对`);
+  if(done===state.pairCount){ 
+    showModal('win'); 
+    confetti(); 
+  }
+}
+
+function showModal(type){
+  if(type==='win'){
+    modalBadge.textContent='🎉 胜利';
+    modalTitle.textContent='宝贝你真棒！';
+    modalMsg.textContent='全部配对完成！再来一局或升级难度继续挑战吧～';
+  }else{
+    modalBadge.textContent='🙂 再试试';
+    modalTitle.textContent='不要紧，继续加油！';
+    modalMsg.textContent='可以调整难度再来一次。';
+  }
+  modal.classList.add('show');
+}
+
+function hideModal(){ 
+  modal.classList.remove('show'); 
+}
+
+function confetti(){
+  const layer=document.createElement('div'); 
+  layer.className='confetti'; 
+  document.body.appendChild(layer);
+  const colors=['#FF8A3D','#FFC93A','#6FCF6A','#FF76A8','#50B7F5'];
+  for(let i=0;i<90;i++){ 
+    const p=document.createElement('i'); 
+    p.style.left=rnd(0,100)+'vw'; 
+    p.style.background=colors[rnd(0,colors.length-1)];
+    p.style.animationDuration=(rnd(8,14)/10)+'s'; 
+    p.style.animationDelay=(rnd(0,10)/10)+'s'; 
+    p.style.transform=`translateY(-100px) rotate(${rnd(0,360)}deg)`; 
+    layer.appendChild(p); 
+  }
+  setTimeout(()=>layer.remove(),2600);
+}
+
+/* =========== 控件功能 =========== */
+function pickDeck(){ 
+  const key=selDeck.value; 
+  return (DECKS[key]||DECK_MAIN).slice(); 
+}
+
+function newGame(){
+  const need=parseInt(selDiff.value,10)||4;
+  const pool=shuffle(pickDeck());
+  const chosen = pool.length>=need ? pool.slice(0,need) : pool;
+  
+  // 验证所有选择的配对都有对应的图片
+  const validPairs = chosen.filter(pair => IMAGE_MAP[pair.id]);
+  
+  state.activePairs=validPairs; 
+  state.pairCount=validPairs.length; 
+  renderBoard(); 
+  hideModal();
+}
+
+function restart(){ 
+  newGame(); 
+}
+
+function levelUp(){
+  const n=parseInt(selDiff.value,10)||4;
+  if(n<8) selDiff.value = String(n===4?6:8);
+  newGame();
+}
+
+function hint(){
+  const pool=$$('.card').filter(el=>!el.classList.contains('locked')); 
+  if(!pool.length) return;
+  const lefts=pool.filter(el=>el.dataset.side==='left');
+  const pick=(lefts.length?lefts:pool)[rnd(0,(lefts.length?lefts:pool).length-1)];
+  const mate=$(`.card[data-side="${pick.dataset.side==='left'?'right':'left'}"][data-id="${pick.dataset.id}"]`);
+  [pick,mate].forEach(el=>{
+    el.animate?.([
+      {boxShadow:'0 0 0 0 rgba(255,179,26,.8)'},
+      {boxShadow:'0 0 0 14px rgba(255,179,26,0)'}
+    ],{duration:650,easing:'ease-out'});
+  });
+}
+
+/* =========== 事件绑定 =========== */
+btnNew.addEventListener('click', newGame);
+btnHint.addEventListener('click', hint);
+btnRestart.addEventListener('click', restart);
+btnLevelUp.addEventListener('click', levelUp);
+modalRestart.addEventListener('click', ()=>{ restart(); hideModal(); });
+modalLevelUp.addEventListener('click', ()=>{ levelUp(); hideModal(); });
+modal.addEventListener('click', e=>{ if(e.target===modal) hideModal(); });
+window.addEventListener('resize', ()=> setTimeout(redrawAll, 80));
+
+/* =========== 初始开局 =========== */
+window.addEventListener('DOMContentLoaded', ()=>{ 
+  console.log('魔法连线网络版已加载！');
+  newGame(); 
+});
+</script>
+</body>
+</html>

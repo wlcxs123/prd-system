@@ -5,8 +5,15 @@
 
 class QuestionnaireHelper {
     constructor() {
-        this.apiBaseUrl = 'http://localhost:5000/api';
-        this.submitUrl = `${this.apiBaseUrl}/questionnaires`;
+        // 安全检查SiteConfig是否已加载
+        if (typeof SiteConfig === 'undefined') {
+            console.error('SiteConfig is not defined. Please ensure config.js is loaded first.');
+            this.apiBaseUrl = '/api';
+            this.submitUrl = '/api/questionnaires';
+        } else {
+            this.apiBaseUrl = SiteConfig.getApiUrl('/api');
+            this.submitUrl = SiteConfig.getApiUrl('/api/questionnaires');
+        }
         
         // 确保错误处理器已加载
         if (typeof errorHandler === 'undefined') {
@@ -53,7 +60,7 @@ class QuestionnaireHelper {
                 errors.push(`第${questionNum}题问题文本不能为空`);
             }
             
-            if (question.type === 'multiple_choice') {
+            if (question.type === 'multiple_choice' || question.type === 'single_choice') {
                 if (!question.selected || question.selected.length === 0) {
                     errors.push(`第${questionNum}题请选择答案`);
                 }
@@ -103,7 +110,11 @@ class QuestionnaireHelper {
             basic_info: {
                 name: (data.basic_info?.name || '').trim(),
                 grade: (data.basic_info?.grade || '').trim(),
-                submission_date: data.basic_info?.submission_date || new Date().toISOString().split('T')[0]
+                submission_date: data.basic_info?.submission_date || new Date().toISOString().split('T')[0],
+                // 添加家长联系方式字段
+                parent_phone: (data.basic_info?.parent_phone || '').trim(),
+                parent_wechat: (data.basic_info?.parent_wechat || '').trim(),
+                parent_email: (data.basic_info?.parent_email || '').trim()
             },
             questions: data.questions || [],
             statistics: data.statistics || {

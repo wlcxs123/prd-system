@@ -59,9 +59,12 @@ class MultipleChoiceHandler(QuestionTypeHandler):
         
         # 验证选中答案
         selected = question_data.get('selected', [])
-        if not selected:
+        question_type = question_data.get('type', 'multiple_choice')
+        
+        # 对于single_choice类型，允许空选择（特别是Frankfurt Scale问卷的SS部分）
+        if not selected and question_type != 'single_choice':
             errors.append('必须选择至少一个答案')
-        else:
+        elif selected:
             if not isinstance(selected, list):
                 errors.append('选中答案格式不正确')
             else:
@@ -71,9 +74,12 @@ class MultipleChoiceHandler(QuestionTypeHandler):
                         errors.append(f'选中的答案无效: {sel}')
         
         # 验证单选/多选模式 (需求 2.1)
-        is_multiple_choice = question_data.get('is_multiple_choice', len(selected) > 1)
-        if not is_multiple_choice and len(selected) > 1:
+        if question_type == 'single_choice' and len(selected) > 1:
             errors.append('单选题只能选择一个答案')
+        elif question_type == 'multiple_choice':
+            is_multiple_choice = question_data.get('is_multiple_choice', len(selected) > 1)
+            if not is_multiple_choice and len(selected) > 1:
+                errors.append('单选题只能选择一个答案')
         
         return errors
     
@@ -376,6 +382,7 @@ class QuestionTypeProcessor:
     def __init__(self):
         self.handlers = {
             'multiple_choice': MultipleChoiceHandler(),
+            'single_choice': MultipleChoiceHandler(),  # 单选题使用相同的处理器
             'text_input': TextInputHandler(),
             'rating_scale': RatingScaleHandler()
         }

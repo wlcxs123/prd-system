@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>选择性缄默资源中心</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- 环境配置 -->
+    <script src="env-config.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #e6f7ff 0%, #f0f9eb 100%);
+            color: #2c3e50;
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+        }
+        
+        h1 {
+            color: #3498db;
+            margin-bottom: 15px;
+            font-size: 2.5rem;
+        }
+        
+        .description {
+            color: #7f8c8d;
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto 25px;
+        }
+        
+        .intro {
+            background: #e8f4fc;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 5px solid #3498db;
+        }
+        
+        .intro p {
+            margin-bottom: 15px;
+            line-height: 1.8;
+        }
+        
+        .intro a {
+            color: #2980b9;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .intro a:hover {
+            text-decoration: underline;
+        }
+        
+        .resources-container {
+            display: flex;
+            gap: 30px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .resource-section {
+            flex: 1;
+            min-width: 300px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+        }
+        
+        .section-title {
+            color: #3498db;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0f0fd;
+            display: flex;
+            align-items: center;
+        }
+        
+        .section-title i {
+            margin-right: 10px;
+        }
+        
+        .category {
+            margin-bottom: 25px;
+        }
+        
+        .category-title {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+        
+        .category-title i {
+            margin-right: 10px;
+            transition: transform 0.3s;
+        }
+        
+        .category-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+            margin-left: 30px;
+        }
+        
+        .resource-item {
+            padding: 12px 15px;
+            background: #f8fafc;
+            border-radius: 8px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: flex-start; /* 改为顶部对齐，便于多行文本 */
+            min-height: 60px; /* 确保最小高度 */
+        }
+        
+        .resource-item:hover {
+            background: #e8f4fc;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .resource-icon {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            border-radius: 6px;
+            font-size: 1rem;
+            flex-shrink: 0; /* 防止图标被压缩 */
+            margin-top: 2px; /* 与文本顶部对齐 */
+        }
+        
+        .video-icon {
+            background: #ffeaa7;
+            color: #d35400;
+        }
+        
+        .pdf-icon {
+            background: #ff7675;
+            color: white;
+        }
+        
+        .doc-icon {
+            background: #74b9ff;
+            color: white;
+        }
+        
+        .resource-name {
+            flex-grow: 1;
+            font-weight: 500;
+            color: #2c3e50;
+            word-break: break-word;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
+            max-width: 100%;
+            font-size: 0.9rem;
+            line-height: 1.3;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+             line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .resource-item:hover .resource-name {
+            overflow: visible;
+            white-space: normal;
+            -webkit-line-clamp: unset;
+            line-clamp: 2;
+        }
+        
+        .resource-link {
+            color: #3498db;
+            text-decoration: none;
+            display: flex;
+            align-items: flex-start; /* 顶部对齐 */
+            width: 100%;
+            text-align: left; /* 确保文本左对齐 */
+            line-height: 1.4; /* 改善行高 */
+        }
+        
+        .resource-link:hover .resource-name {
+            color: #2980b9;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        .search-box {
+            display: flex;
+            margin-bottom: 25px;
+            max-width: 500px;
+            margin: 0 auto 30px;
+        }
+        
+        .search-box input {
+            flex-grow: 1;
+            padding: 14px 20px;
+            border: 2px solid #3498db;
+            border-radius: 50px 0 0 50px;
+            background: white;
+            font-size: 1rem;
+            outline: none;
+        }
+        
+        .search-box button {
+            padding: 14px 25px;
+            border: none;
+            border-radius: 0 50px 50px 0;
+            background: #3498db;
+            color: white;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .search-box button:hover {
+            background: #2980b9;
+        }
+        
+        .collapsed .category-content {
+            display: none;
+        }
+        
+        .collapsed .category-title i {
+            transform: rotate(-90deg);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+        }
+        
+        .error {
+            text-align: center;
+            padding: 20px;
+            color: #e74c3c;
+            background: #ffeaea;
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+        
+        .retry-button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .retry-button:hover {
+            background: #2980b9;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .resources-container {
+                flex-direction: column;
+            }
+            
+            .category-content {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .description {
+                font-size: 1rem;
+            }
+            
+            .search-box {
+                flex-direction: column;
+                max-width: 100%;
+            }
+            
+            .search-box input {
+                border-radius: 50px;
+                margin-bottom: 10px;
+            }
+            
+            .search-box button {
+                border-radius: 50px;
+            }
+            
+            .resource-section {
+                padding: 15px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 10px;
+            }
+            
+            header {
+                padding: 20px 15px;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .category-title {
+                font-size: 1.1rem;
+            }
+            
+            .resource-item {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-dove"></i> 选择性缄默资源中心</h1>
+            <p class="description">为您提供全面的选择性缄默教育资源和支持材料</p>
+            
+            <div class="search-box">
+                <input type="text" placeholder="搜索资源..." id="searchInput">
+                <button onclick="filterResources()"><i class="fas fa-search"></i> 搜索</button>
+            </div>
+        </header>
+        
+        <div class="intro">
+            <p>选择性缄默是一种焦虑障碍，患者在某些特定场合无法说话，而在其他场合则能够正常交流。本资源中心收集了大量有关选择性缄默的视频和文档资源，帮助家长、教育工作者和专业人士更好地理解和支持选择性缄默患者。</p>
+        </div>
+        
+        <div class="resources-container">
+            <div class="resource-section">
+                <h2 class="section-title"><i class="fas fa-video"></i> 全球专家资源</h2>
+                <div id="videoResources">
+                    <div class="loading">正在加载视频资源...</div>
+                </div>
+            </div>
+            
+            <div class="resource-section">
+                <h2 class="section-title"><i class="fas fa-file-alt"></i> 论文及资料</h2>
+                <div id="documentResources">
+                    <div class="loading">正在加载文字资源...</div>
+                </div>
+            </div>
+            
+            <div class="resource-section">
+                <h2 class="section-title"><i class="fas fa-globe"></i> 黄老师在线课程</h2>
+                <div id="onlineResources">
+                    <div id="passwordSection" style="text-align: center; padding: 40px; background: #f8f9fa; border-radius: 10px; margin: 20px 0;">
+                        <h3 style="color: #495057; margin-bottom: 20px;">请输入密码访问线上资源</h3>
+                        <div style="margin-bottom: 15px;">
+                            <input type="password" id="passwordInput" placeholder="请输入密码" style="padding: 10px 15px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; width: 250px;">
+                        </div>
+                        <button onclick="verifyPassword()" style="background: #007bff; color: white; padding: 10px 30px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">验证访问</button>
+                        <p id="passwordError" style="color: red; margin-top: 10px; display: none;">密码错误，请重试</p>
+                    </div>
+                    
+                    <div id="onlineContent" style="display: none;">
+                        <div id="onlineCourseContainer">
+                            <div class="loading">正在加载在线课程...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>© 2023 选择性缄默资源中心 | 资源整理自网络</p>
+        </footer>
+    </div>
+
+    <script>
+        // API端点
+        const DOCUMENTS_API = '/api1/files/upload';
+        const VIDEOS_API = '/api1/files/successful'; // 黄老师在线课程专用数据源
+        const GLOBAL_EXPERTS_API = '/api1/files/down'; // 全球资源专家独立数据源
+        
+        // 获取并处理目录数据
+        async function fetchDirectoryData() {
+            try {
+                // 获取文档数据
+                const docsResponse = await fetch(DOCUMENTS_API);
+                if (!docsResponse.ok) {
+                    throw new Error(`文档API请求失败: ${docsResponse.status}`);
+                }
+                const docsData = await docsResponse.json();
+                
+                // 获取视频数据（黄老师在线课程专用）
+                const videosResponse = await fetch(VIDEOS_API);
+                if (!videosResponse.ok) {
+                    throw new Error(`黄老师课程API请求失败: ${videosResponse.status}`);
+                }
+                const videosData = await videosResponse.json();
+                
+                // 获取全球资源专家数据（独立数据源）
+                const globalExpertsResponse = await fetch(GLOBAL_EXPERTS_API);
+                if (!globalExpertsResponse.ok) {
+                    throw new Error(`全球专家API请求失败: ${globalExpertsResponse.status}`);
+                }
+                const globalExpertsData = await globalExpertsResponse.json();
+                
+                // 处理数据并生成资源列表
+                generateResources(docsData, globalExpertsData, videosData);
+                
+                // 保存视频数据用于在线课程（黄老师专用）
+                window.onlineCourseData = videosData;
+            } catch (error) {
+                console.error('获取资源时出错:', error);
+                document.getElementById('documentResources').innerHTML = `
+                    <div class="error">
+                        <i class="fas fa-exclamation-circle"></i> 加载文档资源失败: ${error.message}
+                        <br><button class="retry-button" onclick="fetchDirectoryData()">重试</button>
+                    </div>
+                `;
+                document.getElementById('videoResources').innerHTML = `
+                    <div class="error">
+                        <i class="fas fa-exclamation-circle"></i> 加载全球专家资源失败: ${error.message}
+                        <br><button class="retry-button" onclick="fetchDirectoryData()">重试</button>
+                    </div>
+                `;
+                document.getElementById('onlineCourseContainer').innerHTML = `
+                    <div class="error">
+                        <i class="fas fa-exclamation-circle"></i> 加载黄老师在线课程失败: ${error.message}
+                        <br><button class="retry-button" onclick="fetchDirectoryData()">重试</button>
+                    </div>
+                `;
+            }
+        }
+        
+        // 递归处理目录结构，提取所有文件
+        function extractFiles(node, basePath = '', isDocument = true) {
+            let files = [];
+            
+            if (node.children && Array.isArray(node.children)) {
+                for (const child of node.children) {
+                    if (child.is_dir) {
+                        // 如果是目录，递归处理
+                        const dirPath = basePath ? `${basePath}/${child.name}` : child.name;
+                        files = files.concat(extractFiles(child, dirPath, isDocument));
+                    } else if (child.is_file) {
+                        // 如果是文件，添加到结果中
+                        const filePath = basePath ? `${basePath}/${child.name}` : child.name;
+                        const fileUrl = isDocument 
+                                ? `http://speakbud.cn/upload/${filePath}` 
+                                : `http://speakbud.cn/video/${filePath}`;
+                        
+                        files.push({
+                            name: child.name,
+                            path: filePath,
+                            url: fileUrl,
+                            category: basePath || '根目录',
+                            isDocument: isDocument
+                        });
+                    }
+                }
+            }
+            
+            return files;
+        }
+        
+        // 按类别分组资源
+        function groupByCategory(resources) {
+            const grouped = {};
+            
+            resources.forEach(resource => {
+                if (!grouped[resource.category]) {
+                    grouped[resource.category] = [];
+                }
+                grouped[resource.category].push(resource);
+            });
+            
+            return grouped;
+        }
+        
+        // 生成资源列表
+        function generateResources(docsData, globalExpertsData, videosData) {
+            // 处理文档资源
+            const documentResources = extractFiles(docsData, '', true);
+            const groupedDocuments = groupByCategory(documentResources);
+            
+            // 处理全球资源专家视频资源（使用独立数据源）
+            const videoResources = extractFiles(globalExpertsData, '', false);
+            const groupedVideos = groupByCategory(videoResources);
+            
+            // 生成文档资源HTML
+            const docContainer = document.getElementById('documentResources');
+            docContainer.innerHTML = '';
+            
+            if (Object.keys(groupedDocuments).length === 0) {
+                docContainer.innerHTML = '<div class="loading">未找到文档资源</div>';
+            } else {
+                for (const [category, files] of Object.entries(groupedDocuments)) {
+                    const categoryElement = document.createElement('div');
+                    categoryElement.className = 'category';
+                    
+                    const categoryTitle = document.createElement('h3');
+                    categoryTitle.className = 'category-title';
+                    categoryTitle.innerHTML = `<i class="fas fa-folder-open"></i> ${category}`;
+                    categoryElement.appendChild(categoryTitle);
+                    
+                    const categoryContent = document.createElement('div');
+                    categoryContent.className = 'category-content';
+                    
+                    files.forEach(file => {
+                        const resourceItem = document.createElement('div');
+                        resourceItem.className = 'resource-item';
+                        
+                        const resourceLink = document.createElement('a');
+                        resourceLink.className = 'resource-link';
+                        resourceLink.href = file.url;
+                        resourceLink.target = '_blank';
+                        
+                        const resourceIcon = document.createElement('div');
+                        
+                        // 根据文件类型设置图标
+                        if (file.name.endsWith('.pdf')) {
+                            resourceIcon.className = 'resource-icon pdf-icon';
+                            resourceIcon.innerHTML = '<i class="fas fa-file-pdf"></i>';
+                        } else if (file.name.endsWith('.docx') || file.name.endsWith('.doc')) {
+                            resourceIcon.className = 'resource-icon doc-icon';
+                            resourceIcon.innerHTML = '<i class="fas fa-file-word"></i>';
+                        } else {
+                            resourceIcon.className = 'resource-icon doc-icon';
+                            resourceIcon.innerHTML = '<i class="fas fa-file-alt"></i>';
+                        }
+                        
+                        const resourceName = document.createElement('span');
+                        resourceName.className = 'resource-name';
+                        resourceName.textContent = file.name;
+                        
+                        resourceLink.appendChild(resourceIcon);
+                        resourceLink.appendChild(resourceName);
+                        resourceItem.appendChild(resourceLink);
+                        categoryContent.appendChild(resourceItem);
+                    });
+                    
+                    categoryElement.appendChild(categoryContent);
+                    docContainer.appendChild(categoryElement);
+                    
+                    // 添加点击事件以折叠/展开
+                    categoryTitle.addEventListener('click', function() {
+                        categoryElement.classList.toggle('collapsed');
+                    });
+                }
+            }
+            
+            // 生成视频资源HTML
+            const videoContainer = document.getElementById('videoResources');
+            videoContainer.innerHTML = '';
+            
+            if (Object.keys(groupedVideos).length === 0) {
+                videoContainer.innerHTML = '<div class="loading">未找到视频资源</div>';
+            } else {
+                for (const [category, files] of Object.entries(groupedVideos)) {
+                    const categoryElement = document.createElement('div');
+                    categoryElement.className = 'category';
+                    
+                    const categoryTitle = document.createElement('h3');
+                    categoryTitle.className = 'category-title';
+                    categoryTitle.innerHTML = `<i class="fas fa-folder-open"></i> ${category}`;
+                    categoryElement.appendChild(categoryTitle);
+                    
+                    const categoryContent = document.createElement('div');
+                    categoryContent.className = 'category-content';
+                    
+                    files.forEach(file => {
+                        const resourceItem = document.createElement('div');
+                        resourceItem.className = 'resource-item';
+                        
+                        const resourceLink = document.createElement('a');
+                        resourceLink.className = 'resource-link';
+                        resourceLink.href = file.url;
+                        resourceLink.target = '_blank';
+                        
+                        const resourceIcon = document.createElement('div');
+                        resourceIcon.className = 'resource-icon video-icon';
+                        resourceIcon.innerHTML = '<i class="fas fa-film"></i>';
+                        
+                        const resourceName = document.createElement('span');
+                        resourceName.className = 'resource-name';
+                        resourceName.textContent = file.name;
+                        
+                        resourceLink.appendChild(resourceIcon);
+                        resourceLink.appendChild(resourceName);
+                        resourceItem.appendChild(resourceLink);
+                        categoryContent.appendChild(resourceItem);
+                    });
+                    
+                    categoryElement.appendChild(categoryContent);
+                    videoContainer.appendChild(categoryElement);
+                    
+                    // 添加点击事件以折叠/展开
+                    categoryTitle.addEventListener('click', function() {
+                        categoryElement.classList.toggle('collapsed');
+                    });
+                }
+            }
+            
+            // 默认折叠部分分类
+            const categories = document.querySelectorAll('.category');
+            categories.forEach((category, index) => {
+                
+                    category.classList.add('collapsed');
+               
+            });
+        }
+        
+        // 搜索功能
+        function filterResources() {
+            const searchText = document.getElementById('searchInput').value.toLowerCase();
+            const resourceItems = document.querySelectorAll('.resource-item');
+            
+            resourceItems.forEach(item => {
+                const resourceName = item.querySelector('.resource-name').textContent.toLowerCase();
+                if (resourceName.includes(searchText)) {
+                    item.style.display = 'flex';
+                    // 展开包含匹配项的类别
+                    let category = item.closest('.category');
+                    if (category.classList.contains('collapsed')) {
+                        category.classList.remove('collapsed');
+                    }
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        // 动态生成在线课程
+        function generateOnlineCourses(videosData) {
+            const container = document.getElementById('onlineCourseContainer');
+            container.innerHTML = '';
+            
+            if (!videosData || !videosData.children || videosData.children.length === 0) {
+                container.innerHTML = '<div class="loading">未找到在线课程资源</div>';
+                return;
+            }
+            
+            // 提取视频资源（使用独立的在线课程地址格式）
+             function extractOnlineCourseFiles(node, basePath = '') {
+                 let files = [];
+                 
+                 if (node.children && Array.isArray(node.children)) {
+                     for (const child of node.children) {
+                         if (child.is_dir) {
+                             const dirPath = basePath ? `${basePath}/${child.name}` : child.name;
+                             files = files.concat(extractOnlineCourseFiles(child, dirPath));
+                         } else if (child.is_file) {
+                             const filePath = basePath ? `${basePath}/${child.name}` : child.name;
+                             const fileUrl = `http://speakbud.cn/video1/${filePath}`;
+                             
+                             files.push({
+                                 name: child.name,
+                                 path: filePath,
+                                 url: fileUrl,
+                                 category: basePath || '根目录'
+                             });
+                         }
+                     }
+                 }
+                 
+                 return files;
+             }
+             
+             const videoResources = extractOnlineCourseFiles(videosData);
+            
+            if (videoResources.length === 0) {
+                container.innerHTML = '<div class="loading">未找到在线课程资源</div>';
+                return;
+            }
+            
+            // 创建在线课程容器
+            const courseElement = document.createElement('div');
+            courseElement.className = 'category';
+            
+            const courseTitle = document.createElement('h3');
+            courseTitle.className = 'category-title';
+            courseTitle.innerHTML = '<i class="fas fa-folder-open"></i> 小布开口线上课程';
+            courseTitle.addEventListener('click', function() {
+                courseElement.classList.toggle('collapsed');
+            });
+            
+            const courseContent = document.createElement('div');
+            courseContent.className = 'category-content';
+            
+            // 按文件名排序并生成课程列表
+            videoResources.sort((a, b) => {
+                // 提取文件名中的数字进行排序
+                const numA = parseInt(a.name.match(/\d+/)?.[0] || '0');
+                const numB = parseInt(b.name.match(/\d+/)?.[0] || '0');
+                
+                if (numA !== numB) {
+                    return numA - numB; // 按数字升序排列
+                }
+                
+                // 如果数字相同，按字母顺序排列
+                return a.name.localeCompare(b.name, 'zh-CN');
+            });
+            
+            // 生成课程列表（按顺序排列）
+            videoResources.forEach((video, index) => {
+                const resourceItem = document.createElement('div');
+                resourceItem.className = 'resource-item';
+                
+                const resourceLink = document.createElement('a');
+                resourceLink.className = 'resource-link';
+                resourceLink.href = video.url;
+                resourceLink.target = '_blank';
+                
+                const resourceIcon = document.createElement('div');
+                resourceIcon.className = 'resource-icon video-icon';
+                resourceIcon.innerHTML = '<i class="fas fa-film"></i>';
+                
+                const resourceName = document.createElement('span');
+                resourceName.className = 'resource-name';
+                
+                // 添加序号前缀
+                const displayName = `${index + 1}. ${video.name}`;
+                resourceName.textContent = displayName;
+                
+                resourceLink.appendChild(resourceIcon);
+                resourceLink.appendChild(resourceName);
+                resourceItem.appendChild(resourceLink);
+                courseContent.appendChild(resourceItem);
+            });
+            
+            courseElement.appendChild(courseTitle);
+            courseElement.appendChild(courseContent);
+            container.appendChild(courseElement);
+            
+            // 默认折叠
+            courseElement.classList.add('collapsed');
+        }
+        
+        // 密码验证功能
+        const CORRECT_PASSWORD = '15549040076';
+        
+        function verifyPassword() {
+            const input = document.getElementById('passwordInput');
+            const error = document.getElementById('passwordError');
+            const passwordSection = document.getElementById('passwordSection');
+            const onlineContent = document.getElementById('onlineContent');
+            
+            if (input.value === CORRECT_PASSWORD) {
+                passwordSection.style.display = 'none';
+                onlineContent.style.display = 'block';
+                error.style.display = 'none';
+                
+                // 加载在线课程
+                if (window.onlineCourseData) {
+                    generateOnlineCourses(window.onlineCourseData);
+                } else {
+                    // 如果数据还未加载，等待数据加载
+                    const checkData = setInterval(() => {
+                        if (window.onlineCourseData) {
+                            generateOnlineCourses(window.onlineCourseData);
+                            clearInterval(checkData);
+                        }
+                    }, 100);
+                }
+            } else {
+                error.style.display = 'block';
+                input.value = '';
+                input.focus();
+            }
+        }
+        
+        // 回车键触发密码验证
+        document.addEventListener('keypress', function(e) {
+            if (e.target.id === 'passwordInput' && e.key === 'Enter') {
+                verifyPassword();
+            }
+        });
+        
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchDirectoryData();
+            
+            // 添加搜索框的键盘事件
+            document.getElementById('searchInput').addEventListener('keyup', function(e) {
+                if (e.key === 'Enter') {
+                    filterResources();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

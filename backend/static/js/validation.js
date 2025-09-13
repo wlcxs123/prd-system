@@ -369,7 +369,7 @@ class DataNormalizer {
         }
 
         const normalized = {
-            id: parseInt(question.id) || 0,
+            id: String(question.id || '').trim(),  // 保持ID为字符串格式
             type: question.type,
             question: String(question.question || '').trim()
         };

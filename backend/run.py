@@ -21,7 +21,7 @@ def main():
     
     # 获取运行参数
     host = os.environ.get('FLASK_HOST', '0.0.0.0')
-    port = int(os.environ.get('FLASK_PORT', 5000))
+    port = int(os.environ.get('FLASK_PORT', 5002))
     debug = os.environ.get('FLASK_ENV', 'development') == 'development'
     
     print(f"启动服务器...")

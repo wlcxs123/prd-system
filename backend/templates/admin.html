@@ -388,13 +388,16 @@
                                 <th>姓名</th>
                                 <th>性别</th>
                                 <th>出生日期</th>
+                                <th>家长手机</th>
+                                <th>微信号</th>
+                                <th>邮箱</th>
                                 <th>提交时间</th>
                                 <th>操作</th>
                             </tr>
                         </thead>
                         <tbody id="questionnaireTableBody">
                             <tr>
-                                <td colspan="8" class="text-center">加载中...</td>
+                                <td colspan="11" class="text-center">加载中...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -456,6 +459,7 @@
         let pageSize = 20;
         let totalPages = 1;
         let totalRecords = 0;
+        let questionnaires = []; // 存储问卷数据
         let currentFilters = {
             search: '',
             type: '',
@@ -482,6 +486,26 @@
             return typeMap[type] || type;
         }
 
+        // 通用API调用处理函数，自动处理会话过期
+        async function apiCall(url, options = {}) {
+            try {
+                const response = await fetch(url, options);
+                const result = await response.json();
+                
+                // 检查会话过期
+                if (!result.success && result.error && result.error.code === 'SESSION_EXPIRED') {
+                    alert('会话已过期，请重新登录');
+                    window.location.href = '/login';
+                    return null;
+                }
+                
+                return result;
+            } catch (error) {
+                console.error('API调用失败:', error);
+                throw error;
+            }
+        }
+
         // 加载问卷列表
         function loadQuestionnaires(page = currentPage) {
             const params = new URLSearchParams({
@@ -499,23 +523,28 @@
 
             const url = `/api/questionnaires?${params.toString()}`;
 
-            fetch(url)
-                .then(response => response.json())
+            apiCall(url)
                 .then(result => {
+                    if (!result) return; // 会话过期已处理
+                    
                     const tableBody = document.getElementById('questionnaireTableBody');
                     tableBody.innerHTML = '';
 
                     if (!result.success) {
-                        tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">加载失败: ' + (result.error?.message || '未知错误') + '</td></tr>';
+                        tableBody.innerHTML = '<tr><td colspan="11" class="text-center text-danger">加载失败: ' + (result.error?.message || '未知错误') + '</td></tr>';
                         return;
                     }
 
                     if (!result.data || result.data.length === 0) {
-                        tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">暂无数据</td></tr>';
+                        tableBody.innerHTML = '<tr><td colspan="11" class="text-center text-muted">暂无数据</td></tr>';
                         updatePaginationInfo(0, 0, 0);
                         updatePaginationControls(1, 1);
+                        questionnaires = []; // 清空数据
                         return;
                     }
+
+                    // 保存问卷数据到全局变量
+                    questionnaires = result.data;
 
                     // 更新分页状态
                     currentPage = result.pagination.page;
@@ -531,6 +560,11 @@
                         const name = basicInfo.name || questionnaire.name || '未知';
                         const gender = basicInfo.gender || '未知';
                         const birthdate = basicInfo.birthdate || basicInfo.birth_date || '未知';
+                        
+                        // 提取家长联系方式 - 从basic_info中读取
+                        const parentPhone = basicInfo.parent_phone || questionnaire.parent_phone || '未填写';
+                        const parentWechat = basicInfo.parent_wechat || questionnaire.parent_wechat || '未填写';
+                        const parentEmail = basicInfo.parent_email || questionnaire.parent_email || '未填写';
 
                         // 构建操作按钮
                         let actionButtons = `<button class="btn btn-primary btn-sm" onclick="viewQuestionnaire(${questionnaire.id})">查看</button><button class="btn btn-warning btn-sm" onclick="editQuestionnaire(${questionnaire.id})">编辑</button><button class="btn btn-success btn-sm" onclick="exportQuestionnaire(${questionnaire.id})">导出</button>`;
@@ -542,7 +576,7 @@
                         
                         actionButtons += `<button class="btn btn-danger btn-sm" onclick="deleteQuestionnaire(${questionnaire.id})">删除</button>`;
                         
-                        row.innerHTML = `<td><input type="checkbox" class="questionnaire-checkbox" value="${questionnaire.id}"></td><td>${questionnaire.id}</td><td>${getTypeDisplayName(questionnaire.type)}</td><td>${name}</td><td>${gender}</td><td>${birthdate}</td><td>${questionnaire.created_at}</td><td>${actionButtons}</td>`;
+                        row.innerHTML = `<td><input type="checkbox" class="questionnaire-checkbox" value="${questionnaire.id}"></td><td>${questionnaire.id}</td><td>${getTypeDisplayName(questionnaire.type)}</td><td>${name}</td><td>${gender}</td><td>${birthdate}</td><td>${parentPhone}</td><td>${parentWechat}</td><td>${parentEmail}</td><td>${questionnaire.created_at}</td><td>${actionButtons}</td>`;
                         tableBody.appendChild(row);
                     });
 
@@ -553,7 +587,7 @@
                 .catch(error => {
                     console.error('加载问卷列表失败:', error);
                     const tableBody = document.getElementById('questionnaireTableBody');
-                    tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">网络错误，请稍后重试</td></tr>';
+                    tableBody.innerHTML = '<tr><td colspan="11" class="text-center text-danger">网络错误，请稍后重试</td></tr>';
                 });
         }
 
@@ -626,9 +660,9 @@
         function viewQuestionnaire(id) {
             console.log('正在获取问卷详情, ID:', id);
 
-            fetch(`/api/questionnaires/${id}`)
-                .then(response => response.json())
+            apiCall(`/api/questionnaires/${id}`)
                 .then(result => {
+                    if (!result) return; // 会话过期已处理
                     console.log('API响应:', result);
 
                     if (result.success) {
@@ -646,9 +680,9 @@
 
         // 编辑问卷
         function editQuestionnaire(id) {
-            fetch(`/api/questionnaires/${id}`)
-                .then(response => response.json())
+            apiCall(`/api/questionnaires/${id}`)
                 .then(result => {
+                    if (!result) return; // 会话过期已处理
                     if (result.success) {
                         showEditModal(result.data);
                     } else {
@@ -667,11 +701,11 @@
 
         function deleteQuestionnaire(id) {
             if (confirm('确定要删除这个问卷吗？此操作不可恢复。')) {
-                fetch(`/api/questionnaires/${id}`, {
+                apiCall(`/api/questionnaires/${id}`, {
                     method: 'DELETE'
                 })
-                    .then(response => response.json())
                     .then(result => {
+                        if (!result) return; // 会话过期已处理
                         if (result.success) {
                             alert('删除成功');
                             loadQuestionnaires();
@@ -696,15 +730,15 @@
             }
 
             if (confirm(`确定要删除选中的 ${selectedIds.length} 个问卷吗？此操作不可恢复。`)) {
-                fetch('/api/questionnaires/batch-delete', {
-                    method: 'POST',
+                apiCall('/api/questionnaires/batch', {
+                    method: 'DELETE',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ ids: selectedIds })
                 })
-                .then(response => response.json())
                 .then(result => {
+                    if (!result) return; // 会话过期已处理
                     if (result.success) {
                         alert('批量删除成功');
                         loadQuestionnaires();
@@ -883,104 +917,192 @@
         // 渲染问卷编辑表单
         function renderQuestionnaireEdit(questionnaire) {
             let html = `<form id="editForm">`;
+            const data = questionnaire.data || {};
 
-            // 基本信息编辑
-            if (questionnaire.data.basic_info) {
-                html += `<div class="question-group">
-                        <div class="question-title">个人信息</div>`;
+            // 渲染基本信息（与查看页面格式一致）
+            html += '<div class="question-group">';
+            html += '<div class="question-title">基本信息</div>';
+            html += `<div class="question-answer"><span class="answer-label">问卷ID:</span> <span class="answer-value">${questionnaire.id || '未知'}</span></div>`;
+            html += `<div class="question-answer"><span class="answer-label">问卷类型:</span> <span class="answer-value">${getTypeDisplayName(questionnaire.type || '未知')}</span></div>`;
+            html += `<div class="question-answer"><span class="answer-label">提交时间:</span> <span class="answer-value">${questionnaire.created_at || '未知'}</span></div>`;
+            html += '</div>';
 
-                Object.entries(questionnaire.data.basic_info).forEach(([key, value]) => {
+            // 渲染个人信息编辑（与查看页面格式一致，但可编辑）
+            if (data.basic_info) {
+                html += '<div class="question-group">';
+                html += '<div class="question-title">个人信息</div>';
+                for (const [key, value] of Object.entries(data.basic_info)) {
                     const label = getFieldLabel(key);
-                    html += `
-                        <div class="form-group">
-                            <label for="basic_${key}">${label}</label>
-                            <input type="text" id="basic_${key}" name="basic_info.${key}" class="form-control"
-                                value="${value || ''}" />
-                        </div>
-                        `;
-                });
-                html += `
-                    </div>`;
+                    html += `<div class="question-answer">`;
+                    html += `<span class="answer-label">${label}:</span> `;
+                    html += `<input type="text" name="basic_info.${key}" class="form-control" style="display: inline-block; width: auto; margin-left: 10px;" value="${value || ''}" />`;
+                    html += `</div>`;
+                }
+                html += '</div>';
             }
 
-            // 编辑详细问题数据（如果存在）
-            if (questionnaire.data.detailedData && Array.isArray(questionnaire.data.detailedData)) {
-                html += `<div class="question-group">
-                    <div class="question-title">问题详情编辑</div>
-                    <p style="color: #6c757d; font-size: 0.9em; margin-bottom: 15px;">
-                        注意：修改评分会影响总分计算
-                    </p>`;
+            // 查找问题数组（与查看页面逻辑一致）
+            let questions = [];
+            if (Array.isArray(data)) {
+                questions = data;
+            } else if (Array.isArray(data.questions)) {
+                questions = data.questions;
+            } else if (Array.isArray(data.data)) {
+                questions = data.data;
+            } else if (Array.isArray(data.detailedData)) {
+                questions = data.detailedData;
+            }
 
-                questionnaire.data.detailedData.forEach((item, index) => {
-                    if (item.questionText) {
-                        html += `
-                        <div style="border: 1px solid #dee2e6; border-radius: 5px; padding: 15px; margin-bottom: 15px;">
-                            <div style="font-weight: bold; color: #2c3e50; margin-bottom: 10px;">
-                                问题 ${item.questionNumber || index + 1}: ${item.questionText}
-                            </div>
-                            <div class="form-row">
-                                <div class="form-col">
-                                    <label for="detail_${index}_selectedText">选择答案</label>
-                                    <input type="text" id="detail_${index}_selectedText" 
-                                           name="detailedData.${index}.selectedText" 
-                                           class="form-control" value="${item.selectedText || ''}" />
-                                </div>
-                                ${item.score !== undefined ? `
-                                <div class="form-col-half">
-                                    <label for="detail_${index}_score">评分</label>
-                                    <input type="number" id="detail_${index}_score" 
-                                           name="detailedData.${index}.score" 
-                                           class="form-control" value="${item.score}" min="0" max="4" />
-                                </div>
-                                ` : ''}
-                            </div>
-                            ${item.speechIssue !== undefined ? `
-                            <div class="form-group" style="margin-top: 10px;">
-                                <label>
-                                    <input type="checkbox" name="detailedData.${index}.speechIssue" 
-                                           ${item.speechIssue ? 'checked' : ''} />
-                                    说话能力
-                                </label>
-                            </div>
-                            ` : ''}
-                        </div>
-                        `;
+            // 渲染问题编辑（与查看页面格式一致，但答案可编辑）
+            if (questions.length > 0) {
+                html += '<div class="question-group">';
+                html += '<div class="question-title">问卷内容</div>';
+                html += '<p style="color: #6c757d; font-size: 0.9em; margin-bottom: 15px;">注意：问题内容无法修改，只能修改答案</p>';
+                
+                questions.forEach((q, index) => {
+                    const questionText = q.question || q.question_text || q.questionText || `问题 ${index + 1}`;
+                    html += `<div class="question-answer" style="margin-bottom: 15px; border-left: 3px solid #007bff; padding-left: 15px;">`;
+                    html += `<p><strong>${questionText}</strong></p>`;
+
+                    if (Array.isArray(q.options)) {
+                        // 选择题：根据问题类型设置为单选或多选
+                        // 判断逻辑：
+                        // 1. 优先使用 allow_multiple 字段
+                        // 2. 如果没有设置，则根据选项特征判断：
+                        //    - 选项只有2个且为"是/否"类型 -> 单选
+                        //    - 选项超过2个 -> 可能是多选
+                        //    - 已选择多个答案 -> 多选
+                        let isMultipleChoice = false;
+                        
+                        // 优先根据问题类型判断
+                        if (q.type === 'single_choice') {
+                            isMultipleChoice = false;
+                        } else if (q.type === 'multiple_choice') {
+                            isMultipleChoice = true;
+                        } else if (q.allow_multiple !== undefined) {
+                            // 有明确设置
+                            isMultipleChoice = q.allow_multiple === true;
+                        } else {
+                            // 根据选项特征自动判断
+                            const optionTexts = q.options.map(opt => opt.text.toLowerCase());
+                            const isYesNoType = q.options.length === 2 && 
+                                (optionTexts.includes('是') || optionTexts.includes('否') || 
+                                 optionTexts.some(text => text.includes('是')) || optionTexts.some(text => text.includes('否')));
+                            
+                            if (isYesNoType) {
+                                // 是/否类型题目默认为单选
+                                isMultipleChoice = false;
+                            } else if (Array.isArray(q.selected) && q.selected.length > 1) {
+                                // 已选择多个答案，判断为多选
+                                isMultipleChoice = true;
+                            } else if (q.options.length > 3) {
+                                // 选项较多，可能是多选题
+                                isMultipleChoice = true;
+                            } else {
+                                // 默认为单选
+                                isMultipleChoice = false;
+                            }
+                        }
+                        
+                        const inputType = isMultipleChoice ? 'checkbox' : 'radio';
+                        const inputName = isMultipleChoice ? `questions.${index}.selected_options` : `questions.${index}.selected_single`;
+                        
+                        console.log(`问题${index}: 类型=${isMultipleChoice ? '多选' : '单选'}, 选项数=${q.options.length}, 已选择=${q.selected?.length || 0}, allow_multiple=${q.allow_multiple}`);
+                        
+                        html += `<div style="margin-top: 10px;">`;
+                        
+                        // 选择类型切换功能已移除
+                        
+                        html += `<label style="font-weight: normal; color: #495057; display: block; margin-bottom: 8px;">重新选择答案：</label>`;
+                        html += `<div id="answer_options_${index}">`;
+                        
+                        q.options.forEach((option, optIndex) => {
+                            const isSelected = Array.isArray(q.selected) && q.selected.includes(option.value);
+                            const checkboxId = `q${index}_opt${optIndex}`;
+                            
+                            html += `<div style="margin-bottom: 5px;">`;
+                            if (isMultipleChoice) {
+                                html += `<input type="checkbox" id="${checkboxId}" name="${inputName}" value="${option.value}" ${isSelected ? 'checked' : ''} onchange="updateSelectedAnswers(${index})" style="margin-right: 8px;" />`;
+                            } else {
+                                html += `<input type="radio" id="${checkboxId}" name="${inputName}" value="${option.value}" ${isSelected ? 'checked' : ''} onchange="updateSelectedAnswers(${index})" style="margin-right: 8px;" />`;
+                            }
+                            html += `<label for="${checkboxId}" style="font-weight: normal; cursor: pointer;">${option.text}</label>`;
+                            html += `</div>`;
+                        });
+                        
+                        // 隐藏的输入框存储最终选择的值
+                        const selectedValue = Array.isArray(q.selected) ? q.selected.join(', ') : (q.selected || '');
+                        html += `<input type="hidden" name="questions.${index}.selected" id="selected_${index}" value="${selectedValue}" />`;
+                        html += `<input type="hidden" name="questions.${index}.allow_multiple" id="allow_multiple_${index}" value="${isMultipleChoice}" />`;
+                        html += `</div>`; // 结束 answer_options div
+                        html += `</div>`; // 结束主容器 div
+                    } else {
+                        // 填空题：显示当前答案，可重新填写
+                        const answer = q.selected_texts || q.answer || q.selectedText || '';
+                        html += `<div style="margin-top: 10px;">`;
+                        html += `<p><strong>当前答案:</strong> ${Array.isArray(answer) ? answer.join(', ') : answer}</p>`;
+                        html += `<label style="font-weight: normal; color: #495057;">重新填写答案：</label>`;
+                        
+                        if (typeof answer === 'string' && answer.length > 50) {
+                            html += `<textarea name="questions.${index}.answer" class="form-control" placeholder="请重新填写答案内容" style="margin-top: 5px;">${answer}</textarea>`;
+                        } else {
+                            html += `<input type="text" name="questions.${index}.answer" class="form-control" value="${Array.isArray(answer) ? answer.join(', ') : answer}" placeholder="请重新填写答案" style="margin-top: 5px;" />`;
+                        }
+                        html += `</div>`;
                     }
+                    
+                    // 如果有评分，显示评分编辑
+                    if (q.score !== undefined) {
+                        html += `<div style="margin-top: 10px;">`;
+                        html += `<label style="font-weight: normal; color: #495057;">重新评分：</label>`;
+                        html += `<input type="number" name="questions.${index}.score" class="form-control" value="${q.score}" min="0" max="4" placeholder="0-4分" style="margin-top: 5px; width: 100px;" />`;
+                        html += `</div>`;
+                    }
+                    
+                    // 如果有说话能力评估
+                    if (q.speechIssue !== undefined) {
+                        html += `<div style="margin-top: 10px;">`;
+                        html += `<label style="font-weight: normal; color: #495057;">`;
+                        html += `<input type="checkbox" name="questions.${index}.speechIssue" ${q.speechIssue ? 'checked' : ''} /> 说话能力评估`;
+                        html += `</label></div>`;
+                    }
+                    
+                    html += '</div>';
                 });
-                html += `</div>`;
+                html += '</div>';
             }
 
-            // 问题答案编辑
-            if (questionnaire.data.questions) {
+            // 处理嵌套的questions数据结构（如果存在且不重复）
+            if (questionnaire.data.questions && typeof questionnaire.data.questions === 'object' && !Array.isArray(questionnaire.data.questions) && questions.length === 0) {
                 Object.entries(questionnaire.data.questions).forEach(([sectionKey, section]) => {
                     if (typeof section === 'object' && section !== null) {
-                        html += `<div class="question-group">
-                        <div class="question-title">${getSectionTitle(sectionKey)}</div>`;
+                        html += '<div class="question-group">';
+                        html += `<div class="question-title">${getSectionTitle(sectionKey)}</div>`;
+                        html += '<p style="color: #6c757d; font-size: 0.9em; margin-bottom: 15px;">注意：问题内容无法修改，只能修改答案</p>';
 
                         Object.entries(section).forEach(([questionKey, answer]) => {
                             const questionText = getQuestionText(sectionKey, questionKey);
                             const fieldName = `questions.${sectionKey}.${questionKey}`;
 
+                            html += `<div class="question-answer" style="margin-bottom: 15px; border-left: 3px solid #007bff; padding-left: 15px;">`;
+                            html += `<p><strong>${questionText}</strong></p>`;
+                            
+                            html += `<div style="margin-top: 10px;">`;
+                            html += `<p><strong>当前答案:</strong> ${answer || ''}</p>`;
+                            html += `<label style="font-weight: normal; color: #495057;">重新填写答案：</label>`;
+                            
+                            // 根据答案类型提供不同的编辑方式
                             if (typeof answer === 'string' && answer.length > 50) {
-                                html += `
-                        <div class="form-group">
-                            <label for="${fieldName.replace(/\./g, '_')}">${questionText}</label>
-                            <textarea id="${fieldName.replace(/\./g, '_')}" name="${fieldName}"
-                                class="form-control textarea-large">${answer || ''}</textarea>
-                        </div>
-                        `;
+                                // 填空题 - 使用文本域
+                                html += `<textarea name="${fieldName}" class="form-control" placeholder="请重新填写答案内容" style="margin-top: 5px;">${answer || ''}</textarea>`;
                             } else {
-                                html += `
-                        <div class="form-group">
-                            <label for="${fieldName.replace(/\./g, '_')}">${questionText}</label>
-                            <input type="text" id="${fieldName.replace(/\./g, '_')}" name="${fieldName}"
-                                class="form-control" value="${answer || ''}" />
-                        </div>
-                        `;
+                                // 选择题或短答案 - 使用输入框
+                                html += `<input type="text" name="${fieldName}" class="form-control" value="${answer || ''}" placeholder="请重新选择或填写答案" style="margin-top: 5px;" />`;
                             }
+                            html += `</div>`;
+                            html += '</div>';
                         });
-                        html += `
-                    </div>`;
+                        html += '</div>';
                     }
                 });
             }
@@ -989,6 +1111,80 @@
             return html;
         }
 
+        // 更新选择的答案
+        function updateSelectedAnswers(questionIndex) {
+            const isMultipleChoice = document.querySelector(`input[name="questions.${questionIndex}.selected_options"]`) !== null;
+            const hiddenInput = document.getElementById(`selected_${questionIndex}`);
+            
+            if (isMultipleChoice) {
+                // 多选题：收集所有选中的复选框值
+                const checkboxes = document.querySelectorAll(`input[name="questions.${questionIndex}.selected_options"]:checked`);
+                const selectedValues = Array.from(checkboxes).map(cb => {
+                    // 确保值为数字类型（如果可以转换）
+                    const numValue = parseInt(cb.value);
+                    return isNaN(numValue) ? cb.value : numValue;
+                });
+                hiddenInput.value = selectedValues.join(', ');
+            } else {
+                // 单选题：获取选中的单选框值
+                const radio = document.querySelector(`input[name="questions.${questionIndex}.selected_single"]:checked`);
+                if (radio) {
+                    // 确保值为数字类型（如果可以转换）
+                    const numValue = parseInt(radio.value);
+                    hiddenInput.value = isNaN(numValue) ? radio.value : numValue;
+                } else {
+                    hiddenInput.value = '';
+                }
+            }
+            
+            console.log(`问题${questionIndex}选择更新:`, hiddenInput.value);
+        }
+        
+        // 切换选择类型（单选/多选）
+        function toggleChoiceType(questionIndex, choiceType) {
+            console.log(`切换问题${questionIndex}的选择类型为: ${choiceType}`);
+            
+            const isMultiple = choiceType === 'multiple';
+            
+            // 更新allow_multiple隐藏字段
+            const allowMultipleInput = document.getElementById(`allow_multiple_${questionIndex}`);
+            if (allowMultipleInput) {
+                allowMultipleInput.value = isMultiple;
+            }
+            
+            // 重新生成选项界面
+            regenerateAnswerOptions(questionIndex, isMultiple);
+        }
+        
+        // 重新生成答案选项界面
+        function regenerateAnswerOptions(questionIndex, isMultiple) {
+            const container = document.getElementById(`answer_options_${questionIndex}`);
+            if (!container) return;
+            
+            // 获取当前问题数据
+            const questionData = currentQuestionnaire.questions[questionIndex];
+            if (!questionData || !questionData.options) return;
+            
+            const inputType = isMultiple ? 'checkbox' : 'radio';
+            const inputName = isMultiple ? `questions.${questionIndex}.selected_options` : `questions.${questionIndex}.selected_single`;
+            
+            let html = '';
+            questionData.options.forEach((option, optIndex) => {
+                const isSelected = Array.isArray(questionData.selected) && questionData.selected.includes(option.value);
+                const checkboxId = `q${questionIndex}_opt${optIndex}`;
+                
+                html += `<div style="margin-bottom: 5px;">`;
+                html += `<input type="${inputType}" id="${checkboxId}" name="${inputName}" value="${option.value}" ${isSelected ? 'checked' : ''} onchange="updateSelectedAnswers(${questionIndex})" style="margin-right: 8px;" />`;
+                html += `<label for="${checkboxId}" style="font-weight: normal; cursor: pointer;">${option.text}</label>`;
+                html += `</div>`;
+            });
+            
+            container.innerHTML = html;
+            
+            // 更新选择值
+            updateSelectedAnswers(questionIndex);
+        }
+        
         // 保存问卷修改
         function saveQuestionnaire() {
             if (!currentEditingId) return;
@@ -996,75 +1192,152 @@
             const form = document.getElementById('editForm');
             const formData = new FormData(form);
 
-            // 构建更新数据
+            // 构建增量更新数据 - 只包含改动的字段
             const updateData = {
-                type: '',
                 basic_info: {},
-                questions: {},
-                detailedData: []
+                questions: []
             };
 
-            // 处理表单数据
+            let hasChanges = false;
+            
+            // 处理表单数据，只收集有值的字段
             for (let [name, value] of formData.entries()) {
                 const parts = name.split('.');
-                if (parts[0] === 'basic_info') {
+                
+                if (parts[0] === 'basic_info' && value.trim() !== '') {
                     updateData.basic_info[parts[1]] = value;
+                    hasChanges = true;
                 } else if (parts[0] === 'questions') {
-                    if (!updateData.questions[parts[1]]) {
-                        updateData.questions[parts[1]] = {};
-                    }
-                    updateData.questions[parts[1]][parts[2]] = value;
-                } else if (parts[0] === 'detailedData') {
                     const index = parseInt(parts[1]);
                     const field = parts[2];
-
+                    
                     // 确保数组有足够的元素
-                    while (updateData.detailedData.length <= index) {
-                        updateData.detailedData.push({});
+                    while (updateData.questions.length <= index) {
+                        updateData.questions.push({});
                     }
-
-                    if (field === 'score') {
-                        updateData.detailedData[index][field] = parseInt(value) || 0;
+                    
+                    if (field === 'selected' && value.trim() !== '') {
+                        // 处理选择题答案 - 转换为数组格式
+                        const selectedValues = value.split(', ').filter(v => v.trim());
+                        updateData.questions[index].selected = selectedValues.map(v => {
+                            // 尝试转换为数字，如果失败则保持原值
+                            const numValue = parseInt(v);
+                            return isNaN(numValue) ? v : numValue;
+                        });
+                        hasChanges = true;
+                        console.log(`问题${index}选中答案:`, updateData.questions[index].selected);
+                    } else if (field === 'answer' && value.trim() !== '') {
+                        // 处理填空题答案
+                        updateData.questions[index].answer = value;
+                        updateData.questions[index].selected_texts = value;
+                        updateData.questions[index].selectedText = value;
+                        hasChanges = true;
+                    } else if (field === 'allow_multiple') {
+                        // 处理选择类型设置
+                        updateData.questions[index].allow_multiple = value === 'true';
+                        hasChanges = true;
+                        console.log(`设置问题${index}的allow_multiple为:`, updateData.questions[index].allow_multiple);
+                    } else if (field === 'score' && value.trim() !== '') {
+                        updateData.questions[index].score = parseInt(value) || 0;
+                        hasChanges = true;
                     } else if (field === 'speechIssue') {
-                        updateData.detailedData[index][field] = true; // checkbox只有选中时才会提交
-                    } else {
-                        updateData.detailedData[index][field] = value;
+                        updateData.questions[index].speechIssue = true;
+                        hasChanges = true;
+                    } else if (value.trim() !== '') {
+                        updateData.questions[index][field] = value;
+                        hasChanges = true;
                     }
+                } else if (parts.length >= 3 && parts[0] === 'questions' && !isNaN(parseInt(parts[1])) && value.trim() !== '') {
+                    // 处理嵌套的questions结构 questions.sectionKey.questionKey
+                    const sectionKey = parts[1];
+                    const questionKey = parts[2];
+                    
+                    if (!updateData.questions[sectionKey]) {
+                        updateData.questions[sectionKey] = {};
+                    }
+                    updateData.questions[sectionKey][questionKey] = value;
+                    hasChanges = true;
                 }
             }
 
-            // 处理未选中的checkbox（speechIssue）
+            // 处理未选中的checkbox（表示清空选择）
             const checkboxes = form.querySelectorAll('input[type="checkbox"]');
             checkboxes.forEach(checkbox => {
                 if (!checkbox.checked && checkbox.name.includes('speechIssue')) {
                     const parts = checkbox.name.split('.');
                     const index = parseInt(parts[1]);
-                    if (updateData.detailedData[index]) {
-                        updateData.detailedData[index].speechIssue = false;
+                    
+                    // 确保数组有足够的元素
+                    while (updateData.questions.length <= index) {
+                        updateData.questions.push({});
                     }
+                    
+                    updateData.questions[index].speechIssue = false;
+                    hasChanges = true;
                 }
             });
+            
+            // 清理空对象
+            updateData.questions = updateData.questions.filter(q => q && Object.keys(q).length > 0);
+            
+            if (Object.keys(updateData.basic_info).length === 0) {
+                delete updateData.basic_info;
+            }
+            
+            if (updateData.questions.length === 0) {
+                delete updateData.questions;
+            }
+
+            if (!hasChanges) {
+                alert('没有检测到任何更改');
+                return;
+            }
+            
+            console.log('=== 详细调试信息 ===');
+            console.log('发送的增量更新数据:', JSON.stringify(updateData, null, 2));
+            if (updateData.questions) {
+                console.log('questions数组长度:', updateData.questions.length);
+                console.log('questions是否为数组:', Array.isArray(updateData.questions));
+                updateData.questions.forEach((q, index) => {
+                    console.log(`问题${index}:`, JSON.stringify(q, null, 2));
+                });
+            }
+            if (updateData.basic_info) {
+                console.log('basic_info内容:', updateData.basic_info);
+            }
 
             // 发送更新请求
-            fetch(`/api/questionnaires/${currentEditingId}`, {
+            apiCall(`/api/questionnaires/${currentEditingId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(updateData)
             })
-                .then(response => response.json())
                 .then(result => {
+                    if (!result) return; // 会话过期已处理
+                    console.log('=== 服务器响应内容 ===');
+                    console.log('完整响应:', JSON.stringify(result, null, 2));
                     if (result.success) {
                         alert('保存成功');
                         closeModal('editModal');
                         loadQuestionnaires(); // 刷新列表
                     } else {
-                        alert('保存失败: ' + (result.error?.message || '未知错误'));
+                        console.error('=== 保存失败详细信息 ===');
+                        console.error('错误对象:', result.error);
+                        if (result.error && result.error.details) {
+                            console.error('验证错误详情:', result.error.details);
+                            result.error.details.forEach((detail, index) => {
+                                console.error(`验证错误${index + 1}:`, detail);
+                            });
+                        }
+                        alert('保存失败: ' + (result.error?.message || result.message || '数据验证失败'));
                     }
                 })
                 .catch(error => {
-                    console.error('保存失败:', error);
+                    console.error('=== 网络错误 ===');
+                    console.error('错误对象:', error);
+                    console.error('错误堆栈:', error.stack);
                     alert('网络错误，请稍后重试');
                 });
         }
@@ -1083,7 +1356,10 @@
                 'submission_date': '提交日期',
                 'evaluator': '评估者',
                 'relationship': '与孩子关系',
-                'evaluation_date': '评估日期'
+                'evaluation_date': '评估日期',
+                'parent_phone': '家长电话',
+                'parent_wechat': '家长微信',
+                'parent_email': '家长邮箱'
             };
             return labelMap[key] || key;
         }
@@ -1217,15 +1493,15 @@
             button.textContent = '生成中...';
             button.disabled = true;
 
-            fetch(`/api/generate_frankfurt_report`, {
+            apiCall(`/api/generate_frankfurt_report`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ questionnaire_id: questionnaireId })
             })
-            .then(response => response.json())
             .then(result => {
+                if (!result) return; // 会话过期已处理
                 if (result.success) {
                     // 显示报告内容
                     showFrankfurtReport(result.data);

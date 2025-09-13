@@ -40,7 +40,7 @@ SERVER_CONFIG = {
     'username': 'root',
     'password': 'LKziTP2FWjbdv87AuUHJ',
     'port': 22,
-    'deploy_dir': '/usr/share/nginx-after',
+    'deploy_dir': '/usr/share/nginx-after',  # 固定上传路径
     'backup_dir': '/usr/share/nginx-after-backup'
 }
 
@@ -57,7 +57,8 @@ PROJECT_CONFIG = {
         'node_modules',
         '*.log',
         '.DS_Store',
-        'Thumbs.db'
+        'Thumbs.db',
+        'nginx.conf'  # 排除nginx主配置文件，避免覆盖服务器配置
     ]
 }
 
@@ -178,7 +179,11 @@ class RemoteDeployer:
                     for file in files:
                         # 过滤排除的文件
                         if any(
-                            file.endswith(pattern.lstrip('*')) or file.startswith(pattern.rstrip('*'))
+                            # 完整文件名匹配
+                            file == pattern or
+                            # 通配符模式匹配
+                            (pattern.startswith('*') and file.endswith(pattern.lstrip('*'))) or
+                            (pattern.endswith('*') and file.startswith(pattern.rstrip('*')))
                             for pattern in PROJECT_CONFIG['exclude_patterns']
                         ):
                             continue
@@ -253,12 +258,26 @@ class RemoteDeployer:
             
             # 创建日志目录
             f"mkdir -p {SERVER_CONFIG['deploy_dir']}/logs",
+            
+            # 配置nginx HTTP反向代理 (已禁用，保护服务器nginx.conf)
+            # f"if [ -f {SERVER_CONFIG['deploy_dir']}/nginx-http.conf ]; then cp {SERVER_CONFIG['deploy_dir']}/nginx-http.conf /etc/nginx/nginx.conf; fi",
+            
+            # 测试nginx配置
+            "nginx -t || echo 'Nginx config test failed'",
+            
+            # 重启nginx服务
+            "systemctl restart nginx || service nginx restart || echo 'Nginx restart failed'",
+            
+            # 检查nginx状态
+            "systemctl status nginx --no-pager || service nginx status || echo 'Nginx status check failed'",
         ]
         
         for cmd in commands:
             success, output, error = self.execute_command(cmd, check_exit_code=False)
             if not success and "not found" not in error.lower():
                 logger.warning(f"命令可能失败: {cmd}")
+            if "nginx" in cmd.lower() and output:
+                logger.info(f"Nginx配置输出: {output.strip()}")
         
         logger.info("环境设置完成")
         return True
@@ -307,19 +326,19 @@ class RemoteDeployer:
         logger.info("正在进行健康检查...")
         
         # 检查端口是否监听
-        success, output, _ = self.execute_command("netstat -tlnp | grep :8081 || ss -tlnp | grep :8081", check_exit_code=False)
+        success, output, _ = self.execute_command("netstat -tlnp | grep :8080 || ss -tlnp | grep :8080", check_exit_code=False)
         if success and output.strip():
-            logger.info("端口8081正在监听")
+            logger.info("端口8080正在监听")
             
             # 尝试HTTP请求
-            success, output, _ = self.execute_command("curl -s -o /dev/null -w '%{http_code}' http://localhost:8081/health || echo 'curl failed'", check_exit_code=False)
+            success, output, _ = self.execute_command("curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/health || echo 'curl failed'", check_exit_code=False)
             if "200" in output:
                 logger.info("健康检查通过")
                 return True
             else:
                 logger.warning(f"健康检查失败，HTTP状态码: {output}")
         else:
-            logger.warning("端口8081未在监听")
+            logger.warning("端口8080未在监听")
         
         return False
     
@@ -395,7 +414,7 @@ class RemoteDeployer:
                 logger.warning("健康检查失败，但部署已完成")
             
             logger.info("🎉 部署成功完成！")
-            logger.info(f"应用访问地址: http://{SERVER_CONFIG['hostname']}:8081")
+            logger.info(f"应用访问地址: http://{SERVER_CONFIG['hostname']}:8080")
             
             return True
             
@@ -448,8 +467,8 @@ def main():
     if success:
         print("\n" + "="*60)
         print("✅ 部署成功完成！")
-        print(f"🌐 应用地址: http://{SERVER_CONFIG['hostname']}:8081")
-        print(f"📋 健康检查: http://{SERVER_CONFIG['hostname']}:8081/health")
+        print(f"🌐 应用地址: http://{SERVER_CONFIG['hostname']}:8080")
+        print(f"📋 健康检查: http://{SERVER_CONFIG['hostname']}:8080/health")
         print("📝 查看日志: tail -f /usr/share/nginx-after/logs/app.log")
         print("="*60)
     else:

@@ -4,6 +4,7 @@
 """
 
 from marshmallow import Schema, fields, validate, ValidationError, post_load, pre_load
+from marshmallow import EXCLUDE
 from datetime import datetime, date
 import re
 import json
@@ -28,9 +29,9 @@ class BasicInfoSchema(Schema):
         required=True,
         error_messages={'required': '提交日期不能为空', 'invalid': '日期格式不正确'}
     )
-    age = fields.Int(
+    age = fields.Str(
         allow_none=True,
-        validate=validate.Range(min=1, max=150, error="年龄必须在1-150之间")
+        validate=validate.Length(min=1, max=20, error="年龄格式长度必须在1-20个字符之间")
     )
     gender = fields.Str(
         allow_none=True,
@@ -48,6 +49,24 @@ class BasicInfoSchema(Schema):
         allow_none=True,
         validate=validate.Length(max=50, error="班级名称不能超过50个字符")
     )
+    parent_phone = fields.Str(
+        allow_none=True,
+        validate=[
+            validate.Length(max=20, error="家长手机号不能超过20个字符"),
+            validate.Regexp(r'^[\d\-\+\(\)\s]*$', error="手机号格式不正确")
+        ]
+    )
+    parent_wechat = fields.Str(
+        allow_none=True,
+        validate=validate.Length(max=50, error="微信号不能超过50个字符")
+    )
+    parent_email = fields.Str(
+        allow_none=True,
+        validate=[
+            validate.Length(max=100, error="邮箱地址不能超过100个字符"),
+            validate.Email(error="邮箱格式不正确")
+        ]
+    )
     
     @post_load
     def validate_dates(self, data, **kwargs):
@@ -60,11 +79,16 @@ class BasicInfoSchema(Schema):
         if submission_date and submission_date > date.today():
             raise ValidationError({'submission_date': '提交日期不能是未来日期'})
         
-        # 验证出生日期和年龄的一致性
+        # 验证出生日期和年龄的一致性（跳过字符串格式的年龄段）
         if birth_date and age:
-            calculated_age = (date.today() - birth_date).days // 365
-            if abs(calculated_age - age) > 1:  # 允许1岁的误差
-                raise ValidationError({'age': '年龄与出生日期不匹配'})
+            try:
+                age_int = int(age)
+                calculated_age = (date.today() - birth_date).days // 365
+                if abs(calculated_age - age_int) > 1:  # 允许1岁的误差
+                    raise ValidationError({'age': '年龄与出生日期不匹配'})
+            except (ValueError, TypeError):
+                # 如果age是字符串格式（如'6_11'），跳过验证
+                pass
         
         # 验证出生日期合理性
         if birth_date:
@@ -101,8 +125,8 @@ class MultipleChoiceOptionSchema(Schema):
 
 class MultipleChoiceQuestionSchema(Schema):
     """选择题Schema - 增强版本"""
-    id = fields.Int(required=True, validate=validate.Range(min=1, max=9999, error="问题ID必须在1-9999之间"))
-    type = fields.Str(required=True, validate=validate.Equal('multiple_choice'))
+    id = fields.Str(required=True, validate=validate.Length(min=1, max=50, error="问题ID长度必须在1-50个字符之间"))
+    type = fields.Str(required=True, validate=validate.OneOf(['multiple_choice', 'single_choice'], error="问题类型必须是multiple_choice或single_choice"))
     question = fields.Str(
         required=True, 
         validate=[
@@ -173,7 +197,7 @@ class MultipleChoiceQuestionSchema(Schema):
 
 class TextInputQuestionSchema(Schema):
     """填空题Schema - 增强版本"""
-    id = fields.Int(required=True, validate=validate.Range(min=1, max=9999, error="问题ID必须在1-9999之间"))
+    id = fields.Str(required=True, validate=validate.Length(min=1, max=50, error="问题ID长度必须在1-50个字符之间"))
     type = fields.Str(required=True, validate=validate.Equal('text_input'))
     question = fields.Str(
         required=True, 
@@ -258,7 +282,7 @@ class TextInputQuestionSchema(Schema):
 
 class RatingScaleQuestionSchema(Schema):
     """评分量表题Schema"""
-    id = fields.Int(required=True, validate=validate.Range(min=1, max=9999, error="问题ID必须在1-9999之间"))
+    id = fields.Str(required=True, validate=validate.Length(min=1, max=50, error="问题ID长度必须在1-50个字符之间"))
     type = fields.Str(required=True, validate=validate.Equal('rating_scale'))
     question = fields.Str(
         required=True, 
@@ -363,6 +387,10 @@ class QuestionnaireSchema(Schema):
         validate=validate.Length(min=1, error="至少需要一个问题")
     )
     statistics = fields.Raw(allow_none=True)  # 使用Raw字段支持不同类型的统计信息
+    assessment_report = fields.Raw(allow_none=True)  # 支持评估报告数据
+    
+    class Meta:
+        unknown = EXCLUDE  # 忽略未知字段而不是抛出错误
     
     @post_load
     def validate_questions(self, data, **kwargs):
@@ -377,14 +405,27 @@ class QuestionnaireSchema(Schema):
                 # 对于Frankfurt Scale问卷，允许更灵活的验证
                 if questionnaire_type == 'frankfurt_scale_selective_mutism':
                     # Frankfurt Scale问卷的特殊验证
-                    if question_type == 'multiple_choice':
+                    if question_type in ['multiple_choice', 'single_choice']:
                         # 验证必要字段
                         if not question.get('question'):
                             raise ValidationError("问题文本不能为空")
                         if not question.get('options'):
                             raise ValidationError("选项不能为空")
+                        # 对于SS部分的问题，允许没有选择（空数组）
                         if 'selected' not in question:
                             raise ValidationError("必须有选中答案")
+                        
+                        # 对于DS部分，必须有选择；对于SS部分，允许空选择
+                        section = question.get('section', '')
+                        selected = question.get('selected', [])
+                        if section == 'DS' and not selected:
+                            raise ValidationError("DS部分的问题必须有选择")
+                        
+                        # 验证单选/多选逻辑
+                        if question_type == 'single_choice' and len(selected) > 1:
+                            raise ValidationError(f"第{i+1}题为单选题，不能选择多个答案")
+                        
+                        # SS部分允许空选择，不需要额外验证
                         
                         # 验证section字段（Frankfurt Scale特有）
                         section = question.get('section', '')
@@ -403,7 +444,7 @@ class QuestionnaireSchema(Schema):
                         raise ValidationError(type_errors)
                     
                     # 然后使用Marshmallow Schema进行详细验证
-                    if question_type == 'multiple_choice':
+                    if question_type in ['multiple_choice', 'single_choice']:
                         schema = MultipleChoiceQuestionSchema()
                     elif question_type == 'text_input':
                         schema = TextInputQuestionSchema()
@@ -466,11 +507,17 @@ def normalize_questionnaire_data(data):
         'submission_date': basic_info.get('submission_date', datetime.now().strftime('%Y-%m-%d'))
     }
     
+    # 添加家长联系信息
+    if basic_info.get('parent_phone'):
+        normalized['basic_info']['parent_phone'] = str(basic_info.get('parent_phone', '')).strip()
+    if basic_info.get('parent_wechat'):
+        normalized['basic_info']['parent_wechat'] = str(basic_info.get('parent_wechat', '')).strip()
+    if basic_info.get('parent_email'):
+        normalized['basic_info']['parent_email'] = str(basic_info.get('parent_email', '')).strip()
+    
     if basic_info.get('age'):
-        try:
-            normalized['basic_info']['age'] = int(basic_info['age'])
-        except (ValueError, TypeError):
-            pass
+        # 保持age为字符串格式，支持年龄段如'6_11'
+        normalized['basic_info']['age'] = str(basic_info['age']).strip()
     
     # 标准化问题列表
     questions = data.get('questions', [])
@@ -518,13 +565,13 @@ def normalize_question_data(question):
     
     question_type = question.get('type')
     normalized = {
-        'id': int(question.get('id', 0)),
+        'id': str(question.get('id', '')).strip(),  # 保持ID为字符串格式
         'type': question_type,
         'question': str(question.get('question', '')).strip()
     }
     
-    if question_type == 'multiple_choice':
-        # 标准化选择题
+    if question_type in ['multiple_choice', 'single_choice']:
+        # 标准化选择题（包括单选和多选）
         options = question.get('options', [])
         normalized['options'] = []
         
@@ -684,15 +731,12 @@ def check_basic_info_integrity(basic_info):
     if grade and len(grade) > 20:
         errors.append("年级长度不能超过20个字符")
     
-    # 检查年龄合理性
+    # 检查年龄格式合理性（支持年龄段如'6_11'）
     age = basic_info.get('age')
     if age is not None:
-        try:
-            age_int = int(age)
-            if age_int < 1 or age_int > 150:
-                errors.append("年龄必须在1-150之间")
-        except (ValueError, TypeError):
-            errors.append("年龄必须是有效数字")
+        age_str = str(age).strip()
+        if len(age_str) > 20:
+            errors.append("年龄格式长度不能超过20个字符")
     
     return errors
 

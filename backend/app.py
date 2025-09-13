@@ -34,6 +34,71 @@ from error_handlers import (
     business_error
 )
 
+def merge_questionnaire_data(original_data, update_data):
+    """智能合并问卷数据，只更新改动的部分"""
+    import copy
+    
+    # 深拷贝原始数据作为基础
+    merged = copy.deepcopy(original_data)
+    
+    # 合并基本信息
+    if 'basic_info' in update_data:
+        if 'basic_info' not in merged:
+            merged['basic_info'] = {}
+        merged['basic_info'].update(update_data['basic_info'])
+    
+    # 合并问题数据
+    if 'questions' in update_data:
+        if 'questions' not in merged:
+            merged['questions'] = []
+        
+        # 确保merged['questions']有足够的元素
+        while len(merged['questions']) < len(update_data['questions']):
+            merged['questions'].append({})
+        
+        # 逐个更新问题
+        for i, update_question in enumerate(update_data['questions']):
+            if i < len(merged['questions']):
+                # 只更新有值的字段
+                for key, value in update_question.items():
+                    if value is not None and value != '':
+                        merged['questions'][i][key] = value
+            else:
+                # 新增问题
+                merged['questions'].append(update_question)
+    
+    # 处理其他可能的数据结构（data, detailedData等）
+    for key in ['data', 'detailedData']:
+        if key in update_data:
+            if key not in merged:
+                merged[key] = []
+            
+            if isinstance(update_data[key], list):
+                # 确保merged[key]有足够的元素
+                while len(merged[key]) < len(update_data[key]):
+                    merged[key].append({})
+                
+                # 逐个更新元素
+                for i, update_item in enumerate(update_data[key]):
+                    if i < len(merged[key]):
+                        if isinstance(update_item, dict):
+                            for field_key, field_value in update_item.items():
+                                if field_value is not None and field_value != '':
+                                    merged[key][i][field_key] = field_value
+                        else:
+                            merged[key][i] = update_item
+                    else:
+                        merged[key].append(update_item)
+            else:
+                merged[key] = update_data[key]
+    
+    # 更新其他顶级字段
+    for key, value in update_data.items():
+        if key not in ['basic_info', 'questions', 'data', 'detailedData'] and value is not None:
+            merged[key] = value
+    
+    return merged
+
 app = Flask(__name__, template_folder='templates', static_folder='static')
 
 # 加载配置
@@ -42,6 +107,26 @@ app.config.from_object(config[config_name])
 
 # 记录应用启动时间用于性能监控
 app.config['START_TIME'] = time.time()
+
+# 动态baseUrl配置
+def get_base_url():
+    """根据环境动态获取baseUrl"""
+    # 获取主机名
+    hostname = os.environ.get('SERVER_NAME', '115.190.103.114')
+    
+    # 使用与前端env-config.js一致的本地环境判断逻辑
+    is_local = hostname == 'localhost' or hostname == '127.0.0.1' or hostname == '' or hostname == '0.0.0.0'
+    
+    if is_local:
+        # 本地环境使用相对路径
+        return ''
+    else:
+        # 服务器环境使用完整URL
+        port = os.environ.get('PORT', '8081')
+        return f'http://{hostname}:{port}'
+
+# 将baseUrl添加到应用配置中
+app.config['BASE_URL'] = get_base_url()
 
 # 启用CORS支持 - 增强配置
 CORS(app, resources={
@@ -116,7 +201,10 @@ def init_db():
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             data TEXT NOT NULL,
             report_data TEXT,
-            report_generated_at TIMESTAMP
+            report_generated_at TIMESTAMP,
+            parent_phone TEXT,
+            parent_wechat TEXT,
+            parent_email TEXT
         )
         ''')
         
@@ -128,6 +216,22 @@ def init_db():
         
         try:
             cursor.execute("ALTER TABLE questionnaires ADD COLUMN report_generated_at TIMESTAMP")
+        except sqlite3.OperationalError:
+            pass  # 字段已存在
+        
+        # 添加家长联系方式字段
+        try:
+            cursor.execute("ALTER TABLE questionnaires ADD COLUMN parent_phone TEXT")
+        except sqlite3.OperationalError:
+            pass  # 字段已存在
+        
+        try:
+            cursor.execute("ALTER TABLE questionnaires ADD COLUMN parent_wechat TEXT")
+        except sqlite3.OperationalError:
+            pass  # 字段已存在
+        
+        try:
+            cursor.execute("ALTER TABLE questionnaires ADD COLUMN parent_email TEXT")
         except sqlite3.OperationalError:
             pass  # 字段已存在
         
@@ -713,6 +817,11 @@ def submit_questionnaire():
         grade = basic_info.get('grade', '')
         submission_date = basic_info.get('submission_date', datetime.now().strftime('%Y-%m-%d'))
         
+        # 提取家长联系方式
+        parent_phone = basic_info.get('parent_phone', '')
+        parent_wechat = basic_info.get('parent_wechat', '')
+        parent_email = basic_info.get('parent_email', '')
+        
         # 始终使用服务器当前时间作为创建时间
         created_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
@@ -723,8 +832,8 @@ def submit_questionnaire():
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT INTO questionnaires (type, name, grade, submission_date, created_at, updated_at, data) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (questionnaire_type, name, grade, submission_date, created_at, created_at, json.dumps(final_data, default=str, ensure_ascii=False))
+                "INSERT INTO questionnaires (type, name, grade, submission_date, created_at, updated_at, data, parent_phone, parent_wechat, parent_email) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (questionnaire_type, name, grade, submission_date, created_at, created_at, json.dumps(final_data, default=str, ensure_ascii=False), parent_phone, parent_wechat, parent_email)
             )
             conn.commit()
             questionnaire_id = cursor.lastrowid
@@ -830,6 +939,9 @@ def get_questionnaires():
                 'submission_date': q['submission_date'],
                 'created_at': q['created_at'],
                 'updated_at': q['updated_at'],
+                'parent_phone': q['parent_phone'],
+                'parent_wechat': q['parent_wechat'],
+                'parent_email': q['parent_email'],
                 'data': json.loads(q['data'])
             })
         
@@ -953,28 +1065,58 @@ def get_questionnaire(questionnaire_id):
 def update_questionnaire(questionnaire_id):
     try:
         data = request.json
+        print(f"[DEBUG] 接收到的原始数据: {json.dumps(data, ensure_ascii=False, indent=2)}")
         
         if not data:
-            return jsonify(create_validation_error_response(['请求数据不能为空'])), 400
+            error_msg = '请求数据不能为空'
+            print(f"[ERROR] {error_msg}")
+            return jsonify(create_validation_error_response([error_msg])), 400
+        
+        # 获取原始问卷数据
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT data, type, name, grade, submission_date FROM questionnaires WHERE id = ?", (questionnaire_id,))
+            result = cursor.fetchone()
+            
+            if not result:
+                return jsonify({
+                    'success': False,
+                    'error': {
+                        'code': 'NOT_FOUND',
+                        'message': '问卷不存在'
+                    }
+                }), 404
+            
+            original_data_str, original_type, original_name, original_grade, original_submission_date = result
+            original_data = json.loads(original_data_str) if original_data_str else {}
+        
+        # 增量更新：合并原始数据和新数据
+        merged_data = merge_questionnaire_data(original_data, data)
+        print(f"[DEBUG] 合并后的数据: {json.dumps(merged_data, ensure_ascii=False, indent=2)}")
         
         # 数据标准化
         try:
-            normalized_data = normalize_questionnaire_data(data)
+            normalized_data = normalize_questionnaire_data(merged_data)
+            print(f"[DEBUG] 标准化后的数据: {json.dumps(normalized_data, ensure_ascii=False, indent=2)}")
         except Exception as e:
-            return jsonify(create_validation_error_response([f'数据标准化失败: {str(e)}'])), 400
+            error_msg = f'数据标准化失败: {str(e)}'
+            print(f"[ERROR] {error_msg}")
+            return jsonify(create_validation_error_response([error_msg])), 400
         
         # 使用新的验证模块进行验证
         is_valid, validation_errors, validated_data = validate_questionnaire_with_schema(normalized_data)
         
         if not is_valid:
+            error_msg = f'数据验证失败: {validation_errors}'
+            print(f"[ERROR] {error_msg}")
             return jsonify(create_validation_error_response(validation_errors)), 400
         
         # 从验证后的数据中提取基本信息
-        questionnaire_type = validated_data.get('type', 'unknown')
+        questionnaire_type = validated_data.get('type', original_type)
         basic_info = validated_data.get('basic_info', {})
-        name = basic_info.get('name', '')
-        grade = basic_info.get('grade', '')
-        submission_date = basic_info.get('submission_date', '')
+        name = basic_info.get('name', original_name)
+        grade = basic_info.get('grade', original_grade)
+        submission_date = basic_info.get('submission_date', original_submission_date)
         
         updated_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
@@ -988,18 +1130,9 @@ def update_questionnaire(questionnaire_id):
                 (questionnaire_type, name, grade, submission_date, updated_at, json.dumps(final_data, default=str, ensure_ascii=False), questionnaire_id)
             )
             conn.commit()
-            
-            if cursor.rowcount == 0:
-                return jsonify({
-                    'success': False,
-                    'error': {
-                        'code': 'NOT_FOUND',
-                        'message': '问卷不存在'
-                    }
-                }), 404
         
         # 记录操作日志
-        OperationLogger.log(OperationLogger.UPDATE_QUESTIONNAIRE, questionnaire_id, f'更新问卷: {name} - {questionnaire_type}')
+        OperationLogger.log(OperationLogger.UPDATE_QUESTIONNAIRE, questionnaire_id, f'增量更新问卷: {name} - {questionnaire_type}')
         
         return jsonify({
             'success': True,
@@ -1035,8 +1168,20 @@ def batch_delete_questionnaires():
                 }
             }), 400
         
-        # 验证ID格式
-        if not all(isinstance(id, int) and id > 0 for id in questionnaire_ids):
+        # 验证并转换ID格式
+        try:
+            # 尝试将所有ID转换为整数
+            questionnaire_ids = [int(id) for id in questionnaire_ids]
+            # 验证转换后的ID是否有效
+            if not all(id > 0 for id in questionnaire_ids):
+                return jsonify({
+                    'success': False,
+                    'error': {
+                        'code': 'VALIDATION_ERROR',
+                        'message': '问卷ID必须为正整数'
+                    }
+                }), 400
+        except (ValueError, TypeError):
             return jsonify({
                 'success': False,
                 'error': {
@@ -2975,6 +3120,16 @@ def generate_frankfurt_report_html(report_data):
 # 注册统一错误处理器
 register_error_handlers(app)
 
+# 配置信息API - 提供给前端使用
+@app.route('/api/config', methods=['GET'])
+def get_config():
+    """返回前端需要的配置信息"""
+    return jsonify({
+        'baseUrl': app.config['BASE_URL'],
+        'environment': config_name,
+        'debug': app.config.get('DEBUG', False)
+    })
+
 # 管理页面路由
 @app.route('/admin')
 @login_required
@@ -2989,17 +3144,173 @@ def login_page():
         return redirect(url_for('admin_dashboard'))
     return render_template('login.html')
 
-# 首页路由
+# config.js文件路由
+@app.route('/config.js')
+def config_js():
+    """提供config.js配置文件"""
+    return send_file('../html/config.js', mimetype='application/javascript')
+
+@app.route('/html/FSCM/config.js')
+def fscm_config_js():
+    """提供FSCM目录下的config.js配置文件"""
+    return send_file('../html/config.js', mimetype='application/javascript')
+
+# 静态资源路由 - 本地开发环境使用Flask代理
+@app.route('/local_assets/<path:filename>')
+def serve_local_assets(filename):
+    """提供html/local_assets目录下的静态资源"""
+    return send_file(f'../html/local_assets/{filename}')
+
+@app.route('/favicon.ico')
+def favicon():
+    """提供favicon"""
+    return send_file('../html/favicon.ico')
+
+# 静态文件代理路由 - 支持各种静态资源
+@app.route('/image/<path:filename>')
+def serve_images(filename):
+    """提供html/image目录下的图片资源"""
+    return send_file(f'../html/image/{filename}')
+
+@app.route('/<path:filename>')
+def serve_static_files(filename):
+    """提供其他静态文件 - 仅在本地开发环境使用"""
+    # 检查是否为静态文件扩展名
+    static_extensions = ['.js', '.css', '.png', '.jpg', '.jpeg', '.gif', '.ico', '.svg', 
+                        '.woff', '.woff2', '.ttf', '.eot', '.webp', '.json']
+    
+    if any(filename.lower().endswith(ext) for ext in static_extensions):
+        try:
+            # 首先尝试从html目录提供文件
+            return send_file(f'../html/{filename}')
+        except FileNotFoundError:
+            # 如果html目录中没有，尝试从根目录
+            try:
+                return send_file(f'../{filename}')
+            except FileNotFoundError:
+                return "File not found", 404
+    
+    # 非静态文件返回404
+    return "Not found", 404
+
+# FSCM页面路由 - 根据环境动态设置路由
+@app.route('/html/FSCM/')
+@app.route('/FSCM/')
+def fscm_page():
+    """Frankfurt Scale选择性缄默筛查量表页面"""
+    return send_file('../Frankfurt Scale of Selective Mutism - Integrated.html')
+
+# 确保env-config.js和本地资源在FSCM路径下也能正确加载
+@app.route('/FSCM/html/env-config.js')
+def fscm_env_config():
+    """在FSCM路径下提供env-config.js"""
+    return send_file('../html/env-config.js')
+
+# 确保本地资源在FSCM路径下也能正确加载
+@app.route('/FSCM/html/local_assets/<path:filename>')
+def fscm_local_assets(filename):
+    """在FSCM路径下提供本地资源"""
+    return send_file(f'../html/local_assets/{filename}')
+
+# 首页路由 - html目录中的index.html作为入口页
 @app.route('/')
 def index():
-    # 如果已经登录，重定向到管理页面，否则重定向到登录页面
-    if 'user_id' in session:
-        return redirect(url_for('admin_dashboard'))
-    else:
-        return redirect(url_for('login_page'))
+    """首页 - 返回html目录中的index.html"""
+    return send_file('../html/index.html')
+
+# magic-wire页面路由
+@app.route('/magic-wire')
+def magic_wire():
+    """Magic Wire页面"""
+    return send_file('../html/magic-wire.html')
+
+# study页面路由
+@app.route('/study')
+def study():
+    """Study页面"""
+    return send_file('../html/i5.html')
+
+# 问卷引导页路由
+@app.route('/guide')
+def guide():
+    """问卷引导页"""
+    return send_file('../引导页.html')
 
 if __name__ == '__main__':
     # 初始化数据库
     init_db()
     # 启动Flask应用
-    app.run(debug=True, host='0.0.0.0', port=8081)
+    app.run(debug=True, host='0.0.0.0', port=5002)
+# ==================== 文件API路由 ====================
+
+@app.route('/files/upload', methods=['GET'])
+def get_upload_files():
+    """获取上传目录文件列表"""
+    try:
+        import os
+        upload_dir = '/home/ftptest/Downloader/upload'
+        if not os.path.exists(upload_dir):
+            return jsonify({'error': '上传目录不存在'}), 404
+        
+        files = []
+        for filename in os.listdir(upload_dir):
+            file_path = os.path.join(upload_dir, filename)
+            if os.path.isfile(file_path):
+                stat = os.stat(file_path)
+                files.append({
+                    'name': filename,
+                    'size': stat.st_size,
+                    'modified': stat.st_mtime
+                })
+        
+        return jsonify({'files': files})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/files/successful', methods=['GET'])
+def get_successful_files():
+    """获取成功目录文件列表"""
+    try:
+        import os
+        successful_dir = '/home/ftptest/Downloader/successful'
+        if not os.path.exists(successful_dir):
+            return jsonify({'error': '成功目录不存在'}), 404
+        
+        files = []
+        for filename in os.listdir(successful_dir):
+            file_path = os.path.join(successful_dir, filename)
+            if os.path.isfile(file_path):
+                stat = os.stat(file_path)
+                files.append({
+                    'name': filename,
+                    'size': stat.st_size,
+                    'modified': stat.st_mtime
+                })
+        
+        return jsonify({'files': files})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/files/down', methods=['GET'])
+def get_down_files():
+    """获取下载目录文件列表"""
+    try:
+        import os
+        down_dir = '/home/ftptest/Downloader/down'
+        if not os.path.exists(down_dir):
+            return jsonify({'error': '下载目录不存在'}), 404
+        
+        files = []
+        for filename in os.listdir(down_dir):
+            file_path = os.path.join(down_dir, filename)
+            if os.path.isfile(file_path):
+                stat = os.stat(file_path)
+                files.append({
+                    'name': filename,
+                    'size': stat.st_size,
+                    'modified': stat.st_mtime
+                })
+        
+        return jsonify({'files': files})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

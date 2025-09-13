@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小布开口 - 专业的选择性缄默儿童干预服务</title>
+    <meta name="description" content="专业的选择性缄默儿童干预服务，以心理咨询师+服务团队为核心，提供科学有效的干预方案">
+    <meta name="keywords" content="选择性缄默,儿童干预,心理咨询,小布开口,CBT干预">
+    
+    <!-- 本地资源 - 使用绝对路径确保在任何路径下都能正确加载 -->
+    <script src="/html/local_assets/js/tailwind.js"></script>
+    <link rel="stylesheet" href="/html/local_assets/css/fontawesome.min.css" media="print" onload="this.media='all'">
+    
+    <!-- 环境配置 - 使用绝对路径确保在任何路径下都能正确加载 -->
+    <script src="/html/env-config.js"></script>
+    <style>
+        /* 禁止整个页面的文字编辑光标 */
+        * {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        
+        /* 允许输入框和文本区域可以选中文本 */
+        input, textarea, [contenteditable] {
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+        }
+    </style>
+    
+    <!-- 基础URL设置和动态资源加载 - 优先执行 -->
+    <script>
+        // 使用全局环境配置
+        const baseUrl = ENV_CONFIG.baseUrl;
+        ENV_CONFIG.log('Index page initialized', {
+            baseUrl: baseUrl,
+            environment: ENV_CONFIG.getEnvDescription()
+        });
+        
+        // 图片资源映射
+        const imageUrls = {
+            xbkkx: baseUrl + '/image/xbkkx.png',
+            xbkk: baseUrl + '/image/xbkk.png',
+            vx: baseUrl + '/image/vx.jpg',
+            qq: baseUrl + '/image/qq.jpg'
+        };
+        
+        // 立即更新预加载链接
+        function updatePreloadLinks() {
+            const preloadMap = [
+                { id: 'preload-xbkkx', url: imageUrls.xbkkx },
+                { id: 'preload-xbkk', url: imageUrls.xbkk },
+                { id: 'preload-vx', url: imageUrls.vx },
+                { id: 'preload-qq', url: imageUrls.qq }
+            ];
+            
+            preloadMap.forEach(item => {
+                const link = document.getElementById(item.id);
+                if (link) link.href = item.url;
+            });
+        }
+        
+        // 立即执行预加载
+        function preloadImages() {
+            const urls = [
+                imageUrls.xbkkx,
+                imageUrls.xbkk,
+                imageUrls.vx,
+                imageUrls.qq
+            ];
+            
+            urls.forEach(url => {
+                const img = new Image();
+                img.src = url;
+                img.loading = 'eager';
+            });
+        }
+        
+        // 动态设置所有图片src
+        function updateImageSources() {
+            // 导航栏logo
+            const navLogo = document.getElementById('nav-logo');
+            if (navLogo) navLogo.src = imageUrls.xbkkx;
+            
+            // 主页面logo
+            const mainLogo = document.getElementById('main-logo');
+            if (mainLogo) mainLogo.src = imageUrls.xbkk;
+            
+            // 页脚logo
+            const footerLogo = document.getElementById('footer-logo');
+            if (footerLogo) footerLogo.src = imageUrls.xbkkx;
+            
+            // 微信二维码
+            const wechatQrModal = document.getElementById('wechat-qr-modal');
+            if (wechatQrModal) wechatQrModal.src = imageUrls.vx;
+            
+            const wechatQrFinal = document.getElementById('wechat-qr-final');
+            if (wechatQrFinal) wechatQrFinal.src = imageUrls.vx;
+            
+            // QQ二维码
+            const qqQrModal = document.getElementById('qq-qr-modal');
+            if (qqQrModal) qqQrModal.src = imageUrls.qq;
+        }
+        
+        // 动态打开FSCM页面
+        function openFSCMPage() {
+            const fscmUrl = baseUrl + '/FSCM/';
+            console.log('Opening FSCM page:', fscmUrl);
+            window.open(fscmUrl, '_blank');
+        }
+        
+        // 立即执行 - 不等待DOMContentLoaded
+        updatePreloadLinks();
+        preloadImages();
+        
+        // 确保DOM加载后更新图片源
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', updateImageSources);
+        } else {
+            updateImageSources();
+        }
+    </script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#fef7ee', 100: '#fdedd3', 200: '#fbd7a5', 300: '#f8bb6d',
+                            400: '#f59532', 500: '#f37516', 600: '#e45a0c', 700: '#bd430c',
+                            800: '#973612', 900: '#7a2e12',
+                        },
+                        secondary: {
+                            50: '#f0f9ff', 100: '#e0f2fe', 200: '#bae6fd', 300: '#7dd3fc',
+                            400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1',
+                            800: '#075985', 900: '#0c4a6e',
+                        }
+                    },
+                    fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'] },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                        'slide-up': 'slideUp 0.5s ease-out',
+                    },
+                    keyframes: {
+                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+                        slideUp: { '0%': { opacity: '0', transform: 'translateY(20px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+    <nav class="bg-white dark:bg-gray-800 shadow-lg sticky top-0 z-50 transition-colors duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center">
+                        <img id="nav-logo" src="" 
+                             alt="小布开口"
+                             class="h-14 w-auto object-contain"
+                             loading="lazy"
+                             width="120"
+                             height="40">
+                    </div>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#philosophy" class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 rounded-md text-sm font-medium transition-colors">服务理念</a>
+                        <a href="#services" class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 rounded-md text-sm font-medium transition-colors">服务体系</a>
+                        <a href="#quality" class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 rounded-md text-sm font-medium transition-colors">质量保障</a>
+                        <a href="#advantages" class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 rounded-md text-sm font-medium transition-colors">核心优势</a>
+                    </div>
+                </div>
+                <button id="theme-toggle" class="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                    <i class="fas fa-sun dark:hidden"></i>
+                    <i class="fas fa-moon hidden dark:block"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <section class="bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-gray-800 dark:to-gray-900 py-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center animate-fade-in">
+                <img id="main-logo" src="" 
+                     alt="小布开口" 
+                     class="h-24 md:h-40 w-auto object-contain mx-auto mb-8"
+                     loading="lazy">
+                <p class="text-2xl md:text-3xl text-gray-600 dark:text-gray-300 mb-10 max-w-3xl mx-auto">
+                    专业的选择性缄默儿童干预服务
+                </p>
+                <div class="text-xl md:text-2xl mb-16 text-gray-700 dark:text-gray-200 opacity-80 max-w-4xl mx-auto">
+                    <p class="mb-6">以"心理咨询师+服务团队"为核心，打造"多触点、重陪伴"的专业干预服务体系</p>
+                    <p class="font-semibold text-primary-600 dark:text-primary-400">"小步骤，大改变" - 每一步都算数</p>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <button id="assessment-btn" onclick="openFSCMPage()" class="bg-primary-600 hover:bg-primary-700 text-white px-8 py-3 rounded-lg text-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg cursor-pointer">
+                        <i class="fas fa-play mr-2"></i>开始免费评估
+                    </button>
+                    <button onclick="toggleWeChatQR()" class="bg-white dark:bg-gray-800 text-primary-600 dark:text-primary-400 border-2 border-primary-600 dark:border-primary-400 px-8 py-3 rounded-lg text-lg font-semibold hover:bg-primary-50 dark:hover:bg-gray-700 transition-all duration-300 inline-block cursor-pointer">
+                        <i class="fas fa-phone mr-2"></i>联系咨询师
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="philosophy" class="py-20 bg-white dark:bg-gray-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16 animate-slide-up">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                    服务核心理念
+                </h2>
+                <p class="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+                    构建"专家+陪跑师+社群"铁三角服务模式，确保专业深度与持续陪伴
+                </p>
+            </div>
+            
+            <div class="grid md:grid-cols-3 gap-8 mb-16">
+                <div class="text-center p-8 bg-gradient-to-br from-primary-50 to-primary-100 dark:from-gray-700 dark:to-gray-600 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                    <div class="w-16 h-16 bg-primary-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-user-md text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">主案咨询师</h3>
+                    <p class="text-primary-700 dark:text-primary-400 font-semibold mb-4">总设计师</p>
+                    <ul class="space-y-3 text-gray-600 dark:text-gray-300 text-left">
+                        <li class="flex items-start"><i class="fas fa-check-circle text-green-500 mr-3 mt-1"></i>深度评估与诊断</li>
+                        <li class="flex items-start"><i class="fas fa-check-circle text-green-500 mr-3 mt-1"></i>制定个性化干预策略</li>
+                        <li class="flex items-start"><i class="fas fa-check-circle text-green-500 mr-3 mt-1"></i>关键节点干预指导</li>
+                        <li class="flex items-start"><i class="fas fa-check-circle text-green-500 mr-3 mt-1"></i>定期复盘与方案调整</li>
+                    </ul>
+                </div>
+                
+                <div class="text-center p-8 bg-gradient-to-br from-secondary-50 to-secondary-100 dark:from-gray-700 dark:to-gray-600 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                    <div class="w-16 h-16 bg-secondary-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-running text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">陪跑助理</h3>
+                    <p class="text-secondary-700 dark:text-secondary-400 font-semibold mb-4">同行者教练</p>
+                     <ul class="space-y-3 text-gray-600 dark:text-gray-300 text-left">
+                        <li class="flex items-start"><i class="fas fa-check-circle text-green-500 mr-3 mt-1"></i>指导家长完成具体任务</li>
+                        <li class="flex items-start"><i class="fas fa-check-circle text-green-500 mr-3 mt-1"></i>高频轻量互动支持</li>
+                        <li class="flex items-start"><i class="fas fa-check-circle text-green-500 mr-3 mt-1"></i>追踪"勇敢阶梯"进展</li>
+                        <li class="flex items-start"><i class="fas fa-check-circle text-green-500 mr-3 mt-1"></i>带领家长互助群讨论</li>
+                    </ul>
+                </div>
+                
+                <div class="text-center p-8 bg-gradient-to-br from-green-50 to-green-100 dark:from-gray-700 dark:to-gray-600 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                    <div class="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-cogs text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">支持系统</h3>
+                    <p class="text-green-700 dark:text-green-400 font-semibold mb-4">智能工具箱</p>
+                    <ul class="space-y-3 text-gray-600 dark:text-gray-300 text-left">
+                        <li class="flex items-start"><i class="fas fa-check-circle text-green-500 mr-3 mt-1"></i>系统学习资料库</li>
+                        <li class="flex items-start"><i class="fas fa-check-circle text-green-500 mr-3 mt-1"></i>在线评估工具</li>
+                        <li class="flex items-start"><i class="fas fa-check-circle text-green-500 mr-3 mt-1"></i>分层社群系统</li>
+                        <li class="flex items-start"><i class="fas fa-check-circle text-green-500 mr-3 mt-1"></i>月度主题活动</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="bg-gradient-to-r from-primary-50 to-secondary-50 dark:from-gray-700 dark:to-gray-800 rounded-3xl p-8 md:p-12">
+                <div class="text-center mb-8">
+                    <h3 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">核心技术模式</h3>
+                    <p class="text-lg text-gray-600 dark:text-gray-300">基于认知行为干预（CBT）的科学方法</p>
+                </div>
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="space-y-4">
+                        <h4 class="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
+                            <i class="fas fa-brain text-primary-600 mr-3"></i>
+                            分级暴露核心技术
+                        </h4>
+                        <ul class="space-y-2 text-gray-600 dark:text-gray-300 ml-8">
+                            <li>• 刺激递进/滑入技术（sliding-in）</li>
+                            <li>• 行为塑形训练</li>
+                            <li>• 差别强化策略</li>
+                        </ul>
+                    </div>
+                    <div class="space-y-4">
+                        <h4 class="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
+                            <i class="fas fa-chart-line text-secondary-600 mr-3"></i>
+                            双场域同步推进
+                        </h4>
+                        <ul class="space-y-2 text-gray-600 dark:text-gray-300 ml-8">
+                            <li>• 家庭环境干预</li>
+                            <li>• 学校环境协作</li>
+                            <li>• 量化进度追踪</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="services" class="py-20 bg-gray-50 dark:bg-gray-900">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16 animate-fade-in">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                    小布开口服务体系
+                </h2>
+                <p class="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+                    梯度化服务设计，满足不同认知和预算的家庭需求
+                </p>
+            </div>
+
+            <div class="grid gap-8 max-w-6xl mx-auto">
+                <div class="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-xl border border-gray-200 dark:border-gray-700 transition-all duration-300 transform hover:scale-105">
+                    <div class="flex flex-col lg:flex-row items-center gap-8">
+                        <div class="flex-shrink-0">
+                            <div class="w-20 h-20 bg-green-100 dark:bg-green-800 rounded-full flex items-center justify-center">
+                                <i class="fas fa-eye text-3xl text-green-600 dark:text-green-400"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow text-center lg:text-left">
+                            <div class="flex items-center justify-center lg:justify-start gap-4 mb-4">
+                                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">认识·小布开口</h3>
+                                <span class="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-3 py-1 rounded-full text-sm font-semibold">免费</span>
+                            </div>
+                            <p class="text-gray-600 dark:text-gray-300 mb-4">了解选缄与建立信任</p>
+                            <div class="flex flex-wrap gap-2 justify-center lg:justify-start">
+                                <span class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-full text-sm">短视频内容库</span>
+                                <span class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-full text-sm">免费评估工具</span>
+                                <span class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-full text-sm">5分钟初步判断</span>
+                            </div>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <a href="https://www.douyin.com/user/MS4wLjABAAAAEy2rG_8U9cJV9Bnq3BP6f1Y7q9UM9t_NX0R_n4qtxmU?from_tab_name=main" 
+                               class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-full font-semibold transition-all duration-300 hover:scale-105 inline-block"
+                               target="_blank" rel="noopener noreferrer">
+                                了解我们
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-xl border border-gray-200 dark:border-gray-700 transition-all duration-300 transform hover:scale-105">
+                    <div class="flex flex-col lg:flex-row items-center gap-8">
+                        <div class="flex-shrink-0">
+                            <div class="w-20 h-20 bg-blue-100 dark:bg-blue-800 rounded-full flex items-center justify-center">
+                                <i class="fas fa-rocket text-3xl text-blue-600 dark:text-blue-400"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow text-center lg:text-left">
+                            <div class="flex items-center justify-center lg:justify-start gap-4 mb-4">
+                                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">启航·小布初探</h3>
+                                <span class="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm font-semibold">¥599</span>
+                                <span class="bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 px-3 py-1 rounded-full text-sm font-semibold">1周</span>
+                            </div>
+                            <p class="text-gray-600 dark:text-gray-300 mb-4">建立认知与深度评估，适合积极探索型家长</p>
+                            <div class="grid md:grid-cols-2 gap-4 text-sm text-gray-600 dark:text-gray-300">
+                                <div class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i>90分钟深度评估咨询</div>
+                                <div class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i>50分钟线上沙盘游戏</div>
+                                <div class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i>一年期学习资料库</div>
+                                <div class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i>15节科普视频课程</div>
+                            </div>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <button class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-full font-semibold transition-all duration-300 hover:scale-105">
+                                立即咨询
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-xl border-2 border-primary-400 dark:border-primary-600 transition-all duration-300 transform hover:scale-105 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 bg-primary-600 text-white px-4 py-2 rounded-bl-2xl">
+                        <span class="text-sm font-semibold">推荐</span>
+                    </div>
+                    <div class="flex flex-col lg:flex-row items-center gap-8">
+                        <div class="flex-shrink-0">
+                            <div class="w-20 h-20 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center">
+                                <i class="fas fa-hands-helping text-3xl text-primary-600 dark:text-primary-400"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow text-center lg:text-left">
+                            <div class="flex items-center justify-center lg:justify-start gap-4 mb-4">
+                                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">同行·小布支持</h3>
+                                <span class="bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200 px-3 py-1 rounded-full text-sm font-semibold">¥3,599</span>
+                                <span class="bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 px-3 py-1 rounded-full text-sm font-semibold">1个月</span>
+                            </div>
+                            <p class="text-gray-600 dark:text-gray-300 mb-4">基础建设与观察分析，"有人带、有人管、有人陪"</p>
+                            <div class="grid md:grid-cols-3 gap-4 text-sm text-gray-600 dark:text-gray-300">
+                                <div class="space-y-2"><div class="font-semibold text-gray-900 dark:text-white">第1周：家庭土壤改造</div><div class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i>线上沙盘课+复盘</div><div class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i>家庭会议脚本</div></div>
+                                <div class="space-y-2"><div class="font-semibold text-gray-900 dark:text-white">第2周：连接重建</div><div class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i>约玩清单制作</div><div class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i>高质量陪玩指导</div></div>
+                                <div class="space-y-2"><div class="font-semibold text-gray-900 dark:text-white">第3-4周：成果巩固</div><div class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i>勇敢阶梯设计</div><div class="flex items-center"><i class="fas fa-check text-green-500 mr-2"></i>暴露训练计划</div></div>
+                            </div>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <button class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-full font-semibold transition-all duration-300 hover:scale-105">
+                                立即咨询
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-xl border border-gray-200 dark:border-gray-700 transition-all duration-300 transform hover:scale-105">
+                    <div class="flex flex-col lg:flex-row items-center gap-8">
+                        <div class="flex-shrink-0">
+                            <div class="w-20 h-20 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center">
+                                <i class="fas fa-medal text-3xl text-purple-600 dark:text-purple-400"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow text-center lg:text-left">
+                            <div class="flex items-center justify-center lg:justify-start gap-4 mb-4">
+                                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">深耕·小布陪跑</h3>
+                                <span class="bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-3 py-1 rounded-full text-sm font-semibold">¥1,500/月</span>
+                                <span class="bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 px-3 py-1 rounded-full text-sm font-semibold">6个月</span>
+                            </div>
+                            <p class="text-gray-600 dark:text-gray-300 mb-4">长期陪跑与系统突破，适合复杂情况或需要全方位支持的家庭</p>
+                            <div class="grid md:grid-cols-3 gap-4 text-sm text-gray-600 dark:text-gray-300">
+                                <div class="space-y-2"><div class="font-semibold text-purple-600 dark:text-purple-400">家庭场域</div><div>巩固家庭安全表达</div><div>扩展熟悉外部环境</div><div>建立稳定表达习惯</div></div>
+                                <div class="space-y-2"><div class="font-semibold text-purple-600 dark:text-purple-400">社区场域</div><div>陌生成人暴露训练</div><div>同龄伙伴互动训练</div><div>半结构化社交场景</div></div>
+                                <div class="space-y-2"><div class="font-semibold text-purple-600 dark:text-purple-400">学校场域</div><div>课堂非语言参与</div><div>小声回答与小组参与</div><div>正常课堂表达</div></div>
+                            </div>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <button class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-full font-semibold transition-all duration-300 hover:scale-105">
+                                立即咨询
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-16 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-700 dark:to-gray-800 rounded-3xl p-8 md:p-12">
+                <h3 class="text-3xl font-bold text-center text-gray-900 dark:text-white mb-8">如何选择合适的服务？</h3>
+                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 text-center">
+                        <div class="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fas fa-question-circle text-green-600 dark:text-green-400"></i></div>
+                        <h4 class="font-semibold text-gray-900 dark:text-white mb-2">刚发现问题</h4>
+                        <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">不确定是否需要干预</p>
+                        <span class="text-green-600 dark:text-green-400 font-semibold">→ 认识·小布开口</span>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 text-center">
+                        <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fas fa-bolt text-blue-600 dark:text-blue-400"></i></div>
+                        <h4 class="font-semibold text-gray-900 dark:text-white mb-2">快速启动</h4>
+                        <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">想立刻学会科学方法</p>
+                        <span class="text-blue-600 dark:text-blue-400 font-semibold">→ 启航·小布初探</span>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 text-center">
+                        <div class="w-12 h-12 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fas fa-hands-helping text-primary-600 dark:text-primary-400"></i></div>
+                        <h4 class="font-semibold text-gray-900 dark:text-white mb-2">手把手指导</h4>
+                        <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">家庭学校同步推进</p>
+                        <span class="text-primary-600 dark:text-primary-400 font-semibold">→ 同行·小布支持</span>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 text-center">
+                        <div class="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fas fa-medal text-purple-600 dark:text-purple-400"></i></div>
+                        <h4 class="font-semibold text-gray-900 dark:text-white mb-2">长期陪跑</h4>
+                        <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">确保稳步提升</p>
+                        <span class="text-purple-600 dark:text-purple-400 font-semibold">→ 深耕·小布陪跑</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="quality" class="py-20 bg-white dark:bg-gray-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                    质量保障体系
+                </h2>
+                <p class="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+                    科学追踪，持续赋能，长期支持
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8 mb-16">
+                <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-gray-700 dark:to-gray-600 p-8 rounded-2xl shadow-lg">
+                    <div class="text-center mb-6"><div class="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4"><i class="fas fa-chart-line text-2xl text-white"></i></div><h3 class="text-2xl font-bold text-gray-900 dark:text-white">进度追踪工具</h3></div>
+                    <ul class="space-y-3 text-gray-700 dark:text-gray-300"><li class="flex items-start"><i class="fas fa-calendar-check text-blue-600 mr-3 mt-1"></i>每周进度表记录</li><li class="flex items-start"><i class="fas fa-clipboard-list text-blue-600 mr-3 mt-1"></i>月度标准化评估</li><li class="flex items-start"><i class="fas fa-video text-blue-600 mr-3 mt-1"></i>关键节点录像记录</li><li class="flex items-start"><i class="fas fa-sync-alt text-blue-600 mr-3 mt-1"></i>个性化方案调整</li></ul>
+                </div>
+
+                <div class="bg-gradient-to-br from-green-50 to-green-100 dark:from-gray-700 dark:to-gray-600 p-8 rounded-2xl shadow-lg">
+                    <div class="text-center mb-6"><div class="inline-flex items-center justify-center w-16 h-16 bg-green-600 rounded-full mb-4"><i class="fas fa-graduation-cap text-2xl text-white"></i></div><h3 class="text-2xl font-bold text-gray-900 dark:text-white">家长赋能计划</h3></div>
+                    <ul class="space-y-3 text-gray-700 dark:text-gray-300"><li class="flex items-start"><i class="fas fa-chalkboard-teacher text-green-600 mr-3 mt-1"></i>每月技能工作坊</li><li class="flex items-start"><i class="fas fa-users text-green-600 mr-3 mt-1"></i>同伴支持网络</li><li class="flex items-start"><i class="fas fa-phone text-green-600 mr-3 mt-1"></i>毕业后跟踪服务</li><li class="flex items-start"><i class="fas fa-heart text-green-600 mr-3 mt-1"></i>情感支持陪伴</li></ul>
+                </div>
+
+                <div class="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-gray-700 dark:to-gray-600 p-8 rounded-2xl shadow-lg">
+                    <div class="text-center mb-6"><div class="inline-flex items-center justify-center w-16 h-16 bg-purple-600 rounded-full mb-4"><i class="fas fa-shield-alt text-2xl text-white"></i></div><h3 class="text-2xl font-bold text-gray-900 dark:text-white">服务承诺</h3></div>
+                    <ul class="space-y-3 text-gray-700 dark:text-gray-300"><li class="flex items-start"><i class="fas fa-clock text-purple-600 mr-3 mt-1"></i>1年免费跟踪支持</li><li class="flex items-start"><i class="fas fa-calendar-alt text-purple-600 mr-3 mt-1"></i>3/6/12月回访服务</li><li class="flex items-start"><i class="fas fa-award text-purple-600 mr-3 mt-1"></i>专业资质保障</li><li class="flex items-start"><i class="fas fa-handshake text-purple-600 mr-3 mt-1"></i>效果承诺保证</li></ul>
+                </div>
+            </div>
+
+            <div class="bg-gradient-to-r from-primary-50 to-secondary-50 dark:from-gray-700 dark:to-gray-800 rounded-3xl p-8 md:p-12">
+                <h3 class="text-3xl font-bold text-center text-gray-900 dark:text-white mb-12">功能目标逐级推进</h3>
+                <div class="grid md:grid-cols-4 gap-6">
+                    <div class="text-center"><div class="w-16 h-16 bg-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-white font-bold text-xl">4周</span></div><h4 class="font-semibold text-gray-900 dark:text-white mb-2">基础建立</h4><p class="text-sm text-gray-600 dark:text-gray-300">家庭环境优化，安全感建立</p></div>
+                    <div class="text-center"><div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-white font-bold text-xl">8周</span></div><h4 class="font-semibold text-gray-900 dark:text-white mb-2">初步突破</h4><p class="text-sm text-gray-600 dark:text-gray-300">家庭内稳定表达，微暴露启动</p></div>
+                    <div class="text-center"><div class="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-white font-bold text-xl">12周</span></div><h4 class="font-semibold text-gray-900 dark:text-white mb-2">社交扩展</h4><p class="text-sm text-gray-600 dark:text-gray-300">熟悉环境表达，社交技能提升</p></div>
+                    <div class="text-center"><div class="w-16 h-16 bg-pink-600 rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-white font-bold text-xl">24周</span></div><h4 class="font-semibold text-gray-900 dark:text-white mb-2">全面适应</h4><p class="text-sm text-gray-600 dark:text-gray-300">学校正常参与，自信表达</p></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="advantages" class="py-20 bg-gray-50 dark:bg-gray-900">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                    核心优势
+                </h2>
+                <p class="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+                    五大核心优势，确保服务效果和质量
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-gray-700 dark:to-gray-600 p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                    <div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-6"><i class="fas fa-brain text-white text-2xl"></i></div>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">专业性</h3>
+                    <ul class="space-y-2 text-gray-600 dark:text-gray-300 text-sm"><li>• CBT分级暴露技术</li><li>• 家校协作双场域</li><li>• 科学量化追踪</li><li>• 循证干预方法</li></ul>
+                </div>
+
+                <div class="bg-gradient-to-br from-green-50 to-green-100 dark:from-gray-700 dark:to-gray-600 p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                    <div class="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mb-6"><i class="fas fa-heart text-white text-2xl"></i></div>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">陪伴性</h3>
+                    <ul class="space-y-2 text-gray-600 dark:text-gray-300 text-sm"><li>• 解决家长"做不到"问题</li><li>• 高频轻量互动支持</li><li>• 专属陪跑师全程陪伴</li><li>• 情感支持与鼓励</li></ul>
+                </div>
+
+                <div class="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-gray-700 dark:to-gray-600 p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                    <div class="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mb-6"><i class="fas fa-cogs text-white text-2xl"></i></div>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">系统性</h3>
+                    <ul class="space-y-2 text-gray-600 dark:text-gray-300 text-sm"><li>• 覆盖家庭、学校、社交</li><li>• 全场景干预训练</li><li>• 完整服务流程体系</li><li>• 多维度能力提升</li></ul>
+                </div>
+
+                <div class="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-gray-700 dark:to-gray-600 p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                    <div class="w-16 h-16 bg-orange-600 rounded-full flex items-center justify-center mb-6"><i class="fas fa-users text-white text-2xl"></i></div>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">社群性</h3>
+                    <ul class="space-y-2 text-gray-600 dark:text-gray-300 text-sm"><li>• 充分发挥同伴支持力量</li><li>• 分层社群精准服务</li><li>• 经验分享与互助</li><li>• 长期关系建立</li></ul>
+                </div>
+
+                <div class="bg-gradient-to-br from-red-50 to-red-100 dark:from-gray-700 dark:to-gray-600 p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 md:col-span-2 lg:col-span-1">
+                    <div class="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mb-6"><i class="fas fa-user-cog text-white text-2xl"></i></div>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">个性化</h3>
+                    <ul class="space-y-2 text-gray-600 dark:text-gray-300 text-sm"><li>• 根据年龄灵活调整</li><li>• 按程度定制方案</li><li>• 个性化评估报告</li><li>• 动态方案优化</li></ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-20 bg-gradient-to-br from-primary-600 to-secondary-600">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
+            <h2 class="text-3xl md:text-4xl font-bold mb-6">
+                让孩子重新找回表达的勇气
+            </h2>
+            <p class="text-xl mb-8 opacity-90">
+                专业团队陪伴，科学方法指导，让每一个选择性缄默的孩子都能自信开口
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <button onclick="openFSCMPage()" class="bg-white text-primary-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 shadow-lg cursor-pointer">
+                            开始免费评估
+                        </button>
+                <button class="border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-primary-600 transition-all duration-300 transform hover:scale-105 cursor-pointer" onclick="toggleWeChatQR()">
+                    <i class="fas fa-phone mr-2"></i>联系咨询师
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <footer id="contact" class="bg-gray-900 dark:bg-black text-white py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid md:grid-cols-4 gap-8">
+                <div class="md:col-span-2">
+                    <div class="flex items-center mb-6">
+                        <img id="footer-logo" src="" alt="小布开口" class="h-16 w-auto object-contain">
+                    </div>
+                    <p class="text-gray-300 mb-6 leading-relaxed">专业的选择性缄默儿童干预服务，以"心理咨询师+服务团队"为核心，打造"多触点、重陪伴"的专业干预服务体系。</p>
+                    <div class="flex space-x-4 relative">
+                        <div class="relative group">
+                            <a href="#" class="w-10 h-10 bg-gray-800 hover:bg-primary-600 rounded-full flex items-center justify-center transition-colors">
+                                <i class="fab fa-weixin"></i>
+                            </a>
+                            <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
+                                <div class="bg-white p-4 rounded-lg shadow-xl border border-gray-200">
+                                    <div class="w-40 h-40 flex items-center justify-center">
+                                        <img id="wechat-qr-modal" src="" alt="微信二维码" class="max-w-full max-h-full object-contain">
+                                    </div>
+                                </div>
+                                <div class="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1 w-0 h-0 border-l-8 border-r-8 border-t-8 border-transparent border-t-white"></div>
+                            </div>
+                        </div>
+                        <div class="relative group">
+                            <a href="#" class="w-10 h-10 bg-gray-800 hover:bg-primary-600 rounded-full flex items-center justify-center transition-colors">
+                                <i class="fab fa-qq"></i>
+                            </a>
+                            <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
+                                <div class="bg-white p-4 rounded-lg shadow-xl border border-gray-200">
+                                    <div class="w-40 h-40 flex items-center justify-center">
+                                        <img id="qq-qr-modal" src="" alt="QQ二维码" class="max-w-full max-h-full object-contain">
+                                    </div>
+                                </div>
+                                <div class="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1 w-0 h-0 border-l-8 border-r-8 border-t-8 border-transparent border-t-white"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-6">服务项目</h4>
+                    <ul class="space-y-3 text-gray-300">
+                        <li><a href="#services" class="hover:text-primary-400 transition-colors">认识·小布开口</a></li>
+                        <li><a href="#services" class="hover:text-primary-400 transition-colors">启航·小布初探</a></li>
+                        <li><a href="#services" class="hover:text-primary-400 transition-colors">同行·小布支持</a></li>
+                        <li><a href="#services" class="hover:text-primary-400 transition-colors">深耕·小布陪跑</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-6">联系我们</h4>
+                    <div class="space-y-3 text-gray-300">
+                        <div class="flex items-center"><i class="fas fa-phone mr-3 text-primary-400"></i><span>15549040076</span></div>
+                        <div class="flex items-center"><i class="fas fa-envelope mr-3 text-primary-400"></i><span>499839012@qq.com</span></div>
+                        <div class="flex items-center"><i class="fas fa-clock mr-3 text-primary-400"></i><span>工作时间：9:00-18:00</span></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-800 mt-12 pt-8">
+                 <div class="text-center text-gray-400">
+                    <p class="mb-2"><strong>作者姓名：</strong>小布开口团队</p>
+                    <p class="text-sm">© 2024 小布开口. 保留所有权利。专业选择性缄默儿童干预服务提供商。</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <button id="backToTop" class="fixed bottom-8 right-8 w-12 h-12 bg-primary-600 hover:bg-primary-700 text-white rounded-full shadow-lg opacity-0 invisible transition-all duration-300 z-50">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+    <script>
+        // 优化后的主题切换脚本
+        const themeToggle = document.getElementById('theme-toggle');
+        const html = document.documentElement;
+        const savedTheme = localStorage.getItem('theme');
+        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        const currentTheme = savedTheme || systemTheme;
+        html.classList.toggle('dark', currentTheme === 'dark');
+        
+        themeToggle?.addEventListener('click', () => {
+            const isDark = html.classList.contains('dark');
+            html.classList.toggle('dark', !isDark);
+            localStorage.setItem('theme', isDark ? 'light' : 'dark');
+        });
+
+        // 优化平滑滚动
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                if (this.getAttribute('href') !== '#services') {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }
+            });
+        });
+
+        // 优化回到顶部按钮
+        const backToTopButton = document.getElementById('backToTop');
+        let ticking = false;
+        
+        function updateBackToTop() {
+            if (window.pageYOffset > 300) {
+                backToTopButton?.classList.remove('opacity-0', 'invisible');
+                backToTopButton?.classList.add('opacity-100', 'visible');
+            } else {
+                backToTopButton?.classList.add('opacity-0', 'invisible');
+                backToTopButton?.classList.remove('opacity-100', 'visible');
+            }
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', () => {
+            if (!ticking) {
+                requestAnimationFrame(updateBackToTop);
+                ticking = true;
+            }
+        });
+
+        backToTopButton?.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        // 微信二维码显示/隐藏功能
+        function toggleWeChatQR() {
+            const qrContainer = document.getElementById('wechat-qr-container');
+            if (!qrContainer) {
+                // 创建微信二维码容器
+                createWeChatQRContainer();
+            } else {
+                // 切换显示状态
+                qrContainer.classList.toggle('hidden');
+            }
+        }
+
+        function createWeChatQRContainer() {
+            const container = document.createElement('div');
+            container.id = 'wechat-qr-container';
+            container.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            container.innerHTML = `
+                <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm mx-4 relative">
+                    <button class="absolute top-2 right-2 w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center text-gray-600 hover:text-gray-800 transition-colors" onclick="toggleWeChatQR()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <h3 class="text-xl font-bold text-center mb-4 text-gray-900">联系咨询师</h3>
+                    <div class="w-64 h-64 bg-white flex items-center justify-center mx-auto">
+                        <img id="wechat-qr-final" src="${imageUrls.vx}" alt="微信二维码" class="w-full h-full object-contain">
+                    </div>
+                    <p class="text-center text-sm text-gray-600 mt-4">扫码添加咨询师微信</p>
+                    <p class="text-center text-xs text-gray-500 mt-2">工作时间：9:00-18:00</p>
+                </div>
+            `;
+            
+            // 点击背景关闭
+            container.addEventListener('click', function(e) {
+                if (e.target === container) {
+                    toggleWeChatQR();
+                }
+            });
+            
+            document.body.appendChild(container);
+        }
+
+        // 绑定事件到按钮
+        document.addEventListener('DOMContentLoaded', function() {
+            // 绑定所有"立即咨询"按钮
+            const consultButtons = document.querySelectorAll('button');
+            consultButtons.forEach(btn => {
+                if (btn.textContent.trim() === '立即咨询') {
+                    btn.addEventListener('click', function() {
+                        toggleWeChatQR();
+                    });
+                }
+            });
+        });
+
+        // 延迟加载非关键资源
+        window.addEventListener('load', () => {
+            // 延迟加载Font Awesome
+            const faLink = document.querySelector('link[href*="font-awesome"]');
+            if (faLink) faLink.media = 'all';
+        });
+    </script>
+</body>
+</html>
