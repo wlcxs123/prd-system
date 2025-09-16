@@ -347,6 +347,9 @@
                     <button id="prev-btn" class="btn btn-secondary" disabled>
                         <i class="fa fa-arrow-left"></i> 上一题
                     </button>
+                    <button id="quick-submit-btn" class="btn" style="background-color: #10B981; color: white;">
+                        <i class="fa fa-flash"></i> 直接提交答卷
+                    </button>
                     <button id="next-btn" class="btn btn-primary">
                         下一题 <i class="fa fa-arrow-right"></i>
                     </button>
@@ -373,72 +376,74 @@
 
         <div class="footer">
             <p>&copy; 2025 专业心理评估支持系统</p>
+            <!-- 隐藏的回退按钮，用于测试完成后清除改动 -->
+            <button id="rollback-btn" class="btn" style="display: none; background-color: #EF4444; color: white; margin-top: 10px;" onclick="rollbackTestChanges()">
+                <i class="fa fa-undo"></i> 回退测试改动
+            </button>
+            <!-- 显示回退按钮的快捷键：按住Ctrl+Shift+R -->
+            <div style="font-size: 0.8rem; color: #9CA3AF; margin-top: 5px;">测试模式：按 Ctrl+Shift+R 显示回退按钮</div>
         </div>
     </div>
 
     <script>
-        // 自动填充基本信息
+        
+        // --- 1. DOM Elements ---
+        let startBtn, welcomePage, questionsContainer, questionCard, prevBtn, nextBtn;
+        let summaryContainer, summaryUserInfo, summaryContent, restartBtn;
+        let childNameInput, fillerNameInput, relationshipInput, childAgeInput, fillDateInput;
+        
+        // Initialize DOM elements after page loads
         document.addEventListener('DOMContentLoaded', function() {
-            // 读取localStorage中保存的基本信息
+            startBtn = document.getElementById('start-btn');
+            welcomePage = document.getElementById('welcome-page');
+            questionsContainer = document.getElementById('questions-container');
+            questionCard = document.getElementById('question-card');
+            prevBtn = document.getElementById('prev-btn');
+            nextBtn = document.getElementById('next-btn');
+            summaryContainer = document.getElementById('summary-container');
+            summaryUserInfo = document.getElementById('summary-user-info');
+            summaryContent = document.getElementById('summary-content');
+            restartBtn = document.getElementById('restart-btn');
+            
+            // User Info Form Elements
+            childNameInput = document.getElementById('childName');
+            fillerNameInput = document.getElementById('fillerName');
+            relationshipInput = document.getElementById('relationship');
+            childAgeInput = document.getElementById('childAge');
+            fillDateInput = document.getElementById('fillDate');
+            
+            // Initialize the application
+            initializeApp();
+        });
+
+        // Initialize application function
+        function initializeApp() {
+            // 读取localStorage中保存的基本信息并填充表单
             const savedInfo = localStorage.getItem('basicInfo');
             if (savedInfo) {
                 const info = JSON.parse(savedInfo);
                 
                 // 填充儿童姓名字段
-                if (info.name) {
-                    const childNameInput = document.getElementById('childName');
-                    if (childNameInput) childNameInput.value = info.name;
+                if (info.name && childNameInput) {
+                    childNameInput.value = info.name;
                 }
                 
-                // 填充年龄字段
-                if (info.age) {
-                    const childAgeInput = document.getElementById('childAge');
-                    if (childAgeInput) childAgeInput.value = info.age;
+                // 根据出生日期计算并填充年龄字段
+                if (info.birthdate && childAgeInput) {
+                    // 计算年龄
+                    const birthdate = new Date(info.birthdate);
+                    const today = new Date();
+                    let age = today.getFullYear() - birthdate.getFullYear();
+                    const monthDiff = today.getMonth() - birthdate.getMonth();
+                    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthdate.getDate())) {
+                        age--;
+                    }
+                    childAgeInput.value = age;
                 }
             }
-        });
-        
-        // --- 1. DOM Elements ---
-        const startBtn = document.getElementById('start-btn');
-        const welcomePage = document.getElementById('welcome-page');
-        const questionsContainer = document.getElementById('questions-container');
-        const questionCard = document.getElementById('question-card');
-        const prevBtn = document.getElementById('prev-btn');
-        const nextBtn = document.getElementById('next-btn');
-        const summaryContainer = document.getElementById('summary-container');
-        const summaryUserInfo = document.getElementById('summary-user-info');
-        const summaryContent = document.getElementById('summary-content');
-        const restartBtn = document.getElementById('restart-btn');
-        
-        // User Info Form Elements
-        const childNameInput = document.getElementById('childName');
-        const fillerNameInput = document.getElementById('fillerName');
-        const relationshipInput = document.getElementById('relationship');
-        const childAgeInput = document.getElementById('childAge');
-        const fillDateInput = document.getElementById('fillDate');
-
-        // 读取localStorage中保存的基本信息并填充表单
-        const savedInfo = localStorage.getItem('basicInfo');
-        if (savedInfo) {
-            const info = JSON.parse(savedInfo);
             
-            // 填充儿童姓名字段
-            if (info.name) {
-                childNameInput.value = info.name;
-            }
-            
-            // 根据出生日期计算并填充年龄字段
-            if (info.birthdate) {
-                // 计算年龄
-                const birthdate = new Date(info.birthdate);
-                const today = new Date();
-                let age = today.getFullYear() - birthdate.getFullYear();
-                const monthDiff = today.getMonth() - birthdate.getMonth();
-                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthdate.getDate())) {
-                    age--;
-                }
-                childAgeInput.value = age;
-            }
+            // Set up event listeners
+            setupEventListeners();
         }
 
         // --- 2. State Management ---
@@ -499,7 +504,7 @@
                         <label class="input-label">发生频率</label>
                         <div class="radio-group">
                             <label class="radio-option">
-                                <input type="radio" name="q-freq-${question.id}" value="occasionally" ${savedAnswer.frequency === 'occasionally' ? 'checked' : ''}>
+                                <input type="radio" name="q-freq-${question.id}" value="occasionally" ${savedAnswer.frequency === 'occasionally' || savedAnswer.frequency === null ? 'checked' : ''}>
                                 <span>偶尔出现 (√)</span>
                             </label>
                             <label class="radio-option">
@@ -510,7 +515,7 @@
                     </div>
                     <div class="context-input">
                         <label class="input-label" for="q-context-${question.id}">情境或案例</label>
-                        <input type="text" id="q-context-${question.id}" placeholder="请指出事件常常会发生的场合..." value="${savedAnswer.context}">
+                        <input type="text" id="q-context-${question.id}" placeholder="请指出事件常常会发生的场合..." value="${savedAnswer.context || '1'}">
                     </div>
                 </div>
             `;
@@ -605,22 +610,44 @@
                 }
 
                 // 构建符合API标准的问题数据
-                const questions = [];
+                const questionsData = [];
                 let questionIndex = 1;
                 
-                Object.entries(userAnswers).forEach(([questionId, answer]) => {
-                    if (answer && answer.trim()) {
-                        questions.push({
-                            id: questionIndex++,
-                            type: 'text_input',
-                            question: questionId,
-                            answer: answer.trim()
-                        });
+                Object.entries(userAnswers).forEach(([questionId, answerObj]) => {
+                    if (answerObj && (answerObj.frequency || answerObj.context)) {
+                        const questionText = questions.find(q => q.id == questionId)?.text || `问题${questionId}`;
+                        
+                        // 添加频率问题
+                        if (answerObj.frequency) {
+                            const frequencyText = answerObj.frequency === 'occasionally' ? '偶尔出现' : '经常出现';
+                            questionsData.push({
+                                id: questionIndex++,
+                                type: 'single_choice',
+                                question: `${questionText} - 发生频率`,
+                                options: [
+                                    { value: 'occasionally', text: '偶尔出现' },
+                                    { value: 'frequently', text: '经常出现' }
+                                ],
+                                selected: [answerObj.frequency],
+                                allow_multiple: false,
+                                is_required: true
+                            });
+                        }
+                        
+                        // 添加情境问题
+                        if (answerObj.context && answerObj.context.trim()) {
+                            questionsData.push({
+                                id: questionIndex++,
+                                type: 'text_input',
+                                question: `${questionText} - 情境或案例`,
+                                answer: answerObj.context.trim()
+                            });
+                        }
                     }
                 });
 
                 // 检查是否有足够的答案
-                if (questions.length < 3) {
+                if (questionsData.length < 3) {
                     alert('❌ 请至少回答3个问题后再提交');
                     return;
                 }
@@ -630,12 +657,21 @@
                     type: 'sm_maintenance_factors',
                     basic_info: {
                         name: userInfo.childName.trim(),
-                        grade: `${userInfo.childAge}岁 - ${userInfo.relationship}填写`,
-                        submission_date: userInfo.fillDate
+                        grade: userInfo.gradeLevel || `${userInfo.childAge}岁`,
+                        submission_date: userInfo.fillDate,
+                        gender: userInfo.gender || '',
+                        birth_date: userInfo.dob || '',
+                        age: userInfo.childAge || '',
+                        parent_phone: userInfo.parentPhone || '',
+                        parent_wechat: userInfo.parentWechat || '',
+                        parent_email: userInfo.parentEmail || '',
+                        filler_name: userInfo.fillerName || '',
+                        fill_date: userInfo.fillDate || '',
+                        relationship: userInfo.relationship || ''
                     },
-                    questions: questions,
+                    questions: questionsData,
                     statistics: {
-                        total_score: questions.length,
+                        total_score: questionsData.length,
                         completion_rate: 100,
                         submission_time: new Date().toISOString()
                     }
@@ -643,7 +679,7 @@
 
                 try {
                     // 发送POST请求到后端
-                    const response = await fetch('http://127.0.0.1:5000/api/submit', {
+                    const response = await fetch('http://127.0.0.1:5002/api/submit', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -717,11 +753,11 @@
     function showCompletion(recordId) {
         // 获取用户信息
         const currentUserInfo = {
-            childName: document.getElementById('child-name').value,
-            fillerName: document.getElementById('filler-name').value,
+            childName: document.getElementById('childName').value,
+            fillerName: document.getElementById('fillerName').value,
             relationship: document.getElementById('relationship').value,
-            childAge: document.getElementById('child-age').value,
-            fillDate: document.getElementById('fill-date').value
+            childAge: document.getElementById('childAge').value,
+            fillDate: document.getElementById('fillDate').value
         };
 
         // 隐藏摘要区域
@@ -809,137 +845,197 @@
         return html;
     }
 
-    // --- 5. Event Listeners ---
-    document.getElementById('info-section').addEventListener('input', () => {
-        startBtn.disabled = !validateUserInfo();
-    });
-    
-    startBtn.addEventListener('click', () => {
-        if (!validateUserInfo()) {
-            alert('请填写所有用户信息后再开始。');
-            return;
-        }
-
-        userInfo = {
-            childName: childNameInput.value.trim(),
-            fillerName: fillerNameInput.value.trim(),
-            relationship: relationshipInput.value.trim(),
-            childAge: childAgeInput.value,
-            fillDate: fillDateInput.value
-        };
-        
-        // Set default date if not filled
-        if(!userInfo.fillDate) {
-            fillDateInput.valueAsDate = new Date();
-            userInfo.fillDate = fillDateInput.value;
-        }
-
-        welcomePage.style.display = 'none';
-        questionsContainer.style.display = 'block';
-        renderQuestion(currentQuestionIndex);
-    });
-
-    prevBtn.addEventListener('click', () => {
-        saveAnswer(currentQuestionIndex);
-        currentQuestionIndex--;
-        renderQuestion(currentQuestionIndex);
-    });
-
-    nextBtn.addEventListener('click', () => {
-        saveAnswer(currentQuestionIndex);
-        
-        const currentAnswer = userAnswers[questions[currentQuestionIndex].id];
-        if (!currentAnswer.frequency) {
-            alert('请选择"发生频率"后再继续。');
-            return;
-        }
-
-        if (currentQuestionIndex === questions.length - 1) {
-            displaySummary();
-        } else {
-            currentQuestionIndex++;
-            renderQuestion(currentQuestionIndex);
-        }
-    });
-
-    restartBtn.addEventListener('click', () => {
-        // Reset state
-        currentQuestionIndex = 0;
-        Object.keys(userAnswers).forEach(key => delete userAnswers[key]);
-        userInfo = {};
-
-        // Reset UI
-        childNameInput.value = '';
-        fillerNameInput.value = '';
-        relationshipInput.value = '';
-        childAgeInput.value = '';
-        fillDateInput.value = '';
-        startBtn.disabled = true;
-
-        summaryContainer.style.display = 'none';
-        welcomePage.style.display = 'block';
-    });
-
-    // Initialize
-    startBtn.disabled = true;
-    fillDateInput.valueAsDate = new Date();
-    
-    // 自动填充基本信息
-    populateBasicInfo();
-
-    </script>
-    
-    <script>
-    // --- 自动填充基本信息 ---
-    function populateBasicInfo() {
-        const savedInfo = localStorage.getItem('basicInfo');
-        if (savedInfo) {
-            const info = JSON.parse(savedInfo);
+        // --- 5. Event Listeners Setup Function ---
+        function setupEventListeners() {
+            if (!startBtn || !welcomePage || !questionsContainer) return;
             
-            // 填充儿童姓名字段
-            if (info.name) {
-                const nameField = document.getElementById('child-name');
-                if (nameField) nameField.value = info.name;
+            const infoSection = document.getElementById('info-section');
+            if (infoSection) {
+                infoSection.addEventListener('input', () => {
+                    startBtn.disabled = !validateUserInfo();
+                });
             }
             
-            // 填充出生日期信息到年龄字段
-            if (info.birthdate) {
-                const birthdate = new Date(info.birthdate);
-                const today = new Date();
-                
-                let age = today.getFullYear() - birthdate.getFullYear();
-                const monthDiff = today.getMonth() - birthdate.getMonth();
-                
-                // 如果本月还没到生日，则年龄减1
-                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthdate.getDate())) {
-                    age--;
+            startBtn.addEventListener('click', () => {
+                if (!validateUserInfo()) {
+                    alert('请填写所有用户信息后再开始。');
+                    return;
                 }
+
+                // 优先从localStorage获取引导页基本信息
+                const basicInfo = JSON.parse(localStorage.getItem('basicInfo') || '{}');
                 
-                const ageField = document.getElementById('child-age');
-                if (ageField && age >= 0) {
-                    ageField.value = age + '岁';
+                userInfo = {
+                    childName: basicInfo.name || childNameInput.value.trim(),
+                    fillerName: fillerNameInput.value.trim(),
+                    relationship: relationshipInput.value.trim(),
+                    childAge: childAgeInput.value,
+                    fillDate: fillDateInput.value,
+                    gender: basicInfo.gender || '',
+                    dob: basicInfo.birthdate || '',
+                    parentPhone: basicInfo.parentPhone || '',
+                    parentWechat: basicInfo.parentWechat || '',
+                    parentEmail: basicInfo.parentEmail || '',
+                    gradeLevel: basicInfo.gradeLevel || '' // 添加年级信息
+                };
+                
+                // Set default date if not filled
+                if(!userInfo.fillDate) {
+                    fillDateInput.valueAsDate = new Date();
+                    userInfo.fillDate = fillDateInput.value;
                 }
+
+                welcomePage.style.display = 'none';
+                questionsContainer.style.display = 'block';
+                renderQuestion(currentQuestionIndex);
+            });
+
+            if (prevBtn) {
+                prevBtn.addEventListener('click', () => {
+                    saveAnswer(currentQuestionIndex);
+                    currentQuestionIndex--;
+                    renderQuestion(currentQuestionIndex);
+                });
             }
+
+            if (nextBtn) {
+                nextBtn.addEventListener('click', () => {
+                    saveAnswer(currentQuestionIndex);
+                    
+                    const currentAnswer = userAnswers[questions[currentQuestionIndex].id];
+                    if (!currentAnswer.frequency) {
+                        alert('请选择"发生频率"后再继续。');
+                        return;
+                    }
+
+                    if (currentQuestionIndex === questions.length - 1) {
+                        displaySummary();
+                    } else {
+                        currentQuestionIndex++;
+                        renderQuestion(currentQuestionIndex);
+                    }
+                });
+            }
+
+            // 添加直接提交按钮事件监听器
+            const quickSubmitBtn = document.getElementById('quick-submit-btn');
+            if (quickSubmitBtn) {
+                quickSubmitBtn.addEventListener('click', () => {
+                    // 保存当前答案
+                    saveAnswer(currentQuestionIndex);
+                    
+                    // 检查是否有足够的答案
+                    const answeredQuestions = Object.keys(userAnswers).filter(id => 
+                        userAnswers[id] && userAnswers[id].frequency
+                    ).length;
+                    
+                    if (answeredQuestions < 3) {
+                        alert('请至少回答3个问题后再提交。');
+                        return;
+                    }
+                    
+                    // 直接跳转到摘要页面
+                    displaySummary();
+                });
+            }
+
+            if (restartBtn) {
+                restartBtn.addEventListener('click', () => {
+                    // Reset state
+                    currentQuestionIndex = 0;
+                    Object.keys(userAnswers).forEach(key => delete userAnswers[key]);
+                    userInfo = {};
+
+                    // Reset UI
+                    if (childNameInput) childNameInput.value = '';
+                    if (fillerNameInput) fillerNameInput.value = '';
+                    if (relationshipInput) relationshipInput.value = '';
+                    if (childAgeInput) childAgeInput.value = '';
+                    if (fillDateInput) fillDateInput.value = '';
+                    if (startBtn) startBtn.disabled = true;
+
+                    if (summaryContainer) summaryContainer.style.display = 'none';
+                    if (welcomePage) welcomePage.style.display = 'block';
+                });
+            }
+
+            // Initialize
+            if (startBtn) startBtn.disabled = true;
+            if (fillDateInput) fillDateInput.valueAsDate = new Date();
             
-            // 填充性别信息到关系字段（作为默认值）
-            if (info.gender) {
-                const relationshipField = document.getElementById('relationship');
-                if (relationshipField && !relationshipField.value) {
-                    // 根据性别设置默认关系
-                    if (info.gender === '男') {
-                        relationshipField.value = '父亲';
-                    } else if (info.gender === '女') {
-                        relationshipField.value = '母亲';
+            // 添加快捷键监听器显示回退按钮
+            document.addEventListener('keydown', function(e) {
+                if (e.ctrlKey && e.shiftKey && e.key === 'R') {
+                    e.preventDefault();
+                    const rollbackBtn = document.getElementById('rollback-btn');
+                    if (rollbackBtn) {
+                        rollbackBtn.style.display = rollbackBtn.style.display === 'none' ? 'inline-block' : 'none';
                     }
                 }
-            }
-            
-            // 检查表单是否有效
-            if (typeof validateUserInfo === 'function') {
-                startBtn.disabled = !validateUserInfo();
+            });
+        }
+        
+        // 回退测试改动的函数
+        function rollbackTestChanges() {
+            if (confirm('确定要回退所有测试改动吗？这将恢复原始的表单行为。')) {
+                // 创建一个临时的style元素来覆盖测试改动
+                const rollbackStyle = document.createElement('style');
+                rollbackStyle.id = 'rollback-style';
+                rollbackStyle.innerHTML = `
+                    /* 回退默认选中第一个频率选项 */
+                    input[type="radio"][value="occasionally"] {
+                        /* 移除默认选中 */
+                    }
+                    /* 隐藏直接提交按钮 */
+                    #quick-submit-btn {
+                        display: none !important;
+                    }
+                `;
+                document.head.appendChild(rollbackStyle);
+                
+                // 重新渲染当前问题以应用回退
+                if (typeof renderQuestion === 'function' && typeof currentQuestionIndex !== 'undefined') {
+                    // 清除所有已保存的答案中的默认值
+                    Object.keys(userAnswers).forEach(questionId => {
+                        if (userAnswers[questionId] && userAnswers[questionId].context === '1') {
+                            userAnswers[questionId].context = '';
+                        }
+                        if (userAnswers[questionId] && userAnswers[questionId].frequency === 'occasionally') {
+                            userAnswers[questionId].frequency = null;
+                        }
+                    });
+                    
+                    // 重新渲染当前问题
+                    renderQuestion(currentQuestionIndex);
+                    
+                    // 手动清除默认值
+                    setTimeout(() => {
+                        const contextInputs = document.querySelectorAll('input[id^="q-context-"]');
+                        contextInputs.forEach(input => {
+                            if (input.value === '1') {
+                                input.value = '';
+                            }
+                        });
+                        
+                        const radioInputs = document.querySelectorAll('input[type="radio"][value="occasionally"]');
+                        radioInputs.forEach(radio => {
+                            radio.checked = false;
+                        });
+                    }, 100);
+                }
+                
+                alert('✅ 测试改动已回退！\n- 频率选项不再默认选中\n- 情境输入框不再默认填写"1"\n- 直接提交按钮已隐藏');
+                
+                // 隐藏回退按钮
+                const rollbackBtn = document.getElementById('rollback-btn');
+                if (rollbackBtn) {
+                    rollbackBtn.style.display = 'none';
+                }
             }
         }
-    }
+
     </script>
+    
+
 </body>
 </html>

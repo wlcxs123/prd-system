@@ -18,7 +18,7 @@ class ProductionConfig:
         raise ValueError("生产环境必须设置 SECRET_KEY 环境变量")
     
     # 数据库配置
-    DATABASE_PATH = os.environ.get('DATABASE_PATH', '/app/data/questionnaires.db')
+    DATABASE_PATH = os.environ.get('DATABASE_PATH', os.path.join(os.path.dirname(__file__), 'questionnaires.db'))
     
     # 会话配置
     SESSION_PERMANENT = False

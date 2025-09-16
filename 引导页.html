@@ -198,6 +198,55 @@
                         </label>
                     </div>
                 </div>
+                
+                <div style="display: flex; flex-direction: column;">
+                    <label for="gradeLevel" style="margin-bottom: 8px; font-weight: 600; color: #475569;">年级信息</label>
+                    <select id="gradeLevel" required style="
+                        padding: 12px 16px;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 8px;
+                        font-size: 1rem;
+                        font-family: 'Nunito', sans-serif;
+                    ">
+                        <option value="">请选择</option>
+                        <option value="学前 3-5">学前 3-5</option>
+                        <option value="小学 6-11">小学 6-11</option>
+                        <option value="中学 12-18">中学 12-18</option>
+                    </select>
+                </div>
+                
+                <div style="display: flex; flex-direction: column;">
+                    <label for="parentPhone" style="margin-bottom: 8px; font-weight: 600; color: #475569;">家长电话</label>
+                    <input type="tel" id="parentPhone" style="
+                        padding: 12px 16px;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 8px;
+                        font-size: 1rem;
+                        font-family: 'Nunito', sans-serif;
+                    " placeholder="请输入家长电话">
+                </div>
+                
+                <div style="display: flex; flex-direction: column;">
+                    <label for="parentWechat" style="margin-bottom: 8px; font-weight: 600; color: #475569;">家长微信</label>
+                    <input type="text" id="parentWechat" style="
+                        padding: 12px 16px;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 8px;
+                        font-size: 1rem;
+                        font-family: 'Nunito', sans-serif;
+                    " placeholder="请输入家长微信号">
+                </div>
+                
+                <div style="display: flex; flex-direction: column;">
+                    <label for="parentEmail" style="margin-bottom: 8px; font-weight: 600; color: #475569;">家长邮箱</label>
+                    <input type="email" id="parentEmail" style="
+                        padding: 12px 16px;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 8px;
+                        font-size: 1rem;
+                        font-family: 'Nunito', sans-serif;
+                    " placeholder="请输入家长邮箱">
+                </div>
             </form>
         </div>
 
@@ -208,7 +257,7 @@
                 <div class="meta">
                     <span class="time-estimate"><i class="fas fa-clock"></i>预计时间: 45 - 60 分钟</span>
                 </div>
-                <a href="javascript:void(0)" onclick="window.location.href=CONFIG.BASE_URL + '/家长访谈表.html'" class="btn">开始填写家长访谈表</a>
+                <a href="javascript:void(0)" onclick="navigateToForm('/家长访谈表.html')" class="btn">开始填写家长访谈表</a>
             </div>
 
             <div class="card">
@@ -217,7 +266,7 @@
                 <div class="meta">
                     <span class="time-estimate"><i class="fas fa-clock"></i>预计时间: 10 - 15 分钟</span>
                 </div>
-                <a href="javascript:void(0)" onclick="window.location.href=CONFIG.BASE_URL + '/小学生交流评定表.html'" class="btn">开始填写交流评定表</a>
+                <a href="javascript:void(0)" onclick="navigateToForm('/小学生交流评定表.html')" class="btn">开始填写交流评定表</a>
             </div>
 
             <div class="card">
@@ -226,16 +275,16 @@
                 <div class="meta">
                     <span class="time-estimate"><i class="fas fa-clock"></i>预计时间: 30 - 45 分钟</span>
                 </div>
-                <a href="javascript:void(0)" onclick="window.location.href=CONFIG.BASE_URL + '/青少年访谈表格.html'" class="btn">开始填写青少年访谈</a>
+                <a href="javascript:void(0)" onclick="navigateToForm('/青少年访谈表格.html')" class="btn">开始填写青少年访谈</a>
             </div>
             
             <div class="card">
                 <h2>说话习惯记录</h2>
-                <p class="description">该记录表用于系统性地追踪和总结孩子在不同人（如家人、朋友、陌生人）面前和不同场景下的说话习惯。其目的是直观地呈现孩子的沟通模式，形成“说话地图”以帮助确定干预的切入点。</p>
+                <p class="description">该记录表用于系统性地追踪和总结孩子在不同人（如家人、朋友、陌生人）面前和不同场景下的说话习惯。其目的是直观地呈现孩子的沟通模式，形成"说话地图"以帮助确定干预的切入点。</p>
                 <div class="meta">
                     <span class="time-estimate"><i class="fas fa-clock"></i>预计时间: 3 - 5 分钟</span>
                 </div>
-                <a href="javascript:void(0)" onclick="window.location.href=CONFIG.BASE_URL + '/说话习惯记录.html'" class="btn">开始填写说话习惯记录</a>
+                <a href="javascript:void(0)" onclick="navigateToForm('/说话习惯记录.html')" class="btn">开始填写说话习惯记录</a>
             </div>
 
             <div class="card">
@@ -244,7 +293,7 @@
                 <div class="meta">
                     <span class="time-estimate"><i class="fas fa-clock"></i>预计时间: 45 - 60 分钟</span>
                 </div>
-                <a href="javascript:void(0)" onclick="window.location.href=CONFIG.BASE_URL + '/小学生报告表.html'" class="btn">开始填写小学生报告</a>
+                <a href="javascript:void(0)" onclick="navigateToForm('/小学生报告表.html')" class="btn">开始填写小学生报告表</a>
             </div>
 
             <div class="card">
@@ -253,7 +302,7 @@
                 <div class="meta">
                     <span class="time-estimate"><i class="fas fa-clock"></i>预计时间: 15 - 20 分钟</span>
                 </div>
-                <a href="javascript:void(0)" onclick="window.location.href=CONFIG.BASE_URL + '/可能的SM维持因素清单.html'" class="btn">开始填写维持因素清单</a>
+                <a href="javascript:void(0)" onclick="navigateToForm('/可能的SM维持因素清单.html')" class="btn">开始填写维持因素清单</a>
             </div>
 
         </main>
@@ -264,13 +313,91 @@
     </div>
 
     <script>
+        // 保存基本信息到localStorage的函数（全局作用域）
+        function saveBasicInfo() {
+            const nameInput = document.getElementById('name');
+            const birthdateInput = document.getElementById('birthdate');
+            const genderRadios = document.querySelectorAll('input[name="gender"]');
+            const gradeLevelSelect = document.getElementById('gradeLevel');
+            const parentPhoneInput = document.getElementById('parentPhone');
+            const parentWechatInput = document.getElementById('parentWechat');
+            const parentEmailInput = document.getElementById('parentEmail');
+            
+            if (!nameInput) return; // 如果元素还未加载，直接返回
+            
+            let selectedGender = '男'; // 默认值
+            genderRadios.forEach(radio => {
+                if (radio.checked) {
+                    selectedGender = radio.value;
+                }
+            });
+            
+            const basicInfo = {
+                name: nameInput.value,
+                birthdate: birthdateInput.value,
+                gender: selectedGender,
+                gradeLevel: gradeLevelSelect.value,
+                parentPhone: parentPhoneInput.value,
+                parentWechat: parentWechatInput.value,
+                parentEmail: parentEmailInput.value
+            };
+            
+            localStorage.setItem('basicInfo', JSON.stringify(basicInfo));
+        }
+
+        // 导航到表单页面的函数
+        function navigateToForm(formPath) {
+            // 保存基本信息
+            saveBasicInfo();
+            
+            // 检查是否为完整URL（包含http://或https://）
+            if (formPath.startsWith('http://') || formPath.startsWith('https://')) {
+                // 直接跳转到完整URL
+                window.location.href = formPath;
+            } else {
+                // 处理相对路径
+                // 检测当前环境
+                const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname === '';
+                
+                if (isLocal) {
+                    // 本地环境：直接跳转到本地文件
+                    window.location.href = formPath;
+                } else {
+                    // 生产环境：使用CONFIG.BASE_URL
+                    if (CONFIG && CONFIG.BASE_URL) {
+                        window.location.href = CONFIG.BASE_URL + formPath;
+                    } else {
+                        // 如果CONFIG未初始化，等待初始化完成
+                        console.log('等待CONFIG初始化...');
+                        window.addEventListener('configReady', function() {
+                            console.log('CONFIG已初始化，跳转到:', CONFIG.BASE_URL + formPath);
+                            window.location.href = CONFIG.BASE_URL + formPath;
+                        });
+                        
+                        // 如果CONFIG对象存在但BASE_URL为空，手动初始化
+                        if (CONFIG && !CONFIG.BASE_URL) {
+                            CONFIG.init();
+                        }
+                    }
+                }
+            }
+        }
+        
         // 等待DOM加载完成
         document.addEventListener('DOMContentLoaded', function() {
+            // 初始化CONFIG
+            if (CONFIG && typeof CONFIG.init === 'function') {
+                CONFIG.init();
+            }
             // 获取表单元素
             const birthdateInput = document.getElementById('birthdate');
             const ageInput = document.getElementById('age');
             const nameInput = document.getElementById('name');
             const genderRadios = document.querySelectorAll('input[name="gender"]');
+            const gradeLevelSelect = document.getElementById('gradeLevel');
+            const parentPhoneInput = document.getElementById('parentPhone');
+            const parentWechatInput = document.getElementById('parentWechat');
+            const parentEmailInput = document.getElementById('parentEmail');
             const form = document.getElementById('basicInfoForm');
             
             // 加载已保存的基本信息（如果有）
@@ -290,6 +417,10 @@
                             }
                         });
                     }
+                    if (info.gradeLevel) gradeLevelSelect.value = info.gradeLevel;
+                    if (info.parentPhone) parentPhoneInput.value = info.parentPhone;
+                    if (info.parentWechat) parentWechatInput.value = info.parentWechat;
+                    if (info.parentEmail) parentEmailInput.value = info.parentEmail;
                 }
             }
             
@@ -309,23 +440,7 @@
                 ageInput.value = age + ' 岁';
             }
             
-            // 保存基本信息到localStorage的函数
-            function saveBasicInfo() {
-                let selectedGender = '男'; // 默认值
-                genderRadios.forEach(radio => {
-                    if (radio.checked) {
-                        selectedGender = radio.value;
-                    }
-                });
-                
-                const basicInfo = {
-                    name: nameInput.value,
-                    birthdate: birthdateInput.value,
-                    gender: selectedGender
-                };
-                
-                localStorage.setItem('basicInfo', JSON.stringify(basicInfo));
-            }
+            // saveBasicInfo函数已在全局作用域定义
             
             // 监听出生日期变化，自动计算年龄
             birthdateInput.addEventListener('change', function() {
@@ -342,6 +457,7 @@
             genderRadios.forEach(radio => {
                 radio.addEventListener('change', saveBasicInfo);
             });
+            gradeLevelSelect.addEventListener('change', saveBasicInfo);
             
             // 为所有页面链接添加点击事件，确保跳转前保存信息
             const links = document.querySelectorAll('a[href$=".html"]');

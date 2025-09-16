@@ -95,15 +95,18 @@
             color: var(--text-color);
         }
 
-        .form-group input, .form-group textarea {
+        .form-group input, .form-group textarea, .form-group select {
             width: 100%;
             padding: 10px;
             border-radius: 8px;
             border: 2px solid #E5E7EB;
             transition: border-color 0.3s ease;
+            background-color: white;
+            font-size: inherit;
+            font-family: inherit;
         }
 
-        .form-group input:focus, .form-group textarea:focus {
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
             outline: none;
             border-color: var(--accent-color);
         }
@@ -407,9 +410,15 @@
                     <div id="info-form" class="info-form-grid">
                         <div class="form-group"><label for="childName">姓名</label><input type="text" id="childName" required></div>
                         <div class="form-group"><label for="dob">出生日期</label><input type="date" id="dob" required></div>
+                        <div class="form-group"><label for="gender">性别</label><select id="gender" required><option value="">请选择</option><option value="男">男</option><option value="女">女</option></select></div>
+                        <div class="form-group"><label for="gradeLevel">年级</label><input type="text" id="gradeLevel" placeholder="如：三年级" required></div>
                         <div class="form-group"><label for="schoolName">学校</label><input type="text" id="schoolName" required></div>
                         <div class="form-group"><label for="admissionDate">入学日期</label><input type="date" id="admissionDate" required></div>
                         <div class="form-group" style="grid-column: 1 / -1;"><label for="address">地址</label><input type="text" id="address" required></div>
+                        <hr style="grid-column: 1 / -1; border-top: 2px solid var(--light-accent); margin: 10px 0;">
+                        <div class="form-group"><label for="parentPhone">家长手机号</label><input type="tel" id="parentPhone" placeholder="可选"></div>
+                        <div class="form-group"><label for="parentWechat">家长微信</label><input type="text" id="parentWechat" placeholder="可选"></div>
+                        <div class="form-group"><label for="parentEmail">家长邮箱</label><input type="email" id="parentEmail" placeholder="可选"></div>
                         <hr style="grid-column: 1 / -1; border-top: 2px solid var(--light-accent); margin: 10px 0;">
                         <div class="form-group"><label for="fillerName">填表人姓名</label><input type="text" id="fillerName" required></div>
                         <div class="form-group"><label for="fillDate">填表日期</label><input type="date" id="fillDate" required></div>
@@ -603,6 +612,10 @@
                         <div><strong>入学日期:</strong> ${reportInfo.admissionDate}</div>
                         <div style="grid-column: 1 / -1;"><strong>地址:</strong> ${reportInfo.address}</div>
                         <hr style="grid-column: 1 / -1; border: 0; border-top: 1px solid #ddd; margin: 10px 0;">
+                        <div><strong>家长手机:</strong> ${reportInfo.parentPhone || '未填写'}</div>
+                        <div><strong>家长微信:</strong> ${reportInfo.parentWechat || '未填写'}</div>
+                        <div><strong>家长邮箱:</strong> ${reportInfo.parentEmail || '未填写'}</div>
+                        <hr style="grid-column: 1 / -1; border: 0; border-top: 1px solid #ddd; margin: 10px 0;">
                         <div><strong>填表人:</strong> ${reportInfo.fillerName}</div>
                         <div><strong>填表日期:</strong> ${reportInfo.fillDate}</div>
                     </div>
@@ -646,9 +659,14 @@
             reportInfo = {
                 childName: document.getElementById('childName').value,
                 dob: document.getElementById('dob').value,
+                gender: document.getElementById('gender').value,
+                gradeLevel: document.getElementById('gradeLevel').value,
                 schoolName: document.getElementById('schoolName').value,
                 admissionDate: document.getElementById('admissionDate').value,
                 address: document.getElementById('address').value,
+                parentPhone: document.getElementById('parentPhone').value,
+                parentWechat: document.getElementById('parentWechat').value,
+                parentEmail: document.getElementById('parentEmail').value,
                 fillerName: document.getElementById('fillerName').value,
                 fillDate: document.getElementById('fillDate').value,
             };
@@ -676,8 +694,18 @@
         restartBtn.addEventListener('click', () => {
             currentQuestionIndex = 0;
             Object.keys(userAnswers).forEach(key => delete userAnswers[key]);
-            document.querySelectorAll('#info-form input').forEach(input => input.value = '');
-            document.getElementById('fillDate').valueAsDate = new Date();
+            document.querySelectorAll('#info-form input, #info-form select').forEach(input => {
+                if (input.id === 'fillDate') {
+                    input.valueAsDate = new Date();
+                } else {
+                    input.value = '';
+                }
+            });
+            // 重置性别选择框
+            const genderField = document.getElementById('gender');
+            if (genderField) {
+                genderField.selectedIndex = 0;
+            }
             startBtn.disabled = true;
             summaryContainer.style.display = 'none';
             welcomePage.style.display = 'block';
@@ -701,6 +729,18 @@
             const birthdateField = document.getElementById('dob');
             if (birthdateField && info.birthdate) {
                 birthdateField.value = info.birthdate;
+            }
+            
+            // 填充性别字段
+            const genderField = document.getElementById('gender');
+            if (genderField && info.gender) {
+                genderField.value = info.gender;
+            }
+            
+            // 填充年级字段
+            const gradeLevelField = document.getElementById('gradeLevel');
+            if (gradeLevelField && info.gradeLevel) {
+                gradeLevelField.value = info.gradeLevel;
             }
         }
 
@@ -730,7 +770,7 @@
                 
                 Object.entries(userAnswers).forEach(([questionId, answer]) => {
                     // 查找对应的问题文本
-                    const question = questionsData.find(q => q.id === questionId);
+                    const question = questions.find(q => q.id === questionId);
                     const questionText = question ? question.text : questionId;
                     
                     if (typeof answer === 'string' && answer.trim()) {
@@ -742,22 +782,18 @@
                             answer: answer.trim()
                         });
                     } else if (typeof answer === 'object' && answer !== null) {
-                        // 评分题
+                        // 评分题 - 保持rating-scale类型
                         const ratings = Object.entries(answer).filter(([key, value]) => value !== undefined);
                         if (ratings.length > 0) {
                             ratings.forEach(([subQuestion, rating]) => {
                                 questions.push({
                                     id: questionIndex++,
-                                    type: 'multiple_choice',
+                                    type: 'rating_scale',
                                     question: `${questionText} - ${subQuestion}`,
-                                    options: [
-                                        { value: 0, text: '从不' },
-                                        { value: 1, text: '很少' },
-                                        { value: 2, text: '有时' },
-                                        { value: 3, text: '经常' },
-                                        { value: 4, text: '总是' }
-                                    ],
-                                    selected: [rating]
+                                    rating: rating,
+                                    max_rating: 5,
+                                    min_rating: 1,
+                                    scale_labels: ['非常低', '低于平均', '平均', '优于平均', '非常好']
                                 });
                             });
                         }
@@ -772,11 +808,21 @@
 
                 // 构建符合API标准的完整数据对象
                 const dataToSubmit = {
-                    type: 'elementary_school_report',
+                    type: '小学生报告',
                     basic_info: {
                         name: reportInfo.childName.trim(),
-                        grade: '小学生报告表',
-                        submission_date: reportInfo.fillDate
+                        grade: reportInfo.gradeLevel || '未填写',
+                        submission_date: reportInfo.fillDate,
+                        gender: reportInfo.gender || '',
+                        birth_date: reportInfo.dob || '',
+                        parent_phone: reportInfo.parentPhone || '',
+                        parent_wechat: reportInfo.parentWechat || '',
+                        parent_email: reportInfo.parentEmail || '',
+                        school_name: reportInfo.schoolName || '',
+                        admission_date: reportInfo.admissionDate || '',
+                        address: reportInfo.address || '',
+                        filler_name: reportInfo.fillerName || '',
+                        fill_date: reportInfo.fillDate || ''
                     },
                     questions: questions,
                     statistics: {
@@ -876,6 +922,8 @@
                             <div class="info-grid">
                                 <div><strong>学生姓名:</strong> ${reportInfo.childName}</div>
                                 <div><strong>出生日期:</strong> ${reportInfo.dob}</div>
+                                <div><strong>性别:</strong> ${reportInfo.gender}</div>
+                                <div><strong>年级:</strong> ${reportInfo.gradeLevel}</div>
                                 <div><strong>学校:</strong> ${reportInfo.schoolName}</div>
                                 <div><strong>入学日期:</strong> ${reportInfo.admissionDate}</div>
                                 <div><strong>填表人:</strong> ${reportInfo.fillerName}</div>

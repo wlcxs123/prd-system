@@ -560,14 +560,49 @@
       report.innerHTML = reportHTML;
 
       document.getElementById('saveResult').addEventListener('click', async () => {
-        // 收集基本信息
-        const basicInfo = {
-          name: document.getElementById('childName').value,
-          birthdate: document.getElementById('dob').value,
-          gender: document.getElementById('gender').value,
-          school: document.getElementById('school').value,
-          teacher: document.getElementById('teacher').value
+        // 收集基本信息 - 优先从localStorage获取引导页信息
+        let basicInfo = {
+          name: '',
+          birthdate: '',
+          gender: '',
+          school: '',
+          teacher: '',
+          parentPhone: '',
+          parentWechat: '',
+          parentEmail: ''
         };
+        
+        // 从localStorage获取引导页基本信息
+        try {
+          const savedInfo = localStorage.getItem('basicInfo');
+          if (savedInfo) {
+            const info = JSON.parse(savedInfo);
+            basicInfo.name = info.name || '';
+            basicInfo.birthdate = info.birthdate || '';
+            basicInfo.gender = info.gender || '';
+            basicInfo.gradeLevel = info.gradeLevel || '';
+            basicInfo.parentPhone = info.parentPhone || '';
+            basicInfo.parentWechat = info.parentWechat || '';
+            basicInfo.parentEmail = info.parentEmail || '';
+          }
+        } catch (error) {
+          console.warn('获取引导页基本信息失败:', error);
+        }
+        
+        // 如果localStorage中没有信息，则从页面表单获取
+        if (!basicInfo.name) {
+          basicInfo.name = document.getElementById('childName').value || '';
+        }
+        if (!basicInfo.birthdate) {
+          basicInfo.birthdate = document.getElementById('dob').value || '';
+        }
+        if (!basicInfo.gender) {
+          basicInfo.gender = document.getElementById('gender').value || '';
+        }
+        
+        // 学校和老师信息仍从页面表单获取
+        basicInfo.school = document.getElementById('school').value || '';
+        basicInfo.teacher = document.getElementById('teacher').value || '';
 
         // 验证基本信息
         const validationErrors = [];
@@ -579,6 +614,9 @@
         }
         if (!basicInfo.gender) {
           validationErrors.push('请选择性别');
+        }
+        if (!basicInfo.gradeLevel) {
+          validationErrors.push('请在引导页选择年级信息');
         }
         if (!basicInfo.school.trim()) {
           validationErrors.push('请填写幼儿园/学校名称');
@@ -621,10 +659,26 @@
         // 构建符合API标准的完整数据对象
         const dataToSubmit = {
           type: 'parent_interview',
+          name: basicInfo.name.trim(),
+          gender: basicInfo.gender,
+          birthdate: basicInfo.birthdate,
+          grade: basicInfo.gradeLevel, // 年级信息存储在grade字段
+          school: basicInfo.school.trim(), // 添加学校字段
+          teacher: basicInfo.teacher.trim(), // 添加老师字段
+          parent_phone: basicInfo.parentPhone || '',
+          parent_wechat: basicInfo.parentWechat || '',
+          parent_email: basicInfo.parentEmail || '',
           basic_info: {
             name: basicInfo.name.trim(),
-            grade: `${basicInfo.gender} - ${basicInfo.school.trim()}`, // 将性别和学校信息合并到grade字段
-            submission_date: basicInfo.birthdate
+            gender: basicInfo.gender,
+            birth_date: basicInfo.birthdate,
+            birthdate: basicInfo.birthdate,
+            grade: basicInfo.gradeLevel,
+            school: basicInfo.school.trim(),
+            teacher: basicInfo.teacher.trim(), // 添加老师字段
+            parent_phone: basicInfo.parentPhone || '',
+            parent_wechat: basicInfo.parentWechat || '',
+            parent_email: basicInfo.parentEmail || ''
           },
           questions: questions,
           statistics: {
@@ -903,8 +957,12 @@
         console.error('自动填充基本信息时发生错误:', error);
       }
     } 
-                   init();   
-         populateBasicInfo();  
+    
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        init();
+        populateBasicInfo();
+    });
   </script>
 
 </body>

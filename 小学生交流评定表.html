@@ -872,18 +872,6 @@
             <button class="submit-btn" id="saveResultBtn" style="margin-left: 15px;">
                 <i class="fas fa-save"></i> 保存结果
             </button>
-            <button class="submit-btn" id="testConnectionBtn"
-                style="margin-left: 15px; background: linear-gradient(135deg, #10B981, #059669);">
-                <i class="fas fa-wifi"></i> 测试连接
-            </button>
-            <button class="submit-btn" id="debugBtn"
-                style="margin-left: 15px; background: linear-gradient(135deg, #F59E0B, #D97706);">
-                <i class="fas fa-bug"></i> 调试数据
-            </button>
-            <button class="submit-btn" id="testDataBtn"
-                style="margin-left: 15px; background: linear-gradient(135deg, #8B5A2B, #6B4423);">
-                <i class="fas fa-vial"></i> 测试收集
-            </button>
         </div>
 
         <div class="result-section" id="resultSection">
@@ -902,7 +890,7 @@
             </div>
         </div>
 
-        <p style="text-align: center; margin-top: 20px; color: #6B7280;">谢谢!</p>
+       
     </div>
 
     <script>
@@ -974,24 +962,7 @@
                 saveResult();
             });
 
-            // 绑定测试连接按钮事件
-            document.getElementById('testConnectionBtn').addEventListener('click', testConnection);
 
-            // 绑定调试按钮事件
-            document.getElementById('debugBtn').addEventListener('click', function () {
-                const data = debugDataStructure();
-                if (data) {
-                    alert(`调试信息已输出到控制台\n\n数据项数: ${data.length}\n请按F12查看详细信息`);
-                } else {
-                    alert('数据调试失败，请检查控制台错误信息');
-                }
-            });
-
-            // 绑定测试收集按钮事件
-            document.getElementById('testDataBtn').addEventListener('click', function () {
-                const count = testDataCollection();
-                alert(`数据收集测试完成\n\n找到 ${count} 个问题\n详细信息请查看控制台`);
-            });
         });
 
         /**
@@ -1276,12 +1247,40 @@
                     return;
                 }
 
-                // 收集基本信息
-                const basicInfo = {
-                    name: document.getElementById('name').value || '',
-                    grade: document.getElementById('grade').value || '',
-                    date: document.getElementById('date').value || ''
+                // 收集基本信息 - 优先从localStorage获取引导页信息
+                let basicInfo = {
+                    name: '',
+                    grade: '',
+                    date: ''
                 };
+                
+                // 从localStorage获取引导页基本信息
+                try {
+                    const savedInfo = localStorage.getItem('basicInfo');
+                    if (savedInfo) {
+                        const info = JSON.parse(savedInfo);
+                        basicInfo.name = info.name || '';
+                        basicInfo.date = info.birthdate || ''; // 使用出生日期作为日期
+                        basicInfo.grade = info.gradeLevel || ''; // 使用年级信息
+                        basicInfo.gender = info.gender || '';
+                        basicInfo.parentPhone = info.parentPhone || '';
+                        basicInfo.parentWechat = info.parentWechat || '';
+                        basicInfo.parentEmail = info.parentEmail || '';
+                    }
+                } catch (error) {
+                    console.warn('获取引导页基本信息失败:', error);
+                }
+                
+                // 如果localStorage中没有信息，则从页面表单获取
+                if (!basicInfo.name) {
+                    basicInfo.name = document.getElementById('name').value || '';
+                }
+                if (!basicInfo.grade) {
+                    basicInfo.grade = document.getElementById('grade').value || '';
+                }
+                if (!basicInfo.date) {
+                    basicInfo.date = document.getElementById('date').value || '';
+                }
 
                 // 收集详细问卷答案
                 const detailedAnswers = {};
@@ -1365,7 +1364,12 @@
                     basic_info: {
                         name: basicInfo.name.trim(),
                         grade: basicInfo.grade.trim(),
-                        submission_date: basicInfo.date
+                        submission_date: basicInfo.date,
+                        gender: basicInfo.gender || '',
+                        birth_date: basicInfo.birthdate || basicInfo.date,
+                        parent_phone: basicInfo.parentPhone || '',
+                        parent_wechat: basicInfo.parentWechat || '',
+                        parent_email: basicInfo.parentEmail || ''
                     },
                     questions: questions,
                     statistics: {
@@ -1783,6 +1787,39 @@
             summaryHTML += '</div>';
             return summaryHTML;
         }
+
+        // 页面加载时自动填充基本信息
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                const savedInfo = localStorage.getItem('basicInfo');
+                if (savedInfo) {
+                    const info = JSON.parse(savedInfo);
+                    
+                    // 填充基本信息字段
+                    if (info.name && document.getElementById('name')) {
+                        document.getElementById('name').value = info.name;
+                    }
+                    if (info.gradeLevel && document.getElementById('grade')) {
+                        document.getElementById('grade').value = info.gradeLevel;
+                    }
+                    if (info.birthdate && document.getElementById('date')) {
+                        document.getElementById('date').value = info.birthdate;
+                    }
+                    
+                    console.log('已自动填充基本信息:', {
+                        name: info.name,
+                        grade: info.gradeLevel,
+                        date: info.birthdate,
+                        gender: info.gender,
+                        parentPhone: info.parentPhone,
+                        parentWechat: info.parentWechat,
+                        parentEmail: info.parentEmail
+                    });
+                }
+            } catch (error) {
+                console.warn('自动填充基本信息失败:', error);
+            }
+        });
     </script>
 </body>
 

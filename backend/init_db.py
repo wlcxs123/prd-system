@@ -27,9 +27,37 @@ def check_table_structure():
             columns = [column[1] for column in cursor.fetchall()]
             
             # 检查是否需要添加新列
+            if 'gender' not in columns:
+                print("正在添加 gender 列...")
+                cursor.execute("ALTER TABLE questionnaires ADD COLUMN gender TEXT")
+            
+            if 'birthdate' not in columns:
+                print("正在添加 birthdate 列...")
+                cursor.execute("ALTER TABLE questionnaires ADD COLUMN birthdate TEXT")
+            
             if 'grade' not in columns:
                 print("正在添加 grade 列...")
                 cursor.execute("ALTER TABLE questionnaires ADD COLUMN grade TEXT")
+            
+            if 'school' not in columns:
+                print("正在添加 school 列...")
+                cursor.execute("ALTER TABLE questionnaires ADD COLUMN school TEXT")
+            
+            if 'teacher' not in columns:
+                print("正在添加 teacher 列...")
+                cursor.execute("ALTER TABLE questionnaires ADD COLUMN teacher TEXT")
+            
+            if 'parent_phone' not in columns:
+                print("正在添加 parent_phone 列...")
+                cursor.execute("ALTER TABLE questionnaires ADD COLUMN parent_phone TEXT")
+            
+            if 'parent_wechat' not in columns:
+                print("正在添加 parent_wechat 列...")
+                cursor.execute("ALTER TABLE questionnaires ADD COLUMN parent_wechat TEXT")
+            
+            if 'parent_email' not in columns:
+                print("正在添加 parent_email 列...")
+                cursor.execute("ALTER TABLE questionnaires ADD COLUMN parent_email TEXT")
             
             if 'submission_date' not in columns:
                 print("正在添加 submission_date 列...")
@@ -38,6 +66,27 @@ def check_table_structure():
             if 'updated_at' not in columns:
                 print("正在添加 updated_at 列...")
                 cursor.execute("ALTER TABLE questionnaires ADD COLUMN updated_at TIMESTAMP")
+            
+            # 添加新的字段
+            if 'school_name' not in columns:
+                print("正在添加 school_name 列...")
+                cursor.execute("ALTER TABLE questionnaires ADD COLUMN school_name TEXT")
+            
+            if 'admission_date' not in columns:
+                print("正在添加 admission_date 列...")
+                cursor.execute("ALTER TABLE questionnaires ADD COLUMN admission_date DATE")
+            
+            if 'address' not in columns:
+                print("正在添加 address 列...")
+                cursor.execute("ALTER TABLE questionnaires ADD COLUMN address TEXT")
+            
+            if 'filler_name' not in columns:
+                print("正在添加 filler_name 列...")
+                cursor.execute("ALTER TABLE questionnaires ADD COLUMN filler_name TEXT")
+            
+            if 'fill_date' not in columns:
+                print("正在添加 fill_date 列...")
+                cursor.execute("ALTER TABLE questionnaires ADD COLUMN fill_date DATE")
             
             # 迁移旧数据格式
             if 'birthdate' in columns:
@@ -61,8 +110,20 @@ def create_tables():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             type TEXT NOT NULL,
             name TEXT,
+            gender TEXT,
+            birthdate TEXT,
             grade TEXT,
+            school TEXT,
+            teacher TEXT,
+            parent_phone TEXT,
+            parent_wechat TEXT,
+            parent_email TEXT,
             submission_date DATE,
+            school_name TEXT,
+            admission_date DATE,
+            address TEXT,
+            filler_name TEXT,
+            fill_date DATE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             data TEXT NOT NULL

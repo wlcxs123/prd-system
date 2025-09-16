@@ -72,6 +72,44 @@ python backend/app.py
 - 登录页面: http://localhost:5000/login
 - 默认账号: admin/admin
 
+## 🚀 云服务器部署
+
+### 自动部署脚本
+
+项目提供了自动化部署脚本 `deploy_remote.py`，可以一键部署到云服务器。
+
+#### 使用方法
+
+1. **安装部署依赖**
+```bash
+pip install -r deploy_requirements.txt
+```
+
+2. **执行部署脚本**
+```bash
+python deploy_remote.py
+```
+
+#### 部署配置
+
+部署脚本会自动完成以下操作：
+- 连接到远程服务器 (115.190.103.114)
+- 创建当前部署的备份
+- 上传项目文件到服务器
+- 安装Python依赖
+- 配置和启动服务
+- 进行健康检查
+
+#### 部署后访问
+- 应用地址: http://115.190.103.114:8080
+- 健康检查: http://115.190.103.114:8080/health
+- 查看日志: `tail -f /usr/share/nginx-after/logs/app.log`
+
+#### 注意事项
+- 部署前请确保本地代码已提交并测试通过
+- 部署过程中如遇错误，脚本会自动回滚到备份版本
+- 部署脚本会排除敏感文件（如 .env、日志文件等）
+
 ## 📁 项目结构
 
 ```
@@ -85,6 +123,9 @@ questionnaire-management-system/
 │   ├── static/                # 静态资源
 │   ├── requirements.txt       # Python依赖
 │   └── init_db.py            # 数据库初始化
+├── deploy_remote.py           # 云服务器自动部署脚本
+├── deploy_requirements.txt    # 部署脚本依赖
+├── 环境配置说明.md             # 环境配置文档
 ├── 小学生交流评定表.html        # 问卷表单
 ├── 可能的SM维持因素清单.html     # SM因素问卷
 ├── README.md                  # 项目说明

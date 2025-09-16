@@ -867,10 +867,13 @@ function convertToStandardFormat() {
   var interventionSuggestions = generateInterventionSuggestions();
   var exposureHierarchy = generateExposureHierarchy();
   
+  // 优先从localStorage获取引导页基本信息
+  const guidanceInfo = JSON.parse(localStorage.getItem('guidanceInfo') || '{}');
+  
   return {
     type: 'frankfurt_scale_selective_mutism',
     basic_info: {
-      name: childEl.value.trim(),
+      name: guidanceInfo.name || childEl.value.trim(),
       grade: (function() {
         // 将年龄段转换为合适的年级描述
         switch(age) {
@@ -881,7 +884,7 @@ function convertToStandardFormat() {
         }
       })(),
       age: age, // 直接使用年龄段字符串
-      submission_date: dateEl.value,
+      submission_date: guidanceInfo.birthdate || dateEl.value,
       guardian: guardianEl.value.trim(),
       parent_phone: document.getElementById('parentPhone').value.trim(),
       parent_wechat: document.getElementById('parentWechat').value.trim(),

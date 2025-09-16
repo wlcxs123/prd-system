@@ -112,17 +112,22 @@ app.config['START_TIME'] = time.time()
 def get_base_url():
     """根据环境动态获取baseUrl"""
     # 获取主机名
-    hostname = os.environ.get('SERVER_NAME', '115.190.103.114')
+    hostname = os.environ.get('SERVER_NAME', '')
     
-    # 使用与前端env-config.js一致的本地环境判断逻辑
-    is_local = hostname == 'localhost' or hostname == '127.0.0.1' or hostname == '' or hostname == '0.0.0.0'
+    # 判断是否为本地环境：如果没有设置SERVER_NAME或者是本地地址
+    is_local = (not hostname or 
+                hostname in ['localhost', '127.0.0.1', '0.0.0.0'] or
+                hostname.startswith('192.168.') or
+                hostname.startswith('10.') or
+                hostname.startswith('172.'))
     
     if is_local:
-        # 本地环境使用相对路径
-        return ''
+        # 本地环境使用完整URL，确保前端可以正确跳转
+        port = os.environ.get('PORT', '5002')
+        return f'http://127.0.0.1:{port}'
     else:
         # 服务器环境使用完整URL
-        port = os.environ.get('PORT', '8081')
+        port = os.environ.get('PORT', '5002')
         return f'http://{hostname}:{port}'
 
 # 将baseUrl添加到应用配置中
@@ -204,7 +209,11 @@ def init_db():
             report_generated_at TIMESTAMP,
             parent_phone TEXT,
             parent_wechat TEXT,
-            parent_email TEXT
+            parent_email TEXT,
+            gender TEXT,
+            birthdate TEXT,
+            school TEXT,
+            teacher TEXT
         )
         ''')
         
@@ -232,6 +241,28 @@ def init_db():
         
         try:
             cursor.execute("ALTER TABLE questionnaires ADD COLUMN parent_email TEXT")
+        except sqlite3.OperationalError:
+            pass  # 字段已存在
+        
+        # 添加性别和出生日期字段
+        try:
+            cursor.execute("ALTER TABLE questionnaires ADD COLUMN gender TEXT")
+        except sqlite3.OperationalError:
+            pass  # 字段已存在
+        
+        try:
+            cursor.execute("ALTER TABLE questionnaires ADD COLUMN birthdate TEXT")
+        except sqlite3.OperationalError:
+            pass  # 字段已存在
+        
+        # 添加学校和老师字段
+        try:
+            cursor.execute("ALTER TABLE questionnaires ADD COLUMN school TEXT")
+        except sqlite3.OperationalError:
+            pass  # 字段已存在
+        
+        try:
+            cursor.execute("ALTER TABLE questionnaires ADD COLUMN teacher TEXT")
         except sqlite3.OperationalError:
             pass  # 字段已存在
         
@@ -813,14 +844,48 @@ def submit_questionnaire():
         questionnaire_type = validated_data.get('type', 'unknown')
         basic_info = validated_data.get('basic_info', {})
         
-        name = basic_info.get('name', '')
-        grade = basic_info.get('grade', '')
+        # 调试输出
+        print("\n" + "=" * 80)
+        print("🔍 DEBUG: 问卷提交调试信息")
+        print("=" * 80)
+        print(f"DEBUG: Complete basic_info content: {basic_info}")
+        print(f"DEBUG: basic_info keys: {list(basic_info.keys())}")
+        print(f"📋 validated_data keys: {list(validated_data.keys())}")
+        print(f"📋 basic_info keys: {list(basic_info.keys()) if basic_info else 'None'}")
+        print(f"👤 validated_data gender: '{validated_data.get('gender')}'")
+        print(f"🎂 validated_data birthdate: '{validated_data.get('birthdate')}'")
+        if basic_info:
+            print(f"👤 basic_info gender: '{basic_info.get('gender')}'")
+            print(f"🎂 basic_info birthdate: '{basic_info.get('birthdate')}'")
+            print(f"🎂 basic_info birth_date: '{basic_info.get('birth_date')}'")
+        print("=" * 80 + "\n")
+        
+        name = basic_info.get('name', '') or validated_data.get('name', '')
+        grade = basic_info.get('grade', '') or validated_data.get('grade', '')
         submission_date = basic_info.get('submission_date', datetime.now().strftime('%Y-%m-%d'))
         
         # 提取家长联系方式
-        parent_phone = basic_info.get('parent_phone', '')
-        parent_wechat = basic_info.get('parent_wechat', '')
-        parent_email = basic_info.get('parent_email', '')
+        parent_phone = basic_info.get('parent_phone', '') or validated_data.get('parent_phone', '')
+        parent_wechat = basic_info.get('parent_wechat', '') or validated_data.get('parent_wechat', '')
+        parent_email = basic_info.get('parent_email', '') or validated_data.get('parent_email', '')
+        
+        # 提取性别和出生日期，优先从basic_info获取，如果没有则从顶级字段获取
+        gender = basic_info.get('gender', '') or validated_data.get('gender', '')
+        birthdate = basic_info.get('birthdate', '') or basic_info.get('birth_date', '') or validated_data.get('birthdate', '') or validated_data.get('birth_date', '')
+        
+        # 提取学校和老师信息
+        school = basic_info.get('school', '') or validated_data.get('school', '')
+        teacher = basic_info.get('teacher', '') or validated_data.get('teacher', '')
+        
+        # 提取新增字段
+        school_name = basic_info.get('school_name', '')
+        admission_date = basic_info.get('admission_date', '')
+        address = basic_info.get('address', '')
+        filler_name = basic_info.get('filler_name', '')
+        fill_date = basic_info.get('fill_date', '')
+        
+        print(f"DEBUG: Final extracted values - gender: '{gender}', birthdate: '{birthdate}', school: '{school}', teacher: '{teacher}'")
+        print(f"DEBUG: New fields - school_name: '{school_name}', admission_date: '{admission_date}', address: '{address}', filler_name: '{filler_name}', fill_date: '{fill_date}'")
         
         # 始终使用服务器当前时间作为创建时间
         created_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -832,8 +897,8 @@ def submit_questionnaire():
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT INTO questionnaires (type, name, grade, submission_date, created_at, updated_at, data, parent_phone, parent_wechat, parent_email) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (questionnaire_type, name, grade, submission_date, created_at, created_at, json.dumps(final_data, default=str, ensure_ascii=False), parent_phone, parent_wechat, parent_email)
+                "INSERT INTO questionnaires (type, name, grade, submission_date, created_at, updated_at, data, parent_phone, parent_wechat, parent_email, gender, birthdate, school, teacher, school_name, admission_date, address, filler_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (questionnaire_type, name, grade, submission_date, created_at, created_at, json.dumps(final_data, default=str, ensure_ascii=False), parent_phone, parent_wechat, parent_email, gender, birthdate, school, teacher, school_name, admission_date, address, filler_name)
             )
             conn.commit()
             questionnaire_id = cursor.lastrowid
@@ -931,18 +996,75 @@ def get_questionnaires():
         
         result = []
         for q in questionnaires:
+            # 解析data字段获取详细信息
+            data = json.loads(q['data'])
+            
+            # 从data中提取性别、出生日期、家长联系信息、学校和老师信息
+            gender = None
+            birthdate = None
+            parent_phone = None
+            parent_wechat = None
+            parent_email = None
+            school = None
+            teacher = None
+            
+            # 尝试从不同位置获取基本信息
+            if 'basicInfo' in data and data['basicInfo']:
+                basic_info = data['basicInfo']
+                gender = basic_info.get('gender')
+                birthdate = basic_info.get('birthdate') or basic_info.get('birth_date')
+                parent_phone = basic_info.get('parent_phone')
+                parent_wechat = basic_info.get('parent_wechat')
+                parent_email = basic_info.get('parent_email')
+                school = basic_info.get('school')
+                teacher = basic_info.get('teacher')
+            elif 'basic_info' in data and data['basic_info']:
+                basic_info = data['basic_info']
+                gender = basic_info.get('gender')
+                birthdate = basic_info.get('birthdate') or basic_info.get('birth_date')
+                parent_phone = basic_info.get('parent_phone')
+                parent_wechat = basic_info.get('parent_wechat')
+                parent_email = basic_info.get('parent_email')
+                school = basic_info.get('school')
+                teacher = basic_info.get('teacher')
+            
+            # 如果还没找到，尝试从顶级字段获取
+            if not gender:
+                gender = data.get('gender') or data.get('basic_info_gender')
+            if not birthdate:
+                birthdate = data.get('birthdate') or data.get('basic_info_birthdate') or data.get('birth_date')
+            if not parent_phone:
+                parent_phone = data.get('parent_phone') or data.get('basic_info_parent_phone')
+            if not parent_wechat:
+                parent_wechat = data.get('parent_wechat') or data.get('basic_info_parent_wechat')
+            if not parent_email:
+                parent_email = data.get('parent_email') or data.get('basic_info_parent_email')
+            if not school:
+                school = data.get('school') or data.get('basic_info_school')
+            if not teacher:
+                teacher = data.get('teacher') or data.get('basic_info_teacher')
+            
             result.append({
                 'id': q['id'],
                 'type': q['type'],
                 'name': q['name'],
                 'grade': q['grade'],
+                'gender': gender,
+                'birthdate': birthdate,
                 'submission_date': q['submission_date'],
                 'created_at': q['created_at'],
                 'updated_at': q['updated_at'],
-                'parent_phone': q['parent_phone'],
-                'parent_wechat': q['parent_wechat'],
-                'parent_email': q['parent_email'],
-                'data': json.loads(q['data'])
+                'parent_phone': parent_phone,
+                'parent_wechat': parent_wechat,
+                'parent_email': parent_email,
+                'school': school,
+                'teacher': teacher,
+                'school_name': q['school_name'],
+                'admission_date': q['admission_date'],
+                'address': q['address'],
+                'filler_name': q['filler_name'],
+                'fill_date': q['fill_date'],
+                'data': data
             })
         
         # 记录查询操作日志（仅在有搜索条件时）
@@ -3235,6 +3357,37 @@ def study():
 def guide():
     """问卷引导页"""
     return send_file('../引导页.html')
+
+# 6张表单页面路由
+@app.route('/家长访谈表.html')
+def parent_interview():
+    """家长访谈表"""
+    return send_file('../家长访谈表.html')
+
+@app.route('/小学生交流评定表.html')
+def student_communication():
+    """小学生交流评定表"""
+    return send_file('../小学生交流评定表.html')
+
+@app.route('/青少年访谈表格.html')
+def teen_interview():
+    """青少年访谈表格"""
+    return send_file('../青少年访谈表格.html')
+
+@app.route('/说话习惯记录.html')
+def speech_habit():
+    """说话习惯记录"""
+    return send_file('../说话习惯记录.html')
+
+@app.route('/小学生报告表.html')
+def student_report():
+    """小学生报告表"""
+    return send_file('../小学生报告表.html')
+
+@app.route('/可能的SM维持因素清单.html')
+def sm_factors():
+    """可能的SM维持因素清单"""
+    return send_file('../可能的SM维持因素清单.html')
 
 if __name__ == '__main__':
     # 初始化数据库

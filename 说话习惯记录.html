@@ -483,6 +483,9 @@
                 const basicInfo = JSON.parse(localStorage.getItem('basicInfo')) || {};
                 const birthdate = basicInfo.birthdate || '';
                 const gender = basicInfo.gender || '';
+                const parentPhone = basicInfo.parentPhone || '';
+                const parentWechat = basicInfo.parentWechat || '';
+                const parentEmail = basicInfo.parentEmail || '';
                 
                 // 收集表格数据
                 const answers = {};
@@ -530,13 +533,9 @@
                 const questions = [];
                 let questionIndex = 1;
                 
-                const apiCategories = ['family', 'school', 'community'];
-                const apiSituations = ['familiar', 'unfamiliar', 'group'];
-                const apiResponseTypes = ['passive', 'active'];
-                
-                apiCategories.forEach(category => {
-                    apiSituations.forEach(situation => {
-                        apiResponseTypes.forEach(responseType => {
+                categories.forEach(category => {
+                    situations.forEach(situation => {
+                        responseTypes.forEach(responseType => {
                             const selectedOption = document.querySelector(`#${category}_${situation}_${responseType} .option.selected`);
                             if (selectedOption) {
                                 const questionText = `${category}_${situation}_${responseType}`;
@@ -548,11 +547,9 @@
                                     type: 'multiple_choice',
                                     question: questionText,
                                     options: [
-                                        { value: '0', text: '从不' },
-                                        { value: '1', text: '很少' },
-                                        { value: '2', text: '有时' },
-                                        { value: '3', text: '经常' },
-                                        { value: '4', text: '总是' }
+                                        { value: 'normal', text: '正常音量' },
+                                        { value: 'quiet', text: '小声说话' },
+                                        { value: 'whisper', text: '悄声/耳语' }
                                     ],
                                     selected: [answerValue]
                                 });
@@ -561,11 +558,8 @@
                     });
                 });
 
-                // 检查是否有足够的答案
-                if (questions.length < 5) {
-                    alert('❌ 请至少完成5个评估项目后再提交');
-                    return;
-                }
+                // 说话习惯记录表不需要强制要求完成5个项目，移除此验证
+                // 用户可以根据实际情况填写任意数量的评估项目
                 
                 // 构建符合API标准的完整数据对象
                 const dataToSubmit = {
@@ -573,7 +567,13 @@
                     basic_info: {
                         name: name.trim(),
                         grade: `${age}岁 - ${gender}`,
-                        submission_date: date
+                        submission_date: date,
+                        gender: gender || '',
+                        birth_date: birthdate || '',
+                        age: age || '',
+                        parent_phone: parentPhone || '',
+                        parent_wechat: parentWechat || '',
+                        parent_email: parentEmail || ''
                     },
                     questions: questions,
                     statistics: {
@@ -599,7 +599,7 @@
                         const result = await response.json();
                         if (result.success) {
                             alert('✅ 数据保存成功！\n问卷ID: ' + (result.id || result.record_id));
-                            showCompletion(answers, name, age, date, birthdate, gender);
+                            showCompletion(result.id || result.record_id);
                         } else {
                             let errorMessage = result.error?.message || '保存失败';
                             if (result.error?.details && Array.isArray(result.error.details)) {
