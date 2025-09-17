@@ -347,9 +347,6 @@
                     <button id="prev-btn" class="btn btn-secondary" disabled>
                         <i class="fa fa-arrow-left"></i> 上一题
                     </button>
-                    <button id="quick-submit-btn" class="btn" style="background-color: #10B981; color: white;">
-                        <i class="fa fa-flash"></i> 直接提交答卷
-                    </button>
                     <button id="next-btn" class="btn btn-primary">
                         下一题 <i class="fa fa-arrow-right"></i>
                     </button>
@@ -504,7 +501,7 @@
                         <label class="input-label">发生频率</label>
                         <div class="radio-group">
                             <label class="radio-option">
-                                <input type="radio" name="q-freq-${question.id}" value="occasionally" ${savedAnswer.frequency === 'occasionally' || savedAnswer.frequency === null ? 'checked' : ''}>
+                                <input type="radio" name="q-freq-${question.id}" value="occasionally" ${savedAnswer.frequency === 'occasionally' ? 'checked' : ''}>
                                 <span>偶尔出现 (√)</span>
                             </label>
                             <label class="radio-option">
@@ -515,7 +512,7 @@
                     </div>
                     <div class="context-input">
                         <label class="input-label" for="q-context-${question.id}">情境或案例</label>
-                        <input type="text" id="q-context-${question.id}" placeholder="请指出事件常常会发生的场合..." value="${savedAnswer.context || '1'}">
+                        <input type="text" id="q-context-${question.id}" placeholder="请指出事件常常会发生的场合..." value="${savedAnswer.context || ''}">
                     </div>
                 </div>
             `;
@@ -917,27 +914,7 @@
                 });
             }
 
-            // 添加直接提交按钮事件监听器
-            const quickSubmitBtn = document.getElementById('quick-submit-btn');
-            if (quickSubmitBtn) {
-                quickSubmitBtn.addEventListener('click', () => {
-                    // 保存当前答案
-                    saveAnswer(currentQuestionIndex);
-                    
-                    // 检查是否有足够的答案
-                    const answeredQuestions = Object.keys(userAnswers).filter(id => 
-                        userAnswers[id] && userAnswers[id].frequency
-                    ).length;
-                    
-                    if (answeredQuestions < 3) {
-                        alert('请至少回答3个问题后再提交。');
-                        return;
-                    }
-                    
-                    // 直接跳转到摘要页面
-                    displaySummary();
-                });
-            }
+
 
             if (restartBtn) {
                 restartBtn.addEventListener('click', () => {

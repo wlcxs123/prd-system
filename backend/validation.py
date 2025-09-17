@@ -21,9 +21,14 @@ class BasicInfoSchema(Schema):
         error_messages={'required': '姓名不能为空'}
     )
     grade = fields.Str(
-        required=True, 
-        validate=validate.Length(min=1, max=50, error="年级长度必须在1-50个字符之间"),
-        error_messages={'required': '年级不能为空'}
+        required=False, 
+        allow_none=True,
+        validate=validate.Length(min=1, max=50, error="年级长度必须在1-50个字符之间")
+    )
+    basic_info_grade = fields.Str(
+        required=False,
+        allow_none=True,
+        validate=validate.Length(min=1, max=50, error="年级长度必须在1-50个字符之间")
     )
     submission_date = fields.Date(
         required=True,
@@ -41,6 +46,10 @@ class BasicInfoSchema(Schema):
         allow_none=True,
         error_messages={'invalid': '出生日期格式不正确'}
     )
+    birthdate = fields.Date(
+        allow_none=True,
+        error_messages={'invalid': '出生日期格式不正确'}
+    )
     school = fields.Str(
         allow_none=True,
         validate=validate.Length(max=100, error="学校名称不能超过100个字符")
@@ -48,6 +57,10 @@ class BasicInfoSchema(Schema):
     class_name = fields.Str(
         allow_none=True,
         validate=validate.Length(max=50, error="班级名称不能超过50个字符")
+    )
+    teacher = fields.Str(
+        allow_none=True,
+        validate=validate.Length(max=50, error="老师姓名不能超过50个字符")
     )
     parent_phone = fields.Str(
         allow_none=True,
@@ -63,8 +76,47 @@ class BasicInfoSchema(Schema):
     parent_email = fields.Str(
         allow_none=True,
         validate=[
-            validate.Length(max=100, error="邮箱地址不能超过100个字符"),
-            validate.Email(error="邮箱格式不正确")
+            validate.Length(max=100, error="邮箱地址不能超过100个字符")
+        ]
+    )
+    
+    @post_load
+    def validate_parent_email(self, data, **kwargs):
+        """验证家长邮箱格式"""
+        parent_email = data.get('parent_email')
+        if parent_email and parent_email.strip():  # 只有非空时才验证格式
+            email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+            if not re.match(email_pattern, parent_email.strip()):
+                raise ValidationError({'parent_email': '邮箱格式不正确'})
+        return data
+    school_name = fields.Str(
+        allow_none=True,
+        validate=validate.Length(max=100, error="学校名称不能超过100个字符")
+    )
+    admission_date = fields.Date(
+        allow_none=True,
+        error_messages={'invalid': '入学日期格式不正确'}
+    )
+    address = fields.Str(
+        allow_none=True,
+        validate=validate.Length(max=200, error="地址不能超过200个字符")
+    )
+    filler_name = fields.Str(
+        allow_none=True,
+        validate=[
+            validate.Length(max=50, error="填表人姓名不能超过50个字符"),
+            validate.Regexp(r'^[\u4e00-\u9fa5a-zA-Z\s]*$', error="填表人姓名只能包含中文、英文字母和空格")
+        ]
+    )
+    fill_date = fields.Date(
+        allow_none=True,
+        error_messages={'invalid': '填表日期格式不正确'}
+    )
+    relationship = fields.Str(
+        allow_none=True,
+        validate=[
+            validate.Length(max=20, error="关系不能超过20个字符"),
+            validate.Regexp(r'^[\u4e00-\u9fa5a-zA-Z\s]*$', error="关系只能包含中文、英文字母和空格")
         ]
     )
     
@@ -96,6 +148,18 @@ class BasicInfoSchema(Schema):
                 raise ValidationError({'birth_date': '出生日期不能是未来日期'})
             if birth_date < date(1900, 1, 1):
                 raise ValidationError({'birth_date': '出生日期不能早于1900年'})
+        
+        return data
+    
+    @post_load
+    def validate_grade_info(self, data, **kwargs):
+        """验证年级信息逻辑 - grade和basic_info_grade至少有一个不为空"""
+        grade = data.get('grade')
+        basic_info_grade = data.get('basic_info_grade')
+        
+        # 检查两个年级字段是否都为空
+        if not grade and not basic_info_grade:
+            raise ValidationError({'grade': '年级信息不能为空，请填写grade或basic_info_grade字段'})
         
         return data
     
@@ -393,6 +457,25 @@ class QuestionnaireSchema(Schema):
         unknown = EXCLUDE  # 忽略未知字段而不是抛出错误
     
     @post_load
+    def validate_basic_info_by_type(self, data, **kwargs):
+        """根据问卷类型验证基本信息字段"""
+        questionnaire_type = data.get('type', '')
+        basic_info = data.get('basic_info', {})
+        
+        # 只有SM维持因素问卷才需要验证relationship字段
+        sm_types = ['sm_factors', 'sm_maintenance_factors', '可能的sm维持因素清单']
+        if questionnaire_type in sm_types:
+            relationship = basic_info.get('relationship')
+            if relationship is not None and relationship.strip():
+                # 验证relationship字段格式
+                if len(relationship) > 20:
+                    raise ValidationError("关系不能超过20个字符")
+                if not re.match(r'^[\u4e00-\u9fa5a-zA-Z\s]*$', relationship):
+                    raise ValidationError("关系只能包含中文、英文字母和空格")
+        
+        return data
+    
+    @post_load
     def validate_questions(self, data, **kwargs):
         """验证问题列表，根据类型使用不同的Schema和问题类型处理器"""
         validated_questions = []
@@ -500,6 +583,10 @@ def normalize_questionnaire_data(data):
         if 'age' in data:
             basic_info['age'] = data.get('age')
     
+    # 修复年级字段映射问题：如果basic_info中的grade为空，但根级别有grade，则使用根级别的grade
+    if basic_info and not basic_info.get('grade', '').strip() and data.get('grade', '').strip():
+        basic_info['grade'] = data.get('grade', '')
+    
     # 标准化姓名和年级
     normalized['basic_info'] = {
         'name': str(basic_info.get('name', '')).strip(),
@@ -507,14 +594,49 @@ def normalize_questionnaire_data(data):
         'submission_date': basic_info.get('submission_date', datetime.now().strftime('%Y-%m-%d'))
     }
     
-    # 添加家长联系信息
-    if basic_info.get('parent_phone'):
-        normalized['basic_info']['parent_phone'] = str(basic_info.get('parent_phone', '')).strip()
-    if basic_info.get('parent_wechat'):
-        normalized['basic_info']['parent_wechat'] = str(basic_info.get('parent_wechat', '')).strip()
-    if basic_info.get('parent_email'):
-        normalized['basic_info']['parent_email'] = str(basic_info.get('parent_email', '')).strip()
+    # 处理basic_info_grade字段（向后兼容）
+    if basic_info.get('basic_info_grade'):
+        normalized['basic_info']['basic_info_grade'] = str(basic_info.get('basic_info_grade', '')).strip()
+        # 如果grade为空但basic_info_grade有值，使用basic_info_grade作为grade
+        if not normalized['basic_info']['grade'] and normalized['basic_info']['basic_info_grade']:
+            normalized['basic_info']['grade'] = normalized['basic_info']['basic_info_grade']
     
+    # 添加家长联系信息（始终包含这些字段）
+    normalized['basic_info']['parent_phone'] = str(basic_info.get('parent_phone', '')).strip()
+    normalized['basic_info']['parent_wechat'] = str(basic_info.get('parent_wechat', '')).strip()
+    normalized['basic_info']['parent_email'] = str(basic_info.get('parent_email', '')).strip()
+    
+    # 添加性别和出生日期信息
+    if basic_info.get('gender'):
+        normalized['basic_info']['gender'] = str(basic_info.get('gender', '')).strip()
+    if basic_info.get('birthdate'):
+        normalized['basic_info']['birthdate'] = str(basic_info.get('birthdate', '')).strip()
+    if basic_info.get('birth_date'):
+        normalized['basic_info']['birth_date'] = str(basic_info.get('birth_date', '')).strip()
+    
+    # 添加学校和老师信息
+    if basic_info.get('school'):
+        normalized['basic_info']['school'] = str(basic_info.get('school', '')).strip()
+    if basic_info.get('teacher'):
+        normalized['basic_info']['teacher'] = str(basic_info.get('teacher', '')).strip()
+
+    # 添加新字段
+    if basic_info.get('school_name'):
+        normalized['basic_info']['school_name'] = str(basic_info.get('school_name', '')).strip()
+    if basic_info.get('admission_date'):
+        normalized['basic_info']['admission_date'] = str(basic_info.get('admission_date', '')).strip()
+    if basic_info.get('address'):
+        normalized['basic_info']['address'] = str(basic_info.get('address', '')).strip()
+    if basic_info.get('filler_name'):
+        normalized['basic_info']['filler_name'] = str(basic_info.get('filler_name', '')).strip()
+    if basic_info.get('fill_date'):
+        normalized['basic_info']['fill_date'] = str(basic_info.get('fill_date', '')).strip()
+    
+    # relationship字段仅适用于SM维持因素问卷
+    questionnaire_type = normalized['type']
+    if questionnaire_type in ['sm_factors', 'sm_maintenance_factors', '可能的sm维持因素清单'] and basic_info.get('relationship'):
+        normalized['basic_info']['relationship'] = str(basic_info.get('relationship', '')).strip()
+
     if basic_info.get('age'):
         # 保持age为字符串格式，支持年龄段如'6_11'
         normalized['basic_info']['age'] = str(basic_info['age']).strip()
@@ -998,8 +1120,10 @@ def validate_questionnaire_with_schema(data):
     返回 (is_valid, errors, validated_data)
     """
     try:
+        print(f"DEBUG VALIDATION: Input basic_info: {data.get('basic_info', {})}")
         schema = QuestionnaireSchema()
         validated_data = schema.load(data)
+        print(f"DEBUG VALIDATION: Output basic_info: {validated_data.get('basic_info', {})}")
         return True, [], validated_data
     except ValidationError as e:
         return False, e.messages, None

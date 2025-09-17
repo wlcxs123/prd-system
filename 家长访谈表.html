@@ -338,6 +338,7 @@
               <label for="teacher">主要负责的老师：</label>
               <input type="text" id="teacher" class="form-control" required="">
             </div>
+
           </form>
           <div class="cta">
             <button class="btn btn-primary" id="confirmBasic" disabled="">确认信息并开始</button>
@@ -560,51 +561,37 @@
       report.innerHTML = reportHTML;
 
       document.getElementById('saveResult').addEventListener('click', async () => {
-        // 收集基本信息 - 优先从localStorage获取引导页信息
-        let basicInfo = {
-          name: '',
-          birthdate: '',
-          gender: '',
-          school: '',
-          teacher: '',
-          parentPhone: '',
-          parentWechat: '',
-          parentEmail: ''
+        // 收集基本信息
+        const savedInfo = localStorage.getItem('basicInfo');
+        let parentContactInfo = {};
+        
+        if (savedInfo) {
+          try {
+            const info = JSON.parse(savedInfo);
+            parentContactInfo = {
+              parent_phone: info.parentPhone || '',
+              parent_wechat: info.parentWechat || '',
+              parent_email: info.parentEmail || ''
+            };
+          } catch (error) {
+            console.error('解析localStorage数据时发生错误:', error);
+          }
+        }
+        
+        const basicInfo = {
+          name: document.getElementById('childName').value,
+          birthdate: document.getElementById('dob').value,
+          gender: document.getElementById('gender').value,
+          school: document.getElementById('school').value,
+          teacher: document.getElementById('teacher').value,
+          ...parentContactInfo
         };
         
-        // 从localStorage获取引导页基本信息
-        try {
-          const savedInfo = localStorage.getItem('basicInfo');
-          if (savedInfo) {
-            const info = JSON.parse(savedInfo);
-            basicInfo.name = info.name || '';
-            basicInfo.birthdate = info.birthdate || '';
-            basicInfo.gender = info.gender || '';
-            basicInfo.gradeLevel = info.gradeLevel || '';
-            basicInfo.parentPhone = info.parentPhone || '';
-            basicInfo.parentWechat = info.parentWechat || '';
-            basicInfo.parentEmail = info.parentEmail || '';
-          }
-        } catch (error) {
-          console.warn('获取引导页基本信息失败:', error);
-        }
-        
-        // 如果localStorage中没有信息，则从页面表单获取
-        if (!basicInfo.name) {
-          basicInfo.name = document.getElementById('childName').value || '';
-        }
-        if (!basicInfo.birthdate) {
-          basicInfo.birthdate = document.getElementById('dob').value || '';
-        }
-        if (!basicInfo.gender) {
-          basicInfo.gender = document.getElementById('gender').value || '';
-        }
-        
-        // 学校和老师信息仍从页面表单获取
-        basicInfo.school = document.getElementById('school').value || '';
-        basicInfo.teacher = document.getElementById('teacher').value || '';
+        // 调试信息：检查数据合并情况
+        console.log('localStorage中的家长联系方式:', parentContactInfo);
+        console.log('合并后的基本信息:', basicInfo);
 
-        // 验证基本信息
+        // 验证基本信息（包括从localStorage读取的信息）
         const validationErrors = [];
         if (!basicInfo.name.trim()) {
           validationErrors.push('请填写孩子姓名');
@@ -615,15 +602,16 @@
         if (!basicInfo.gender) {
           validationErrors.push('请选择性别');
         }
-        if (!basicInfo.gradeLevel) {
-          validationErrors.push('请在引导页选择年级信息');
-        }
         if (!basicInfo.school.trim()) {
           validationErrors.push('请填写幼儿园/学校名称');
         }
         if (!basicInfo.teacher.trim()) {
           validationErrors.push('请填写主要负责的老师');
         }
+        if (!basicInfo.parent_phone || !basicInfo.parent_phone.trim()) {
+          validationErrors.push('请填写家长手机号');
+        }
+
 
         if (validationErrors.length > 0) {
           alert('❌ 请完善以下信息：\n' + validationErrors.join('\n'));
@@ -656,29 +644,29 @@
           return;
         }
 
+        // 从localStorage获取正确的年级信息
+        let gradeLevel = '';
+        try {
+          const savedInfo = JSON.parse(localStorage.getItem('basicInfo') || '{}');
+          gradeLevel = savedInfo.gradeLevel || '';
+        } catch (e) {
+          console.error('获取年级信息失败:', e);
+        }
+
         // 构建符合API标准的完整数据对象
         const dataToSubmit = {
           type: 'parent_interview',
-          name: basicInfo.name.trim(),
-          gender: basicInfo.gender,
-          birthdate: basicInfo.birthdate,
-          grade: basicInfo.gradeLevel, // 年级信息存储在grade字段
-          school: basicInfo.school.trim(), // 添加学校字段
-          teacher: basicInfo.teacher.trim(), // 添加老师字段
-          parent_phone: basicInfo.parentPhone || '',
-          parent_wechat: basicInfo.parentWechat || '',
-          parent_email: basicInfo.parentEmail || '',
           basic_info: {
             name: basicInfo.name.trim(),
+            grade: gradeLevel || '未填写年级', // 使用正确的年级信息
+            submission_date: basicInfo.birthdate,
             gender: basicInfo.gender,
             birth_date: basicInfo.birthdate,
-            birthdate: basicInfo.birthdate,
-            grade: basicInfo.gradeLevel,
-            school: basicInfo.school.trim(),
+            school: basicInfo.school.trim(), // 添加学校字段
             teacher: basicInfo.teacher.trim(), // 添加老师字段
-            parent_phone: basicInfo.parentPhone || '',
-            parent_wechat: basicInfo.parentWechat || '',
-            parent_email: basicInfo.parentEmail || ''
+            parent_phone: basicInfo.parent_phone.trim(),
+            parent_wechat: basicInfo.parent_wechat.trim(),
+            parent_email: basicInfo.parent_email.trim()
           },
           questions: questions,
           statistics: {
@@ -952,17 +940,27 @@
               genderSelect.value = info.gender;
             }
           }
+          
+          // 填充学校字段
+          if (info.school) {
+            const schoolField = document.getElementById('school');
+            if (schoolField) schoolField.value = info.school;
+          }
+          
+          // 填充老师字段
+          if (info.teacher) {
+            const teacherField = document.getElementById('teacher');
+            if (teacherField) teacherField.value = info.teacher;
+          }
+          
+          // 家长联系方式信息已从localStorage读取，无需填充DOM元素
         }
       } catch (error) {
         console.error('自动填充基本信息时发生错误:', error);
       }
     } 
-    
-    // 页面加载完成后初始化
-    document.addEventListener('DOMContentLoaded', function() {
-        init();
-        populateBasicInfo();
-    });
+                   init();   
+         populateBasicInfo();  
   </script>
 
 </body>

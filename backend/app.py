@@ -127,7 +127,10 @@ def get_base_url():
         return f'http://127.0.0.1:{port}'
     else:
         # 服务器环境使用完整URL
-        port = os.environ.get('PORT', '5002')
+        port = os.environ.get('PORT', '8080')
+        # 如果没有设置SERVER_NAME，默认使用生产服务器地址
+        if not hostname:
+            hostname = '115.190.103.114'
         return f'http://{hostname}:{port}'
 
 # 将baseUrl添加到应用配置中
